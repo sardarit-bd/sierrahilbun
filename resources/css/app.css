@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Poppins:wght@300;400;500;600;700&display=swap');
 @import 'tailwindcss';
 
 @import 'tw-animate-css';
@@ -8,10 +9,11 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+    --font-serif: 'Libre Baskerville', serif;
+    --font-poppins: 'Poppins', sans-serif;
+
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-        'Noto Color Emoji';
+        'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
