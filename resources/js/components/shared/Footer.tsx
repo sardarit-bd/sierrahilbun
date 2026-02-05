@@ -18,9 +18,13 @@ export default function Footer() {
             <div className="lg:col-span-2 flex flex-col gap-6">
                {/* Logo Component */}
                <div className="flex items-center gap-2">
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center border-4 border-[#2E7D32] overflow-hidden relative">
-                   <span className="text-[#2E7D32] font-extrabold text-2xl italic z-10">T</span>
-                   <div className="absolute bottom-0 w-full h-1/3 bg-[#2E7D32] opacity-20"></div>
+                <div className="w-12 h-12 bg-white rounded-full">
+                   <img 
+                  src="/images/turftec-logo.png" 
+                  alt="TurfTec" 
+                  className="h-12 w-auto object-contain"
+                />
+                  
                 </div>
                 <span className="text-2xl font-bold tracking-tight">TurfTec</span>
               </div>
@@ -90,8 +94,6 @@ export default function Footer() {
               <a href="#" className="hover:text-white transition-colors">Privacy policy</a>
               <span className="hidden md:inline text-gray-600">|</span>
               <a href="#" className="hover:text-white transition-colors">Terms of use</a>
-              <span className="hidden md:inline text-gray-600">|</span>
-              <a href="#" className="hover:text-white transition-colors">Safety data sheets</a>
            </div>
 
            {/* Row 2: Darker footer bottom */}

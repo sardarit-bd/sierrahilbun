@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Leaf, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import AppHeaderLayout from '@/layouts/app/app-header-layout'; 
+import { Link, Head } from '@inertiajs/react';
 
 // ----------------------------------------------------------------------
 // MOCKS FOR PREVIEW (DELETE THESE IN YOUR ACTUAL PROJECT)
 // ----------------------------------------------------------------------
-const Head = ({ title }) => <div className="hidden">Title: {title}</div>;
 const InputError = ({ message, className }) => message ? <p className={`text-sm text-red-600 font-medium ${className}`}>{message}</p> : null;
 const TextLink = ({ href, children, className, ...props }) => <a href={href} className={`text-[#2E7D32] hover:text-[#1B5E20] hover:underline transition-colors font-medium ${className}`} {...props}>{children}</a>;
 const Spinner = () => <span className="animate-spin mr-2">⟳</span>;
@@ -59,10 +59,10 @@ const FacebookIcon = (props) => (
 // END MOCKS
 // ----------------------------------------------------------------------
 
-// Replacing AuthLayout with AppHeaderLayout to match the Login Design directly
-// If you must use AuthLayout, ensure it wraps AppHeaderLayout internally or styled similarly.
+
 const AuthLayoutWrapper = ({ title, description, children }) => (
     <AppHeaderLayout>
+        <Head title="Registration" />
         <div className="flex min-h-[calc(100vh-80px)]">
             {/* Left Side: Immersive Image (Hidden on mobile) */}
             <div className="hidden lg:flex lg:w-1/2 relative bg-[#1B5E20] overflow-hidden">
@@ -253,7 +253,7 @@ export default function Register() {
                             <Button 
                                 type="button" 
                                 variant="outline" 
-                                className="w-full gap-2 font-semibold text-gray-700 h-12"
+                                className="w-full gap-2 font-semibold text-gray-700 h-12 cursor-pointer"
                                 onClick={() => console.log('Google Signup')}
                             >
                                 <GoogleIcon className="w-5 h-5" />
@@ -262,7 +262,7 @@ export default function Register() {
                             <Button 
                                 type="button" 
                                 variant="outline" 
-                                className="w-full gap-2 font-semibold text-gray-700 h-12"
+                                className="w-full gap-2 font-semibold text-gray-700 h-12 cursor-pointer"
                                 onClick={() => console.log('Facebook Signup')}
                             >
                                 <FacebookIcon className="w-5 h-5" />
@@ -273,9 +273,9 @@ export default function Register() {
                         <div className="text-center mt-6 pt-4 border-t border-gray-100">
                             <p className="text-gray-500 text-sm">
                                 Already have an account?{' '}
-                                <TextLink href={login()} tabIndex={6} className="font-bold text-lg block mt-1">
-                                    Log in →
-                                </TextLink>
+                                <Link href={login()} tabIndex={6} className="font-bold text-lg block mt-1 text-[#2E7D32]">
+                                    Log in
+                                </Link>
                             </p>
                         </div>
                     </>

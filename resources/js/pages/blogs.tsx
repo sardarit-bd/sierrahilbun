@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, User, ArrowRight, Search, ChevronRight, Tag, Mail, Leaf } from 'lucide-react';
 import AppHeaderLayout from '@/layouts/app/app-header-layout';
+import { Head, Link } from '@inertiajs/react';
 
 // --- Types & Interfaces ---
 interface BlogPost {
@@ -84,6 +85,17 @@ const blogPosts: BlogPost[] = [
     date: "Feb 20, 2026",
     readTime: "7 min read",
     featured: false
+  },
+  {
+    id: 7,
+    title: "Pet-Safe Lawn Care: A Myth?",
+    excerpt: "Can you have a golf-course lawn and a dog? Yes, but you need to choose your products carefully.",
+    image: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=2069&auto=format&fit=crop",
+    category: "Lawn Renovation",
+    author: "Jon Doe",
+    date: "Feb 20, 2026",
+    readTime: "7 min read",
+    featured: false
   }
 ];
 
@@ -135,10 +147,10 @@ const PostCard = ({ post }: { post: BlogPost }) => (
           </div>
           <span className="text-xs font-bold text-gray-700">{post.author}</span>
         </div>
-        <button className="text-[#2E7D32] font-bold text-sm flex items-center gap-1 group/btn">
+        <Link href="/blogs/post" className="text-[#2E7D32] font-bold text-sm flex items-center gap-1 group/btn">
           Read Article 
           <ChevronRight size={16} className="transition-transform group-hover/btn:translate-x-1" />
-        </button>
+        </Link>
       </div>
     </div>
   </div>
@@ -162,6 +174,7 @@ export default function BlogPage() {
 
   return (
     <AppHeaderLayout>
+      <Head title="All Blogs" />
       <div className="w-full max-w-7xl mx-auto px-6 py-12">
         
         {/* Header Section */}

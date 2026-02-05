@@ -47,8 +47,9 @@ export default function BeforeAfter() {
   }, []);
 
   // Images representing the transformation
-  const beforeImage = "https://images.unsplash.com/photo-1769631417306-a1da09f42b20?q=80&w=1193&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
-  const afterImage = "https://images.unsplash.com/photo-1769406525591-619fd06c678a?q=80&w=2081&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+  // Using Unsplash images for preview; replace with your local paths "/images/lawn-before.png" if available
+  const beforeImage = "/images/lawn_before_cropped.png";
+  const afterImage = "/images/lawn_after_cropped.png";
 
   // Handlers for dragging interaction
   const handleMouseDown = () => setIsDragging(true);
@@ -61,7 +62,7 @@ export default function BeforeAfter() {
     setSliderPosition(Math.min(Math.max(percentage, 0), 100));
   };
 
-  // Global event listeners for smooth dragging even if mouse leaves the component
+  // Global event listeners for smooth dragging
   useEffect(() => {
     const handleMouseUp = () => setIsDragging(false);
     const handleMouseMove = (e) => isDragging && handleMove(e.clientX);
@@ -84,7 +85,6 @@ export default function BeforeAfter() {
 
   const handleInteractionStart = (e) => {
     setIsDragging(true);
-    // Allow immediate jump on click
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     handleMove(clientX);
   };
@@ -115,7 +115,7 @@ export default function BeforeAfter() {
         {/* Comparison Slider */}
         <div 
           ref={containerRef}
-          className="relative w-full max-w-6xl mx-auto aspect-[4/3] md:aspect-[21/9] rounded-xl overflow-hidden shadow-2xl cursor-ew-resize select-none group touch-none"
+          className="relative w-full max-w-6xl mx-auto aspect-[16/9] rounded-xl overflow-hidden shadow-2xl cursor-ew-resize select-none group touch-none"
           onMouseDown={handleInteractionStart}
           onTouchStart={handleInteractionStart}
         >
@@ -123,7 +123,7 @@ export default function BeforeAfter() {
           <img 
             src={afterImage} 
             alt="After TurfTec treatment" 
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover" 
           />
           
           {/* Badge: AFTER */}
@@ -136,6 +136,7 @@ export default function BeforeAfter() {
             className="absolute inset-0 overflow-hidden bg-gray-200"
             style={{ width: `${sliderPosition}%` }}
           >
+            {/* Before image is absolute to cover the base image exactly */}
             <img 
               src={beforeImage} 
               alt="Before TurfTec treatment" 
@@ -195,7 +196,7 @@ export default function BeforeAfter() {
                 onClick={() => setCurrentTestimonial(index)}
                 className={`w-2 h-2 rounded-full transition-all duration-300 ${
                   currentTestimonial === index 
-                    ? 'bg-green-700 scale-120' 
+                    ? 'bg-green-700 scale-125' 
                     : 'bg-gray-300 hover:bg-gray-400 hover:scale-125'
                 }`}
                 aria-label={`Go to testimonial ${index + 1}`}

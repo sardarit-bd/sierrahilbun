@@ -1,11 +1,13 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Star, Truck, ShoppingCart, Sparkles, TrendingUp, Eye } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Star, Truck, ShoppingCart, Sparkles, TrendingUp, Eye, X, Minus, Plus } from 'lucide-react';
+import { useCart } from '../../context/CartContext';
+import AddToCartButton from '../AddToCartButton';
 
 const mockProducts = [
   {
     id: 1,
     badge: { text: 'SAVE $6', type: 'save' },
-    image: 'https://placehold.co/400x500/f0fdf4/166534?text=Lawn+Strong',
+    image: '/images/products/aerate_quart_gallons.png',
     title: 'Lawn Strong Liquid Fertilizer',
     subtitle: 'Premium Root Support',
     price: 54.00,
@@ -13,11 +15,13 @@ const mockProducts = [
     rating: 5,
     reviewCount: 1,
     isFreeShipping: true,
+    category: 'Fertilizer',
+    description: "Our advanced formula promotes deep root growth and vibrant green color without the rapid surge growth of traditional fertilizers. Safe for pets and kids immediately after application."
   },
   {
     id: 2,
     badge: { text: 'SAVE $8', type: 'save' },
-    image: 'https://placehold.co/400x500/f0fdf4/166534?text=Bug+Doom',
+    image: '/images/products/heatguard_quart_gallon.png',
     title: 'Bug Doom Home Insect Control',
     subtitle: 'Gallon with Wand (2-pack)',
     price: 72.00,
@@ -25,11 +29,13 @@ const mockProducts = [
     rating: 4,
     reviewCount: 53,
     isFreeShipping: true,
+    category: 'Pest Control',
+    description: "Keep your home pest-free with our eco-friendly barrier spray. Effective against ants, spiders, roaches, and more. Includes a battery-operated wand for easy application."
   },
   {
     id: 3,
     badge: { text: 'BUNDLE & SAVE', type: 'bundle' },
-    image: 'https://placehold.co/400x500/f0fdf4/166534?text=Pest+Kit',
+    image: '/images/products/kickstart_ quart_gallon.png',
     title: 'Indoor & Outdoor Pest Kit',
     subtitle: 'Complete Home Protection',
     price: 60.00,
@@ -37,11 +43,13 @@ const mockProducts = [
     rating: 4.8,
     reviewCount: 12,
     isFreeShipping: true,
+    category: 'Bundles',
+    description: "The ultimate defense package. Includes Bug Doom for perimeter protection and our Mosquito Deleter for yard coverage. Enjoy a bug-free season inside and out."
   },
   {
     id: 4,
     badge: { text: 'SAVE $8.80', type: 'save' },
-    image: 'https://placehold.co/400x500/f0fdf4/166534?text=Dandelion',
+    image: '/images/products/neutralyze_quart_gallon.png',
     title: 'Dandelion Doom Herbicide',
     subtitle: 'Concentrate Refill (2-pack)',
     price: 35.20,
@@ -49,11 +57,13 @@ const mockProducts = [
     rating: 4.5,
     reviewCount: 119,
     isFreeShipping: true,
+    category: 'Weed Control',
+    description: "Iron-based herbicide that kills broadleaf weeds down to the root without harming your grass. Visible results in hours. Perfect for spot treatment."
   },
   {
     id: 5,
     badge: { text: 'BEST SELLER', type: 'bestseller' },
-    image: 'https://placehold.co/400x500/f0fdf4/166534?text=Weed+Warrior',
+    image: '/images/products/aerate_quart_gallons.png',
     title: 'Weed Warrior Herbicide',
     subtitle: 'Concentrate Starter (2-pack)',
     price: 43.20,
@@ -61,11 +71,13 @@ const mockProducts = [
     rating: 5,
     reviewCount: 72,
     isFreeShipping: true,
+    category: 'Weed Control',
+    description: "Our strongest formula for tough weeds like clover, moss, and algae. Certified organic and safe for use around vegetable gardens."
   },
   {
     id: 6,
     badge: { text: 'SAVE $5', type: 'save' },
-    image: 'https://placehold.co/400x500/f0fdf4/166534?text=Mosquito',
+    image: '/images/products/heatguard_quart_gallon.png',
     title: 'Mosquito Deleter Concentrate',
     subtitle: 'Refill (2-pack)',
     price: 45.00,
@@ -73,10 +85,211 @@ const mockProducts = [
     rating: 4,
     reviewCount: 25,
     isFreeShipping: true,
+    category: 'Pest Control',
+    description: "Reclaim your backyard. This cedar oil-based concentrate repels mosquitoes, ticks, and fleas. Connects directly to your hose for easy spraying."
   },
 ];
 
-const ProductCard = ({ product }) => {
+// --- Quick View Modal Component ---
+const QuickViewModal = ({ product, onClose }) => {
+  const [quantity, setQuantity] = useState(1);
+  const { addToCart } = useCart();
+  const [isAdding, setIsAdding] = useState(false);
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = 'unset'; };
+  }, []);
+
+  if (!product) return null;
+
+  const handleAddToCart = (e) => {
+    const button = e.currentTarget;
+    const buttonRect = button.getBoundingClientRect();
+    
+    // Get cart icon position
+    const cartIcon = document.getElementById('cart-icon');
+    if (!cartIcon) return;
+    
+    const cartRect = cartIcon.getBoundingClientRect();
+    
+    // Create flying product image
+    const flyingImage = document.createElement('div');
+    flyingImage.style.position = 'fixed';
+    flyingImage.style.left = `${buttonRect.left}px`;
+    flyingImage.style.top = `${buttonRect.top}px`;
+    flyingImage.style.width = '80px';
+    flyingImage.style.height = '80px';
+    flyingImage.style.zIndex = '9999';
+    flyingImage.style.pointerEvents = 'none';
+    flyingImage.style.transition = 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    
+    // Create image container with shadow
+    flyingImage.innerHTML = `
+      <div style="
+        width: 100%;
+        height: 100%;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <img 
+          src="${product.image}" 
+          alt="${product.title}"
+          style="
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            mix-blend-mode: multiply;
+          "
+        />
+      </div>
+    `;
+    
+    document.body.appendChild(flyingImage);
+    
+    // Trigger animation
+    setIsAdding(true);
+    
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        flyingImage.style.left = `${cartRect.left + cartRect.width / 2 - 40}px`;
+        flyingImage.style.top = `${cartRect.top + cartRect.height / 2 - 40}px`;
+        flyingImage.style.transform = 'scale(0.2) rotate(360deg)';
+        flyingImage.style.opacity = '0';
+      });
+    });
+    
+    // Add to cart after animation starts
+    setTimeout(() => {
+      addToCart(product, quantity);
+      setIsAdding(false);
+      
+      // Remove flying image
+      flyingImage.remove();
+      
+      // Close modal after short delay
+      setTimeout(() => {
+        onClose();
+      }, 300);
+    }, 800);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+      <div 
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity animate-in fade-in duration-200" 
+        onClick={onClose}
+      ></div>
+      
+      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] md:h-auto animate-in fade-in zoom-in-95 duration-200">
+        
+        {/* Close Button */}
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 p-2 bg-white/80 backdrop-blur rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <X size={20} className="text-gray-500" />
+        </button>
+
+        {/* Left: Image */}
+        <div className="w-full md:w-1/2 bg-gray-50 flex items-center justify-center p-8 md:p-12 relative">
+           <img 
+             src={product.image} 
+             alt={product.title} 
+             className="w-full h-full max-h-[300px] md:max-h-[400px] object-contain mix-blend-multiply"
+           />
+           {product.badge && (
+             <div className="absolute top-6 left-6 bg-[#2E7D32] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+               {product.badge.text}
+             </div>
+           )}
+        </div>
+
+        {/* Right: Details */}
+        <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col overflow-y-auto">
+          <div className="mb-auto">
+            <h2 className="text-2xl md:text-3xl font-black text-gray-900 font-serif leading-tight mb-2">
+              {product.title}
+            </h2>
+            <p className="text-gray-500 font-medium text-lg mb-4">{product.subtitle}</p>
+            
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex text-yellow-400">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} size={18} fill={i < Math.floor(product.rating) ? "currentColor" : "none"} className={i >= Math.floor(product.rating) ? "text-gray-200" : ""} />
+                ))}
+              </div>
+              <span className="text-sm text-gray-500 font-bold underline decoration-gray-300 underline-offset-4">
+                {product.reviewCount} Reviews
+              </span>
+            </div>
+
+            <div className="flex items-baseline gap-3 mb-6">
+              <span className="text-3xl font-black text-[#2E7D32]">${product.price.toFixed(2)}</span>
+              {product.originalPrice && (
+                <span className="text-lg text-gray-400 line-through font-medium">${product.originalPrice.toFixed(2)}</span>
+              )}
+            </div>
+
+            <p className="text-gray-600 leading-relaxed mb-8 text-sm md:text-base">
+              {product.description || "Premium lawn care product designed to deliver professional results at home. Easy to use, safe for pets, and backed by our satisfaction guarantee."}
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="border-t border-gray-100 pt-6 mt-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Quantity */}
+              <div className="flex items-center border border-gray-200 rounded-xl px-2 py-1 w-fit">
+                <button 
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <Minus size={16} />
+                </button>
+                <span className="w-8 text-center font-bold text-gray-900">{quantity}</span>
+                <button 
+                  onClick={() => setQuantity(quantity + 1)}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+
+              {/* Add Button */}
+              <button 
+                onClick={handleAddToCart}
+                disabled={isAdding}
+                className={`flex-1 ${
+                  isAdding ? 'bg-[#1B5E20]' : 'bg-[#2E7D32] hover:bg-[#1B5E20]'
+                } text-white font-extrabold py-3.5 px-6 rounded-xl shadow-lg shadow-green-900/20 transition-transform active:scale-[0.98] flex items-center justify-center gap-2`}
+              >
+                <ShoppingCart size={20} />
+                {isAdding ? 'Adding to Cart...' : 'Add to Cart'}
+              </button>
+            </div>
+            
+            {product.isFreeShipping && (
+              <div className="mt-4 flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wide justify-center sm:justify-start">
+                <Truck size={14} className="text-[#2E7D32]" />
+                Free Shipping on this item
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+const ProductCard = ({ product, onQuickView }) => {
   const badgeConfig = {
     save: {
       bg: 'bg-rose-500',
@@ -159,7 +372,10 @@ const ProductCard = ({ product }) => {
             
             {/* Quick View Button on Hover */}
             <div className="absolute inset-0 bg-black/5 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-               <button className="bg-white text-gray-900 px-5 py-2.5 rounded-full font-bold text-sm shadow-xl flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 hover:bg-emerald-50">
+               <button 
+                 onClick={() => onQuickView(product)}
+                 className="bg-white text-gray-900 px-5 py-2.5 rounded-full font-bold text-sm shadow-xl flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 hover:bg-emerald-50 hover:text-[#2E7D32]"
+               >
                  <Eye size={16} /> Quick View
                </button>
             </div>
@@ -206,10 +422,11 @@ const ProductCard = ({ product }) => {
               )}
             </div>
 
-            <button className="bg-[#1A1A1A] hover:bg-emerald-600 text-white p-3 rounded-xl shadow-lg shadow-gray-200 hover:shadow-emerald-500/30 transition-all duration-300 active:scale-95 group/btn cursor-pointer">
-              <ShoppingCart size={20} className="stroke-2 group-hover/btn:hidden" />
-              <span className="hidden group-hover/btn:inline font-bold text-sm px-1">Add</span>
-            </button>
+            <AddToCartButton 
+              product={product}
+              className="bg-emerald-600"
+              size="default"
+            />
           </div>
         </div>
       </div>
@@ -221,6 +438,7 @@ export default function ProductSection() {
   const scrollContainerRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   const checkScrollButtons = () => {
     if (scrollContainerRef.current) {
@@ -278,13 +496,6 @@ export default function ProductSection() {
         {/* Carousel */}
         <div className="relative -mx-6 px-6 md:mx-0 md:px-0">
           
-          {/* 
-             FIX: Removed 'hidden md:flex'. 
-             Changed to 'flex' so buttons show on mobile.
-             Adjusted 'left-0' to 'left-4' on mobile for padding against phone bezel.
-             Added 'bg-white/90' backdrop blur to ensure visibility over images.
-          */}
-          
           {/* Left Navigation Button */}
           <button
             onClick={() => scroll('left')}
@@ -305,7 +516,11 @@ export default function ProductSection() {
             onScroll={checkScrollButtons}
           >
             {mockProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                onQuickView={setSelectedProduct}
+              />
             ))}
           </div>
 
@@ -335,6 +550,15 @@ export default function ProductSection() {
         </div>
 
       </div>
+
+      {/* Quick View Modal */}
+      {selectedProduct && (
+        <QuickViewModal 
+          product={selectedProduct} 
+          onClose={() => setSelectedProduct(null)} 
+        />
+      )}
+
     </section>
   );
 }

@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { MapPin, ArrowRight, Check, Leaf, TreePine } from 'lucide-react';
+import { Head } from '@inertiajs/react';
 
 export default function HeroSection() {
   const [zipCode, setZipCode] = useState('');
 
   return (
+    
     <div className="relative w-full h-auto min-h-[600px] lg:h-[85vh] flex items-center justify-center overflow-hidden font-sans">
+      <Head title="Home" />
       
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
@@ -15,7 +18,7 @@ export default function HeroSection() {
           className="w-full h-full object-cover"
         />
         {/* Premium gradient overlay for better text readability and visual appeal */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/65 to-black/50"></div>
       </div>
 
       <div className="relative z-10 w-full max-w-5xl mx-auto px-6 py-12 lg:py-0 flex flex-col items-center text-center">
@@ -34,7 +37,7 @@ export default function HeroSection() {
             Professional agronomy plans starting at <span className="font-bold text-[#FFD54F]">$55</span>
           </p> */}
 
-          <div className="h-1 w-24 bg-[#FFD54F] rounded-full my-2"></div>
+          {/* <div className="h-1 w-24 bg-[#FFD54F] rounded-full my-2"></div> */}
 
           {/* Input Group - Centered */}
           <div className="w-full max-w-xl mt-6">
@@ -53,7 +56,7 @@ export default function HeroSection() {
                   className="w-full pl-12 pr-4 h-12 md:h-14 rounded-md outline-none text-gray-900 placeholder-gray-400 font-semibold bg-transparent text-lg"
                 />
               </div>
-              <button className="w-full md:w-auto bg-[#FDB94E] hover:bg-[#FFA000] text-[#3E2723] font-extrabold py-3 md:py-4 px-8 rounded-md transition-colors duration-300 flex items-center justify-center gap-2 text-lg shadow-md whitespace-nowrap">
+              <button className="w-full md:w-auto bg-[#2E7D32] text-white font-extrabold py-3 md:py-4 px-8 rounded-md transition-colors duration-300 flex items-center justify-center gap-2 text-lg shadow-md whitespace-nowrap cursor-pointer">
                 Get your plan
               </button>
             </div>

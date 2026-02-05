@@ -22,6 +22,19 @@ Route::get('/blogs', function () {
     return Inertia::render('blogs');
 })->name('blogs');
 
+Route::get('/blogs/{slug}', function ($slug) {
+    // $post = BlogPost::where('slug', $slug)->firstOrFail();
+
+    return Inertia::render('blogs/post', [
+        'slug' => $slug,
+        // 'post' => $post 
+    ]);
+})->name('blogs.post');
+
+Route::get('/cart', function () {
+    return Inertia::render('cart');
+})->name('cart');
+
 Route::get('dashboard', function () {
     return Inertia::render('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');

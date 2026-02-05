@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { Leaf, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import AppHeaderLayout from '@/layouts/app/app-header-layout'; 
+import { Link, Head } from '@inertiajs/react';
 
 // ----------------------------------------------------------------------
 // MOCKS FOR PREVIEW (DELETE THESE IN YOUR ACTUAL PROJECT)
 // ----------------------------------------------------------------------
-const Head = ({ title }) => <div className="hidden">Title: {title}</div>;
+
 const InputError = ({ message, className }) => message ? <p className={`text-sm text-red-600 font-medium ${className}`}>{message}</p> : null;
 const TextLink = ({ href, children, className, ...props }) => <a href={href} className={`text-[#2E7D32] hover:text-[#1B5E20] hover:underline transition-colors font-medium ${className}`} {...props}>{children}</a>;
 const Spinner = () => <span className="animate-spin mr-2">⟳</span>;
-const Label = ({ children, htmlFor }) => <label htmlFor={htmlFor} className="block text-sm font-bold text-gray-700 mb-1.5 uppercase tracking-wide text-xs">{children}</label>;
+const Label = ({ children, htmlFor }) => <label htmlFor={htmlFor} className="block text-sm font-bold text-gray-700 uppercase tracking-wide text-xs">{children}</label>;
 const Input = ({ className, ...props }) => (
   <input 
     className={`flex h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E7D32] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 ${className}`} 
@@ -78,6 +79,7 @@ export default function Login({
 
     return (
         <AppHeaderLayout>
+            <Head title="Login" />
             <div className="flex min-h-[calc(100vh-80px)]">
                 
                 {/* Left Side: Immersive Image with Text Overlay */}
@@ -230,7 +232,7 @@ export default function Login({
                                         <Button 
                                             type="button" 
                                             variant="outline" 
-                                            className="w-full gap-2 font-semibold text-gray-700 h-12"
+                                            className="w-full gap-2 font-semibold text-gray-700 h-12 cursor-pointer"
                                             onClick={() => console.log('Google Login')}
                                         >
                                             <GoogleIcon className="w-5 h-5" />
@@ -239,7 +241,7 @@ export default function Login({
                                         <Button 
                                             type="button" 
                                             variant="outline" 
-                                            className="w-full gap-2 font-semibold text-gray-700 h-12"
+                                            className="w-full gap-2 font-semibold text-gray-700 h-12 cursor-pointer"
                                             onClick={() => console.log('Facebook Login')}
                                         >
                                             <FacebookIcon className="w-5 h-5" />
@@ -251,9 +253,9 @@ export default function Login({
                                         <div className="text-center mt-6 pt-4 border-t border-gray-100">
                                             <p className="text-gray-500 text-sm">
                                                 Don't have an account?{' '}
-                                                <TextLink href={register()} tabIndex={5} className="font-bold text-lg block mt-1">
-                                                    Create an account →
-                                                </TextLink>
+                                                <Link href={register()} tabIndex={5} className="font-bold text-lg block mt-1 text-[#2E7D32]">
+                                                    Create an account
+                                                </Link>
                                             </p>
                                         </div>
                                     )}

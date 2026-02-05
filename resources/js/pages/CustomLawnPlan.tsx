@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { MapPin, ArrowRight, CheckCircle2, Leaf, Sparkles } from 'lucide-react';
 import AppHeaderLayout from '@/layouts/app/app-header-layout';
+import { Head } from '@inertiajs/react';
 
 export default function LocationQueryPage() {
   const [zipCode, setZipCode] = useState('');
@@ -8,7 +9,8 @@ export default function LocationQueryPage() {
 
   return (
     <AppHeaderLayout>
-      <div className="max-w-6xl mx-auto px-6 py-12 w-full">
+      <Head title="Custom Lawn Plan" />
+      <div className="max-w-7xl mx-auto px-6 py-12 w-full">
         
         {/* Main Card Container */}
         <div className="relative bg-[#2E7D32] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-green-900/20 isolate">
