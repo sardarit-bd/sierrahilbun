@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Truck, ShoppingCart, Sparkles, TrendingUp, Eye, Filter, ChevronDown, Search, X, Minus, Plus } from 'lucide-react';
 import AppHeaderLayout from '@/layouts/app/app-header-layout';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useCart } from '../context/CartContext';
 import AddToCartButton from '../components/AddToCartButton';
 
@@ -423,7 +423,7 @@ const ProductCard = ({ product, onQuickView }) => {
         {/* Content */}
         <div className="flex-1 flex flex-col gap-2 relative z-20">
           <div>
-            <h3 className="text-gray-900 font-bold text-lg leading-tight group-hover:text-emerald-700 transition-colors cursor-pointer" onClick={() => onQuickView(product)}>
+            <h3 className="text-gray-900 font-bold text-lg leading-tight group-hover:text-emerald-700 transition-colors cursor-pointer" onClick={() => router.visit('/product/post')}>
               {product.title}
             </h3>
             {product.subtitle && (
@@ -475,12 +475,34 @@ const ProductCard = ({ product, onQuickView }) => {
 // --- Main Page Component ---
 export default function AllProductsPage() {
   const [activeCategory, setActiveCategory] = useState('All');
-  const [selectedProduct, setSelectedProduct] = useState(null); // State for Quick View Modal
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [searchQuery, setSearchQuery] = useState(''); // ← NEW
+  
   const categories = ['All', 'Fertilizer', 'Pest Control', 'Weed Control', 'Bundles', 'Tools'];
 
-  const filteredProducts = activeCategory === 'All' 
-    ? allProducts 
-    : allProducts.filter(p => p.category === activeCategory);
+  // ──────────────────────────────────────────────────
+  //   NEW: Filter products by both category AND search
+  // ──────────────────────────────────────────────────
+  const filteredProducts = allProducts.filter(product => {
+    // Filter by category
+    const matchesCategory = activeCategory === 'All' || product.category === activeCategory;
+    
+    // Filter by search query
+    const matchesSearch = !searchQuery.trim() || 
+      product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return matchesCategory && matchesSearch;
+  });
+
+  // ──────────────────────────────────────────────────
+  //   NEW: Clear search handler
+  // ──────────────────────────────────────────────────
+  const handleClearSearch = () => {
+    setSearchQuery('');
+  };
 
   return (
     <AppHeaderLayout>
@@ -534,15 +556,25 @@ export default function AllProductsPage() {
             </div>
           </div>
 
-          {/* Search & Sort Actions */}
+          {/* Search & Sort Actions - UPDATED */}
           <div className="flex gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:w-64">
               <input 
                 type="text" 
                 placeholder="Search products..." 
-                className="w-full pl-10 pr-4 py-2 text-gray-900 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 text-gray-900 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
               />
               <Search className="absolute left-3.5 top-2.5 text-gray-400" size={16} />
+              {searchQuery && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -553,7 +585,6 @@ export default function AllProductsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 xl:gap-8">
           {filteredProducts.map((product) => (
             <div key={product.id} className="w-full">
-              {/* Pass the handler to open the modal */}
               <ProductCard 
                 product={product} 
                 onQuickView={setSelectedProduct} 
@@ -562,20 +593,37 @@ export default function AllProductsPage() {
           ))}
         </div>
 
-        {/* Empty State */}
+        {/* Empty State - UPDATED */}
         {filteredProducts.length === 0 && (
           <div className="text-center py-20">
             <div className="bg-gray-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Search className="text-gray-400" size={32} />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">No products found</h3>
-            <p className="text-gray-500">Try adjusting your filters or search terms.</p>
-            <button 
-              onClick={() => setActiveCategory('All')}
-              className="mt-6 text-emerald-600 font-bold hover:underline"
-            >
-              Clear all filters
-            </button>
+            <p className="text-gray-500 mb-4">
+              {searchQuery 
+                ? `No products match "${searchQuery}" in ${activeCategory === 'All' ? 'any category' : activeCategory}`
+                : 'Try adjusting your filters or search terms.'
+              }
+            </p>
+            <div className="flex gap-3 justify-center">
+              {searchQuery && (
+                <button 
+                  onClick={handleClearSearch}
+                  className="text-emerald-600 font-bold hover:underline"
+                >
+                  Clear search
+                </button>
+              )}
+              {activeCategory !== 'All' && (
+                <button 
+                  onClick={() => setActiveCategory('All')}
+                  className="text-emerald-600 font-bold hover:underline"
+                >
+                  View all categories
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -584,6 +632,7 @@ export default function AllProductsPage() {
           <div className="mt-16 text-center">
             <p className="text-gray-500 text-sm mb-4">
               Showing {filteredProducts.length} of {allProducts.length} products
+              {searchQuery && ` for "${searchQuery}"`}
             </p>
             <div className="w-48 h-1 bg-gray-200 rounded-full mx-auto mb-6 overflow-hidden">
               <div 

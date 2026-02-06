@@ -6,6 +6,7 @@ import { useCart } from '../../context/CartContext';
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(''); // ← NEW
   const { getCartCount } = useCart();
   const [cartBounce, setCartBounce] = useState(false);
 
@@ -37,8 +38,8 @@ const Header = () => {
     { name: 'TurfTalk Blog', href: '/blogs' },
   ];
 
-  // Mock Search Results for the overlay
-  const searchResults = [
+  // Mock Product Data - ← You can move this to a separate file or fetch from API later
+  const allProducts = [
     {
       id: 1,
       name: "Sunday Ultimate Weeding Kit",
@@ -61,6 +62,29 @@ const Header = () => {
     }
   ];
 
+  // ──────────────────────────────────────────────────
+  //   NEW: Filter products based on search query
+  // ──────────────────────────────────────────────────
+  const filteredProducts = allProducts.filter(product => {
+    if (!searchQuery.trim()) return true; // Show all if search is empty
+    
+    const query = searchQuery.toLowerCase();
+    
+    // Search in product name and description
+    return (
+      product.name.toLowerCase().includes(query) ||
+      product.description.toLowerCase().includes(query)
+    );
+  });
+
+  // ──────────────────────────────────────────────────
+  //   NEW: Handle search modal close and reset
+  // ──────────────────────────────────────────────────
+  const handleCloseSearch = () => {
+    setIsSearchOpen(false);
+    setSearchQuery(''); // Reset search when closing
+  };
+
   return (
     <>
       <header className="w-full bg-white font-sans text-slate-900 border-b border-gray-100 font-poppins relative z-40">
@@ -76,7 +100,6 @@ const Header = () => {
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-3 lg:py-4">
           <div className="flex items-center justify-between">
             
-
             <div className="lg:hidden flex items-center">
               <button 
                 className="p-2 -ml-2 text-slate-900 hover:bg-gray-100 rounded-full transition-colors focus:outline-none"
@@ -87,15 +110,16 @@ const Header = () => {
               </button>
             </div>
 
-            <div className="flex-1 lg:flex-none flex justify-center lg:justify-start">
-              <div className="relative group cursor-pointer">
-                <img 
-                  src="/images/turftec-logo.png"
-                  alt="TurfTec" 
-                  className="h-14 w-auto object-contain"
-                />
-              </div>
-            </div>
+            <Link
+              href="/"
+              className="relative group cursor-pointer inline-flex"
+            >
+              <img 
+                src="/images/turftec-logo.png"
+                alt="TurfTec" 
+                className="h-14 w-auto object-contain"
+              />
+            </Link>
 
             {/* Desktop Search Bar */}
             <div className="hidden lg:flex flex-1 max-w-xl mx-8">
@@ -249,7 +273,7 @@ const Header = () => {
             {/* Search Header */}
             <div className="p-4 sm:p-6 border-b border-gray-100 flex items-center gap-4">
                {/* Mobile Back Button (only visual consistency, acts as close) */}
-               <button onClick={() => setIsSearchOpen(false)} className="sm:hidden p-2 -ml-2 text-slate-500">
+               <button onClick={handleCloseSearch} className="sm:hidden p-2 -ml-2 text-slate-500">
                  <ChevronRight className="rotate-180" size={24} />
                </button>
 
@@ -257,13 +281,15 @@ const Header = () => {
                  <input 
                    type="text" 
                    autoFocus
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
                    placeholder="It takes one to grow one..." 
                    className="w-full text-lg sm:text-xl font-bold text-slate-900 placeholder-slate-400 focus:outline-none"
                  />
                </div>
                
                <button 
-                 onClick={() => setIsSearchOpen(false)} 
+                 onClick={handleCloseSearch} 
                  className="hidden sm:block p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
                >
                  <X size={20} className="text-slate-600" />
@@ -272,42 +298,87 @@ const Header = () => {
 
             {/* Results Content */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50/50">
-              <h3 className="text-lg font-black text-slate-900 mb-4">Products</h3>
+              {/* ──────────────────────────────────────────────────
+                  UPDATED: Show results count and "no results" message
+              ────────────────────────────────────────────────── */}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-black text-slate-900">
+                  Products
+                  {searchQuery && (
+                    <span className="ml-2 text-sm font-normal text-gray-500">
+                      ({filteredProducts.length} {filteredProducts.length === 1 ? 'result' : 'results'})
+                    </span>
+                  )}
+                </h3>
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className="text-xs text-gray-500 hover:text-[#2E7D32] font-bold"
+                  >
+                    Clear search
+                  </button>
+                )}
+              </div>
               
-              <div className="space-y-4">
-                {searchResults.map((product) => (
-                  <div key={product.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4 hover:shadow-md transition-shadow cursor-pointer">
-                    <div className="w-20 h-20 bg-gray-50 rounded-lg flex-shrink-0 flex items-center justify-center p-2">
-                      <img src={product.image} alt={product.name} className="w-full h-full object-contain mix-blend-multiply" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-bold text-slate-900 text-sm sm:text-base leading-tight">{product.name}</h4>
-                        <div className="text-right">
-                          <span className="block font-black text-[#2E7D32]">${product.price}</span>
-                          {product.originalPrice && (
-                            <span className="text-xs text-gray-400 line-through">${product.originalPrice}</span>
-                          )}
+              {filteredProducts.length > 0 ? (
+                <div className="space-y-4">
+                  {filteredProducts.map((product) => (
+                    <div key={product.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4 hover:shadow-md transition-shadow cursor-pointer">
+                      <div className="w-20 h-20 bg-gray-50 rounded-lg flex-shrink-0 flex items-center justify-center p-2">
+                        <img src={product.image} alt={product.name} className="w-full h-full object-contain mix-blend-multiply" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start">
+                          <h4 className="font-bold text-slate-900 text-sm sm:text-base leading-tight">{product.name}</h4>
+                          <div className="text-right">
+                            <span className="block font-black text-[#2E7D32]">${product.price}</span>
+                            {product.originalPrice && (
+                              <span className="text-xs text-gray-400 line-through">${product.originalPrice}</span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-1">{product.description}</p>
+                        <div className="flex items-center gap-1 mt-2">
+                          <div className="flex text-yellow-400">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} size={12} fill={i < Math.floor(product.rating) ? "currentColor" : "none"} className={i >= Math.floor(product.rating) ? "text-gray-300" : ""} />
+                            ))}
+                          </div>
+                          <span className="text-xs text-gray-400">({product.reviews})</span>
                         </div>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-1">{product.description}</p>
-                      <div className="flex items-center gap-1 mt-2">
-                        <div className="flex text-yellow-400">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} size={12} fill={i < Math.floor(product.rating) ? "currentColor" : "none"} className={i >= Math.floor(product.rating) ? "text-gray-300" : ""} />
-                          ))}
-                        </div>
-                        <span className="text-xs text-gray-400">({product.reviews})</span>
-                      </div>
                     </div>
+                  ))}
+                </div>
+              ) : (
+                // ──────────────────────────────────────────────────
+                //   NEW: No results message
+                // ──────────────────────────────────────────────────
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search size={32} className="text-gray-400" />
                   </div>
-                ))}
-              </div>
+                  <h4 className="text-lg font-bold text-gray-900 mb-2">No products found</h4>
+                  <p className="text-sm text-gray-500 mb-4">
+                    We couldn't find any products matching "{searchQuery}"
+                  </p>
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className="text-sm font-bold text-[#2E7D32] hover:underline"
+                  >
+                    Clear search and try again
+                  </button>
+                </div>
+              )}
 
-              <div className="mt-6 flex justify-between items-center text-sm font-bold">
-                <a href="#" className="text-slate-600 hover:text-[#2E7D32] underline underline-offset-4 decoration-2">View more results</a>
-                <a href="#" className="text-[#2E7D32] hover:underline underline-offset-4">Need help?</a>
-              </div>
+              {filteredProducts.length > 0 && (
+                <div className="mt-6 flex justify-between items-center text-sm font-bold">
+                  <Link href="/products" className="text-slate-600 hover:text-[#2E7D32] underline underline-offset-4 decoration-2">
+                    View all products
+                  </Link>
+                  <a href="#" className="text-[#2E7D32] hover:underline underline-offset-4">Need help?</a>
+                </div>
+              )}
             </div>
 
             {/* Search Footer Button */}
