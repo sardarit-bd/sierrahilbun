@@ -6,7 +6,7 @@ import { useCart } from '../../context/CartContext';
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(''); // ← NEW
+  const [searchQuery, setSearchQuery] = useState('');
   const { getCartCount } = useCart();
   const [cartBounce, setCartBounce] = useState(false);
 
@@ -117,7 +117,7 @@ const Header = () => {
               <img 
                 src="/images/turftec-logo.png"
                 alt="TurfTec" 
-                className="h-14 w-auto object-contain"
+                className="h-11 w-auto object-contain"
               />
             </Link>
 
