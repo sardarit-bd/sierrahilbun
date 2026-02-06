@@ -587,6 +587,28 @@ export default function AllProductsPage() {
               <div className="fixed inset-0 z-[-1]" onClick={() => setIsDropdownOpen(false)}></div>
             )}
           </div>
+
+          {/* Search & Sort Actions - UPDATED */}
+          <div className="flex gap-3 w-full md:w-auto">
+            <div className="relative flex-1 md:w-64">
+              <input 
+                type="text" 
+                placeholder="Search products..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 text-gray-900 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+              />
+              <Search className="absolute left-3.5 top-2.5 text-gray-400" size={16} />
+              {searchQuery && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
