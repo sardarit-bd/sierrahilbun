@@ -49,6 +49,7 @@ export default function PrivacyPolicyPage() {
 
   return (
     <AppHeaderLayout>
+      <Head title="Privacy Policy" />
       <div className="bg-[#1A1A1A] text-white pt-24 pb-20 px-6 relative overflow-hidden">
         {/* Decorative Background */}
         <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-[#2E7D32] rounded-full blur-[150px] opacity-90 -translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>

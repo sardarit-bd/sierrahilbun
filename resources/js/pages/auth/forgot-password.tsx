@@ -36,7 +36,7 @@ const Button = ({ children, className, disabled, variant = 'primary', ...props }
 const Form = ({ children, className, ...props }) => <form className={className} {...props}>{children({ processing: false, errors: {} })}</form>;
 
 // Mock Routes
-const login = () => '#login';
+const login = () => '/login';
 const email = { form: () => ({}) };
 // ----------------------------------------------------------------------
 // END MOCKS
@@ -49,11 +49,11 @@ const AuthLayoutWrapper = ({ title, description, children }) => (
             <div className="w-full max-w-md space-y-8">
                  {/* Centered Header */}
                  <div className="text-center">
-                    <div className="inline-flex items-center gap-2 mb-8">
+                    {/* <div className="inline-flex items-center gap-2 mb-8">
                         <div className="w-12 h-12 bg-[#2E7D32] rounded-full flex items-center justify-center text-white shadow-lg shadow-green-900/20">
                             <Leaf size={24} />
                         </div>
-                    </div>
+                    </div> */}
                     <h1 className="text-3xl md:text-4xl font-black text-[#1A1A1A] font-serif mb-3">
                         {title}
                     </h1>

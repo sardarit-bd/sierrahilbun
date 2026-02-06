@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Star, Truck, ShoppingCart, Sparkles, TrendingUp, Eye, X, Minus, Plus } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import AddToCartButton from '../AddToCartButton';
+import { router } from '@inertiajs/react';
 
 const mockProducts = [
   {
@@ -374,7 +375,7 @@ const ProductCard = ({ product, onQuickView }) => {
             <div className="absolute inset-0 bg-black/5 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                <button 
                  onClick={() => onQuickView(product)}
-                 className="bg-white text-gray-900 px-5 py-2.5 rounded-full font-bold text-sm shadow-xl flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 hover:bg-emerald-50 hover:text-[#2E7D32]"
+                 className="bg-white text-gray-900 px-5 py-2.5 rounded-full font-bold text-sm shadow-xl flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 hover:bg-emerald-50 hover:text-[#2E7D32] cursor-pointer"
                >
                  <Eye size={16} /> Quick View
                </button>
@@ -385,7 +386,7 @@ const ProductCard = ({ product, onQuickView }) => {
         {/* Content */}
         <div className="flex-1 flex flex-col gap-2 relative z-20">
           <div>
-            <h3 className="text-gray-900 font-bold text-lg leading-tight group-hover:text-emerald-700 transition-colors">
+            <h3 className="text-gray-900 font-bold text-lg leading-tight group-hover:text-emerald-700 transition-colors cursor-pointer" onClick={() => router.visit('/product/post')}>
               {product.title}
             </h3>
             {product.subtitle && (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Truck, ShoppingCart, Sparkles, TrendingUp, Eye, Filter, ChevronDown, Search, X, Minus, Plus } from 'lucide-react';
+import { Star, Truck, ShoppingCart, Sparkles, TrendingUp, Eye, Filter, ChevronDown, Search, X, Minus, Plus, Check } from 'lucide-react';
 import AppHeaderLayout from '@/layouts/app/app-header-layout';
 import { Head, router } from '@inertiajs/react';
 import { useCart } from '../context/CartContext';
@@ -412,7 +412,7 @@ const ProductCard = ({ product, onQuickView }) => {
             <div className="absolute inset-0 bg-black/5 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                <button 
                  onClick={() => onQuickView(product)}
-                 className="bg-white text-gray-900 px-5 py-2.5 rounded-full font-bold text-sm shadow-xl flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 hover:bg-emerald-50 hover:text-[#2E7D32]"
+                 className="bg-white text-gray-900 px-5 py-2.5 rounded-full font-bold text-sm shadow-xl flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 hover:bg-emerald-50 hover:text-[#2E7D32] cursor-pointer"
                >
                  <Eye size={16} /> Quick View
                </button>
@@ -476,7 +476,8 @@ const ProductCard = ({ product, onQuickView }) => {
 export default function AllProductsPage() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [searchQuery, setSearchQuery] = useState(''); // ← NEW
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   const categories = ['All', 'Fertilizer', 'Pest Control', 'Weed Control', 'Bundles', 'Tools'];
 
@@ -543,39 +544,48 @@ export default function AllProductsPage() {
           </div>
 
           {/* Mobile Category Dropdown */}
-          <div className="md:hidden w-full">
-            <div className="relative">
-              <select 
-                value={activeCategory}
-                onChange={(e) => setActiveCategory(e.target.value)}
-                className="w-full appearance-none bg-gray-100 border border-transparent text-gray-900 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-3 font-bold"
-              >
-                {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-              </select>
-              <ChevronDown className="absolute right-3 top-3.5 text-gray-500 pointer-events-none" size={16} />
-            </div>
-          </div>
-
-          {/* Search & Sort Actions - UPDATED */}
-          <div className="flex gap-3 w-full md:w-auto">
-            <div className="relative flex-1 md:w-64">
-              <input 
-                type="text" 
-                placeholder="Search products..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-10 py-2 text-gray-900 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+          <div className="md:hidden w-full relative z-50">
+            <button 
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className={`w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3.5 font-bold shadow-sm flex items-center justify-between transition-all duration-200 active:scale-[0.99] ${isDropdownOpen ? 'ring-2 ring-[#2E7D32] border-[#2E7D32]' : ''}`}
+            >
+              <div className="flex items-center gap-2">
+                <Filter size={18} className="text-[#2E7D32]" />
+                <span className="truncate">{activeCategory}</span>
+              </div>
+              <ChevronDown 
+                size={20} 
+                className={`text-gray-400 transition-transform duration-300 ease-out ${isDropdownOpen ? 'rotate-180 text-[#2E7D32]' : ''}`} 
               />
-              <Search className="absolute left-3.5 top-2.5 text-gray-400" size={16} />
-              {searchQuery && (
-                <button
-                  onClick={handleClearSearch}
-                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-                >
-                  <X size={16} />
-                </button>
-              )}
+            </button>
+
+            {/* Dropdown Menu with Animation */}
+            <div className={`absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-xl shadow-gray-200/50 overflow-hidden transition-all duration-300 ease-out origin-top ${isDropdownOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}>
+              <div className="max-h-60 overflow-y-auto py-1">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      setActiveCategory(cat);
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-3 text-sm font-medium transition-colors flex items-center justify-between ${
+                      activeCategory === cat 
+                        ? 'bg-green-50 text-[#1B5E20]' 
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {cat}
+                    {activeCategory === cat && <Check size={16} className="text-[#2E7D32]" />}
+                  </button>
+                ))}
+              </div>
             </div>
+            
+            {/* Backdrop for closing dropdown */}
+            {isDropdownOpen && (
+              <div className="fixed inset-0 z-[-1]" onClick={() => setIsDropdownOpen(false)}></div>
+            )}
           </div>
         </div>
       </div>

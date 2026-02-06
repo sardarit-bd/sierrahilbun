@@ -109,12 +109,12 @@ export default function Login({
                         
                         {/* Mobile Logo/Header */}
                         <div className="text-center lg:text-left">
-                            <div className="inline-flex lg:hidden items-center gap-2 mb-6">
+                            {/* <div className="inline-flex lg:hidden items-center gap-2 mb-6">
                                 <div className="w-10 h-10 bg-[#2E7D32] rounded-full flex items-center justify-center text-white">
                                     <Leaf size={20} />
                                 </div>
                                 <span className="text-2xl font-black text-[#1A1A1A]">TurfTec</span>
-                            </div>
+                            </div> */}
                             <h1 className="text-3xl md:text-4xl font-black text-[#1A1A1A] font-serif mb-3">
                                 Welcome back
                             </h1>
