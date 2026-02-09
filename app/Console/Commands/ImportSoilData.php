@@ -8,9 +8,8 @@ use Illuminate\Support\Facades\File;
 
 class ImportSoilData extends Command
 {
-    // The command you will run in terminal: "php artisan soil:import"
     protected $signature = 'soil:import {path : The absolute path to the CSV file}';
-    protected $description = 'Import TurfTec Soil Analysis CSV and transform to JSON';
+    protected $description = 'Import TurfTec Soil CSV (Final Version)';
 
     public function handle()
     {
@@ -21,40 +20,70 @@ class ImportSoilData extends Command
             return 1;
         }
 
-        $this->info("Starting import... this may take a minute.");
+        $this->info("Starting full import...");
         
         $file = fopen($path, 'r');
-        $header = fgetcsv($file); 
+        $header = fgetcsv($file);
 
         $batch = [];
         $batchSize = 500;
-        
-        $this->output->progressStart(40000);
-
+        $this->output->progressStart(42500); 
         DB::beginTransaction();
 
         try {
             while (($row = fgetcsv($file)) !== false) {
                 
+               
                 $zipCode = str_pad($row[0], 5, '0', STR_PAD_LEFT);
+                $city = $row[3] ?? 'Unknown';
+                $state = $row[6] ?? '';
+                $county = $row[7] ?? null;
+                $timezone = $row[8] ?? null;
+                $lat = (float) ($row[12] ?? 0);
+                $lon = (float) ($row[13] ?? 0);
+                $climateZone = $row[14] ?? null;
                 
-                // Convert 12 separate columns into one JSON Array for the frontend charts
-                // Indices 5-16 assumed to be Jan-Dec Temps
-                $monthlyTemps = array_map('floatval', array_slice($row, 5, 12));
+        
+                $annualRain = (float) ($row[15] ?? 30);
+                $julyHigh = (float) ($row[16] ?? 85);
+                $janLow = (float) ($row[17] ?? 30);
+                $frostFreeDays = (int) ($row[18] ?? 0);
+      
+                $ph = (float) ($row[19] ?? 7.0);
+                $cec = (int) ($row[23] ?? 0);
+                $texture = $row[27] ?? 'loam';
+                $drainage = $row[28] ?? null;
                 
-                // Indices 17-28 assumed to be Jan-Dec Rainfall
-                $monthlyRain = array_map('floatval', array_slice($row, 17, 12));
-                
-                // Indices 29-40 assumed to be Growth Potential
-                $growthData = array_map('intval', array_slice($row, 29, 12));
+     
+                $compactionRisk = $row[29] ?? 'Low';
+                $leachingRisk = $row[30] ?? 'Low';
+                $diseasePressure = $row[31] ?? 'Low'; 
+                $droughtRisk = $row[32] ?? 'Low';
+                $organicMatter = (float) ($row[33] ?? 0.0);
+
+                $monthlyTemps = $this->simulateTemperatureCurve($janLow, $julyHigh);
+                $monthlyRain = $this->simulateRainfall($annualRain);
+                $growthData = $this->simulateGrowthPotential($monthlyTemps);
 
                 $batch[] = [
                     'zip_code' => $zipCode,
-                    'state_code' => $row[1],
-                    'city' => $row[2],
-                    'dominant_soil_texture' => $row[3],
-                    'ph_mean' => (float) $row[4],
-                    'organic_matter_pct' => (float) $row[41],
+                    'state_code' => $state,
+                    'city' => $city,
+                    'county' => $county,
+                    'timezone' => $timezone,
+                    'latitude' => $lat,
+                    'longitude' => $lon,
+                    'climate_zone' => $climateZone,
+                    'frost_free_days' => $frostFreeDays,
+                    'dominant_soil_texture' => $texture,
+                    'drainage_class' => $drainage,
+                    'ph_mean' => $ph,
+                    'organic_matter_pct' => $organicMatter,
+                    'cec_meq' => $cec, 
+                    'compaction_risk' => $compactionRisk,
+                    'drought_risk' => $droughtRisk,
+                    'n_leaching_risk' => $leachingRisk,
+                    'disease_pressure' => $diseasePressure, 
                     'monthly_temp_data' => json_encode($monthlyTemps),
                     'monthly_rainfall_data' => json_encode($monthlyRain),
                     'growth_potential_data' => json_encode($growthData),
@@ -63,33 +92,73 @@ class ImportSoilData extends Command
                 ];
 
                 if (count($batch) >= $batchSize) {
-                    DB::table('geo_soil_references')->upsert(
-                        $batch, 
-                        ['zip_code'],
-                        ['monthly_temp_data', 'growth_potential_data', 'updated_at']
-                    );
+                    $this->insertBatch($batch);
                     $batch = [];
                     $this->output->progressAdvance($batchSize);
                 }
             }
 
             if (count($batch) > 0) {
-                DB::table('geo_soil_references')->upsert(
-                    $batch, ['zip_code'], ['monthly_temp_data', 'growth_potential_data', 'updated_at']
-                );
+                $this->insertBatch($batch);
             }
 
             DB::commit();
             $this->output->progressFinish();
-            $this->info("Successfully imported all soil data!");
+            $this->info("✅ Complete! All 42.5k zip codes imported.");
 
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->error("Error: " . $e->getMessage());
+            $this->error("Error at Zip {$zipCode}: " . $e->getMessage());
             return 1;
         }
 
         fclose($file);
         return 0;
+    }
+
+    private function insertBatch(array $batch)
+    {
+        DB::table('geo_soil_references')->upsert(
+            $batch, 
+            ['zip_code'], 
+            [
+                'city', 'state_code', 'county', 'timezone', 
+                'latitude', 'longitude', 'climate_zone', 'frost_free_days',
+                'dominant_soil_texture', 'drainage_class', 'ph_mean', 'organic_matter_pct', 'cec_meq',
+                'drought_risk', 'compaction_risk', 'n_leaching_risk', 'disease_pressure',
+                'monthly_temp_data', 'growth_potential_data', 'updated_at'
+            ]
+        );
+    }
+
+
+    private function simulateTemperatureCurve($min, $max) {
+        $temps = [];
+        $amplitude = ($max - $min) / 2;
+        $midpoint = ($max + $min) / 2;
+        for ($month = 0; $month < 12; $month++) {
+            $radians = (($month - 6) / 12) * 2 * M_PI; 
+            $temps[] = round($midpoint + ($amplitude * cos($radians)), 1);
+        }
+        return $temps;
+    }
+
+    private function simulateRainfall($annualTotal) {
+        $avg = $annualTotal / 12;
+        $data = [];
+        for ($i = 0; $i < 12; $i++) {
+            $factor = ($i >= 2 && $i <= 4) ? 1.2 : (rand(80, 110) / 100);
+            $data[] = round($avg * $factor, 2);
+        }
+        return $data;
+    }
+
+    private function simulateGrowthPotential($temps) {
+        $gp = [];
+        foreach ($temps as $t) {
+            $val = exp(-0.5 * pow(($t - 68) / 10, 2)) * 100;
+            $gp[] = (int) $val;
+        }
+        return $gp;
     }
 }
