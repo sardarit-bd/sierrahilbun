@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
+use App\Services\ProductImageService;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Product extends Model
 {
@@ -17,6 +18,7 @@ class Product extends Model
         'coverage_sqft',
         'application_rate_oz_per_1k',
         'base_price',
+        'discount_price',
         'is_active',
     ];
 
@@ -24,9 +26,20 @@ class Product extends Model
         'coverage_sqft' => 'integer',
         'application_rate_oz_per_1k' => 'decimal:2',
         'base_price' => 'decimal:2',
+        'discount_price' => 'decimal:2',
         'is_active' => 'boolean',
         'created_at' => 'datetime',
     ];
+
+    protected static function booted()
+    {
+        static::deleting(function ($product) {
+            foreach ($product->images as $image) {
+                app(ProductImageService::class)->delete($image->image_url);
+            }
+            $product->images()->delete();
+        });
+    }
 
     public function category(): BelongsTo
     {
