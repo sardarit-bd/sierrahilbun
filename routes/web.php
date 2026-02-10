@@ -21,7 +21,7 @@ Route::get('/product/{slug}', function ($slug) {
         'slug' => $slug,
         // 'post' => $post 
     ]);
-})->name('blogs.post');
+})->name('product.post');
 
 Route::get('/review', function () {
     return Inertia::render('review/post');
