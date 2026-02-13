@@ -1,26 +1,24 @@
 import React, { useState } from 'react';
 import { MapPin, ArrowRight, Check, Leaf, TreePine } from 'lucide-react';
 import { Head } from '@inertiajs/react';
-
 export default function HeroSection() {
   const [zipCode, setZipCode] = useState('');
-
   return (
     
     <div className="relative w-full h-auto min-h-[600px] lg:h-[85vh] flex items-center justify-center overflow-hidden font-sans">
       <Head title="Home" />
       
-      {/* Background Image with Overlay */}
+      {/* Background Video with Overlay */}
       <div className="absolute inset-0 z-0">
-        <img 
-          src="/images/hero.jpg" 
-          alt="Green manicured lawn with trees" 
-          className="w-full h-full object-cover"
+        <iframe
+          src="https://www.youtube.com/embed/eIoNd0HofNw?autoplay=1&mute=1&loop=1&playlist=eIoNd0HofNw&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1"
+          allow="autoplay; fullscreen"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[177.78vh] min-w-full h-[56.25vw] min-h-full border-0 pointer-events-none"
+          title="Hero background video"
         />
         {/* Premium gradient overlay for better text readability and visual appeal */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/65 to-black/50"></div>
       </div>
-
       <div className="relative z-10 w-full max-w-5xl mx-auto px-6 py-12 lg:py-0 flex flex-col items-center text-center">
         
         {/* Main Content Column */}
@@ -31,15 +29,6 @@ export default function HeroSection() {
             Made Simple <br />
             For Homes & Pro Turf
           </h1>
-          
-          {/* Sub-headline adapted to fit design style of Image 1 */}
-          {/* <p className=" font-poppins text-white/90 text-lg md:text-2xl font-medium max-w-2xl">
-            Professional agronomy plans starting at <span className="font-bold text-[#FFD54F]">$55</span>
-          </p> */}
-
-          {/* <div className="h-1 w-24 bg-[#FFD54F] rounded-full my-2"></div> */}
-
-          {/* Input Group - Centered */}
           <div className="w-full max-w-xl mt-6">
             <label className="block text-xs font-bold text-white uppercase tracking-wider mb-3">
               Where do you live?
@@ -60,17 +49,8 @@ export default function HeroSection() {
                 Get your plan
               </button>
             </div>
-
-            {/* Secondary Link for "For Landscapers..." context from Image 2 */}
-            {/* <div className="mt-6">
-              <a href="#" className="inline-flex items-center gap-2 text-white/90 hover:text-white font-semibold text-sm transition-colors border-b border-white/30 hover:border-white pb-0.5">
-                <TreePine className="w-4 h-4" />
-                For Landscapers & Golf Courses
-              </a>
-            </div> */}
           </div>
         </div>
-
       </div>
     </div>
   );
