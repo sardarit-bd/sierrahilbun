@@ -16,7 +16,7 @@ return new class extends Migration
             $table->text('comment')->nullable();
             $table->json('images_json')->nullable();
             $table->boolean('is_verified_purchase')->default(false);
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
             
             $table->index(['product_id', 'created_at']);
             $table->index(['user_id', 'product_id']);
