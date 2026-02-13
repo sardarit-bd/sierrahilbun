@@ -8,7 +8,7 @@ import { Head } from '@inertiajs/react';
 const product = {
   id: 'prod-001',
   name: "Bug Doom Home Insect Control",
-  variant: "Gallon with Wand (2-pack)",
+  variant: "Gallon Hose-Connect Application (2-pack)",
   image: "/images/products/heatguard_quart_gallon.png",
 };
 

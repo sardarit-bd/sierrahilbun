@@ -48,8 +48,8 @@ export default function BeforeAfter() {
 
   // Images representing the transformation
   // Using Unsplash images for preview; replace with your local paths "/images/lawn-before.png" if available
-  const beforeImage = "/images/lawn_before_cropped.png";
-  const afterImage = "/images/lawn_after_cropped.png";
+  const beforeImage = "/images/before-after/before_cropped.png";
+  const afterImage = "/images/before-after/after_cropped.png";
 
   // Handlers for dragging interaction
   const handleMouseDown = () => setIsDragging(true);

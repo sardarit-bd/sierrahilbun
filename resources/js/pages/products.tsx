@@ -19,21 +19,21 @@ const allProducts = [
     reviewCount: 42,
     isFreeShipping: true,
     category: 'Fertilizer',
-    description: "Our advanced formula promotes deep root growth and vibrant green color without the rapid surge growth of traditional fertilizers. Safe for pets and kids immediately after application."
+    description: "Our advanced formula promotes deep root growth and vibrant green color without the rapid surge growth of traditional fertilizers. Safe for pets and kids immediately after application. Each TurfTec product includes a hose-connect siphon adapter that uses water pressure to automatically draw product from the jug and mix it with your garden hose spray. No spray wand or additional equipment is required."
   },
   {
     id: 2,
     badge: { text: 'SAVE $8', type: 'save' },
     image: '/images/products/heatguard_quart_gallon.png',
     title: 'Bug Doom Home Insect Control',
-    subtitle: 'Gallon with Wand (2-pack)',
+    subtitle: 'Easy Hose-Connect Application',
     price: 72.00,
     originalPrice: 80.00,
     rating: 4,
     reviewCount: 53,
     isFreeShipping: true,
     category: 'Pest Control',
-    description: "Keep your home pest-free with our eco-friendly barrier spray. Effective against ants, spiders, roaches, and more. Includes a battery-operated wand for easy application."
+    description: "Keep your home pest-free with our eco-friendly barrier spray. Effective against ants, spiders, roaches, and more. Each TurfTec product includes a hose-connect siphon adapter that uses water pressure to automatically draw product from the jug and mix it with your garden hose spray. No spray wand or additional equipment is required."
   },
   {
     id: 3,
@@ -47,7 +47,7 @@ const allProducts = [
     reviewCount: 12,
     isFreeShipping: true,
     category: 'Bundles',
-    description: "The ultimate defense package. Includes Bug Doom for perimeter protection and our Mosquito Deleter for yard coverage. Enjoy a bug-free season inside and out."
+    description: "The ultimate defense package. Includes Bug Doom for perimeter protection and our Mosquito Deleter for yard coverage. Each TurfTec product includes a hose-connect siphon adapter that uses water pressure to automatically draw product from the jug and mix it with your garden hose spray. No spray wand or additional equipment is required."
   },
   {
     id: 4,
@@ -61,7 +61,7 @@ const allProducts = [
     reviewCount: 119,
     isFreeShipping: true,
     category: 'Weed Control',
-    description: "Iron-based herbicide that kills broadleaf weeds down to the root without harming your grass. Visible results in hours. Perfect for spot treatment."
+    description: "Iron-based herbicide that kills broadleaf weeds down to the root without harming your grass. Visible results in hours. Perfect for spot treatment. Each TurfTec product includes a hose-connect siphon adapter that uses water pressure to automatically draw product from the jug and mix it with your garden hose spray. No spray wand or additional equipment is required."
   },
   {
     id: 5,
@@ -75,7 +75,7 @@ const allProducts = [
     reviewCount: 72,
     isFreeShipping: true,
     category: 'Weed Control',
-    description: "Our strongest formula for tough weeds like clover, moss, and algae. Certified organic and safe for use around vegetable gardens."
+    description: "Our strongest formula for tough weeds like clover, moss, and algae. Certified organic and safe for use around vegetable gardens. Each TurfTec product includes a hose-connect siphon adapter that uses water pressure to automatically draw product from the jug and mix it with your garden hose spray. No spray wand or additional equipment is required."
   },
   {
     id: 6,
@@ -89,7 +89,7 @@ const allProducts = [
     reviewCount: 25,
     isFreeShipping: true,
     category: 'Pest Control',
-    description: "Reclaim your backyard. This cedar oil-based concentrate repels mosquitoes, ticks, and fleas. Connects directly to your hose for easy spraying."
+    description: "Reclaim your backyard. This cedar oil-based concentrate repels mosquitoes, ticks, and fleas. Connects directly to your hose for easy spraying. Each TurfTec product includes a hose-connect siphon adapter that uses water pressure to automatically draw product from the jug and mix it with your garden hose spray. No spray wand or additional equipment is required."
   },
   {
     id: 7,
@@ -103,7 +103,7 @@ const allProducts = [
     reviewCount: 18,
     isFreeShipping: false,
     category: 'Repair',
-    description: "Neutralizes soil salts from pet urine and re-seeds bare spots in one step. Includes a blend of high-performance grass seed and soil amendments."
+    description: "Neutralizes soil salts from pet urine and re-seeds bare spots in one step. Includes a blend of high-performance grass seed and soil amendments. Each TurfTec product includes a hose-connect siphon adapter that uses water pressure to automatically draw product from the jug and mix it with your garden hose spray. No spray wand or additional equipment is required."
   },
   {
     id: 8,
@@ -117,9 +117,10 @@ const allProducts = [
     reviewCount: 6,
     isFreeShipping: true,
     category: 'Tools',
-    description: "Stop guessing. Send a soil sample to our lab and get a custom nutrient plan tailored to your lawn's specific needs. Postage included."
+    description: "Stop guessing. Send a soil sample to our lab and get a custom nutrient plan tailored to your lawn's specific needs. Postage included. Each TurfTec product includes a hose-connect siphon adapter that uses water pressure to automatically draw product from the jug and mix it with your garden hose spray. No spray wand or additional equipment is required."
   },
 ];
+
 
 // --- Quick View Modal Component ---
 const QuickViewModal = ({ product, onClose }) => {
