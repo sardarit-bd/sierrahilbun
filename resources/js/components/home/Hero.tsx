@@ -10,12 +10,16 @@ export default function HeroSection() {
       
       {/* Background Video with Overlay */}
       <div className="absolute inset-0 z-0">
-        <iframe
-          src="https://www.youtube.com/embed/eIoNd0HofNw?autoplay=1&mute=1&loop=1&playlist=eIoNd0HofNw&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1"
-          allow="autoplay; fullscreen"
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[177.78vh] min-w-full h-[56.25vw] min-h-full border-0 pointer-events-none"
-          title="Hero background video"
-        />
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[177.78vh] min-w-full h-[56.25vw] min-h-full object-cover"
+      >
+        <source src="/videos/hero.webm" type="video/webm" />
+        <source src="/videos/hero.mp4"  type="video/mp4" />
+      </video>
         {/* Premium gradient overlay for better text readability and visual appeal */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/65 to-black/50"></div>
       </div>
