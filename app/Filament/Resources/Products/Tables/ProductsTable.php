@@ -2,18 +2,21 @@
 
 namespace App\Filament\Resources\Products\Tables;
 
-use Filament\Tables\Table;
+use App\Models\Product;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Columns\TextColumn;
-use Illuminate\Support\Facades\Storage;
 use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 
 class ProductsTable
 {
@@ -21,87 +24,83 @@ class ProductsTable
     {
         return $table
             ->columns([
-                ImageColumn::make('images.image_url')
+                ImageColumn::make('images')
                     ->label('Image')
+                    ->disk('public') 
                     ->circular()
                     ->defaultImageUrl(url('/images/placeholder.png'))
-                    ->size(50)
-                    ->getStateUsing(function ($record) {
-                        $imageUrl = $record->images()->where('is_primary', true)->first()?->image_url 
-                            ?? $record->images()->first()?->image_url;
-                        
-                        return $imageUrl ? Storage::url($imageUrl) : null;
+                    ->getStateUsing(function (Product $record) {
+                        $image = $record->images->firstWhere('is_primary', true) 
+                            ?? $record->images->first();
+
+                        return $image?->image_url; 
                     }),
-                
-                TextColumn::make('sku')
-                    ->label('SKU')
+
+                TextColumn::make('name')
+                    ->label('Product')
                     ->searchable()
                     ->sortable()
-                    ->copyable()
-                    ->copyMessage('SKU copied')
                     ->weight('bold')
-                    ->description(fn ($record) => $record->name),
-                
+                    ->description(fn (Product $record) => $record->subtitle ?? $record->sku)
+                    ->wrap(),
+
+
                 TextColumn::make('category.name')
                     ->label('Category')
-                    ->searchable()
-                    ->sortable()
                     ->badge()
                     ->color('info')
-                    ->default('Uncategorized'),
-                
-                TextColumn::make('discount_price')
-                    ->label('Discount Price')
-                    ->money('USD')
+                    ->searchable()
                     ->sortable()
-                    ->alignEnd(),
+                    ->toggleable(),
 
                 TextColumn::make('base_price')
-                    ->label('Base Price')
-                    ->money('USD')
+                    ->label('Price')
                     ->sortable()
-                    ->alignEnd(),
-                
+                    ->alignEnd()
+                    ->formatStateUsing(function (Product $record) {
+                        if ($record->price_min != $record->price_max && $record->price_max > 0) {
+                            return '$' . number_format($record->price_min, 2) . ' - $' . number_format($record->price_max, 2);
+                        }
+                        return '$' . number_format($record->base_price, 2);
+                    }),
+
+
+                TextColumn::make('rating_avg')
+                    ->label('Rating')
+                    ->sortable()
+                    ->badge()
+                    ->icon('heroicon-m-star')
+                    ->color(fn (string $state): string => match (true) {
+                        $state >= 4.5 => 'success',
+                        $state >= 3.0 => 'warning',
+                        default => 'danger',
+                    })
+                    ->formatStateUsing(fn (string $state) => number_format($state, 1)),
+
+ 
                 TextColumn::make('variants_count')
                     ->counts('variants')
                     ->label('Variants')
-                    ->sortable()
-                    ->alignCenter()
                     ->badge()
-                    ->color('success')
-                    ->default(0),
+                    ->color('gray')
+                    ->alignCenter(),
+
+ 
+                IconColumn::make('is_active')
+                    ->label('Active')
+                    ->boolean()
+                    ->sortable()
+                    ->alignCenter(),
+
+                TextColumn::make('reviews_count')
+                    ->label('Reviews')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 
                 TextColumn::make('coverage_sqft')
                     ->label('Coverage')
                     ->numeric()
-                    ->sortable()
                     ->suffix(' sq ft')
-                    ->alignEnd()
-                    ->toggleable()
-                    ->placeholder('—'),
-                
-                TextColumn::make('application_rate_oz_per_1k')
-                    ->label('App Rate')
-                    ->numeric(decimalPlaces: 2)
-                    ->sortable()
-                    ->suffix(' oz/1k')
-                    ->alignEnd()
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->placeholder('—'),
-                
-                IconColumn::make('is_active')
-                    ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger')
-                    ->alignCenter(),
-                
-                TextColumn::make('created_at')
-                    ->label('Created')
-                    ->dateTime('M j, Y')
-                    ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
@@ -109,60 +108,37 @@ class ProductsTable
                 SelectFilter::make('category_id')
                     ->label('Category')
                     ->relationship('category', 'name')
-                    ->searchable()
                     ->preload()
                     ->multiple(),
                 
                 TernaryFilter::make('is_active')
-                    ->label('Status')
-                    ->placeholder('All products')
-                    ->trueLabel('Active only')
-                    ->falseLabel('Inactive only'),
-                
-                SelectFilter::make('has_variants')
-                    ->label('Variants')
+                    ->label('Status'),
+
+                SelectFilter::make('stock_status')
+                    ->label('Stock Status')
                     ->options([
-                        'yes' => 'With Variants',
-                        'no' => 'Without Variants',
+                        'in_stock' => 'In Stock',
+                        'low_stock' => 'Low Stock (< 10)',
+                        'out_of_stock' => 'Out of Stock',
                     ])
                     ->query(function (Builder $query, array $data) {
-                        if ($data['value'] === 'yes') {
-                            return $query->has('variants');
-                        } elseif ($data['value'] === 'no') {
-                            return $query->doesntHave('variants');
+                        if ($data['value'] === 'out_of_stock') {
+                            return $query->whereHas('variants', fn ($q) => $q->where('stock_quantity', 0));
                         }
                         return $query;
                     }),
-                
-                SelectFilter::make('price_range')
-                    ->label('Price Range')
-                    ->options([
-                        '0-25' => 'Under $25',
-                        '25-50' => '$25 - $50',
-                        '50-100' => '$50 - $100',
-                        '100+' => 'Over $100',
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        return match ($data['value']) {
-                            '0-25' => $query->where('base_price', '<', 25),
-                            '25-50' => $query->whereBetween('base_price', [25, 50]),
-                            '50-100' => $query->whereBetween('base_price', [50, 100]),
-                            '100+' => $query->where('base_price', '>', 100),
-                            default => $query,
-                        };
-                    }),
             ])
-            ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+            ->actions([
+                ActionGroup::make([
+                    ViewAction::make(),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ])
             ])
-            ->toolbarActions([
+            ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
-            ])
-            ->emptyStateHeading('No products yet')
-            ->emptyStateDescription('Create your first product to get started.')
-            ->emptyStateIcon('heroicon-o-cube');
+            ]);
     }
 }

@@ -30,6 +30,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->viteTheme('resources/css/filament/admin/theme.css')
+            ->favicon('/images/turftec-logo.png')
             ->login()
             ->colors([
                 'primary' => Color::hex('#2D4739'),

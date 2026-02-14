@@ -3,21 +3,21 @@
 namespace App\Filament\Resources\Products\Schemas;
 
 use App\Models\Product;
-use App\Models\ProductImage;
 use App\Services\ProductImageService;
-use Illuminate\Support\Str;
-use Filament\Schemas\Schema;
-use App\Models\ProductCategory;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\RichEditor;
-use Filament\Schemas\Components\Utilities\Set;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput; // New for Benefits
+use Filament\Forms\Components\Textarea; // New
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Schema;
+use Illuminate\Support\Str;
 
 class ProductForm
 {
@@ -26,174 +26,185 @@ class ProductForm
         return $schema
             ->columns(3)
             ->components([
-                Section::make('Basic Information')
+                // --- Left Column (Content & Variants) ---
+                Group::make()
+                    ->columnSpan(2)
                     ->schema([
-                        TextInput::make('name')
-                            ->required()
-                            ->maxLength(255)
-                            ->live(onBlur: true)
-                            ->afterStateUpdated(fn (string $operation, $state, Set $set) => 
-                                $operation === 'create' ? $set('slug', Str::slug($state)) : null
-                            )
-                            ->columnSpanFull(),
+                        Section::make('Basic Information')
+                            ->schema([
+                                TextInput::make('name')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(fn (string $operation, $state, Set $set) => 
+                                        $operation === 'create' ? $set('slug', Str::slug($state)) : null
+                                    ),
 
-                        TextInput::make('slug')
-                            ->required()
-                            ->maxLength(255)
-                            ->unique(Product::class, 'slug', ignoreRecord: true)
-                            ->rules(['alpha_dash'])
-                            ->helperText('Auto-generated from name, but can be customized')
-                            ->columnSpanFull(),
+                                TextInput::make('subtitle') // NEW
+                                    ->label('Subtitle / Tagline')
+                                    ->placeholder('e.g. Gallon Hose-Connect Application (2-pack)')
+                                    ->maxLength(255)
+                                    ->columnSpanFull(),
 
-                        Select::make('category_id')
-                            ->label('Category')
-                            ->relationship('category', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->nullable()
-                            ->helperText('Select a product category'),
+                                TextInput::make('slug')
+                                    ->required()
+                                    ->unique(Product::class, 'slug', ignoreRecord: true)
+                                    ->rules(['alpha_dash']),
+                                
+                                Select::make('category_id')
+                                    ->relationship('category', 'name')
+                                    ->searchable()
+                                    ->preload(),
 
-                        TextInput::make('sku')
-                            ->label('Master SKU')
-                            ->required()
-                            ->maxLength(255)
-                            ->unique(Product::class, 'sku', ignoreRecord: true)
-                            ->alphaNum()
-                            ->helperText('Unique product identifier')
-                            ->suffix('📋'),
+                                RichEditor::make('description')
+                                    ->columnSpanFull()
+                                    ->toolbarButtons(['bold', 'italic', 'bulletList', 'h2', 'h3']),
+                            ])->columns(2),
 
-                        TextInput::make('base_price')
-                            ->label('Base Price')
-                            ->required()
-                            ->numeric()
-                            ->prefix('$')
-                            ->minValue(0)
-                            ->step(0.01)
-                            ->helperText('Starting price for this product'),
+                        // NEW: Product Variants (The Core Commerce Logic)
+                        Section::make('Product Variants')
+                            ->description('Manage sizes, prices, and stock levels.')
+                            ->schema([
+                                Repeater::make('variants')
+                                    ->relationship() // Connects to Product::variants()
+                                    ->schema([
+                                        TextInput::make('size_label')
+                                            ->label('Size Label')
+                                            ->placeholder('e.g. 1 Gallon')
+                                            ->required(),
+                                        
+                                        TextInput::make('sku')
+                                            ->label('Variant SKU')
+                                            ->required()
+                                            ->unique(ignoreRecord: true),
 
-                        TextInput::make('discount_price')
-                            ->label('Discount Price')
-                            ->numeric()
-                            ->prefix('$')
-                            ->minValue(0)
-                            ->step(0.01)
-                            ->helperText('Sale price for this product')
-                            ->lte('base_price'),
-                    ])
-                    ->columns(2)
-                    ->columnSpan(2),
+                                        TextInput::make('size_volume_oz')
+                                            ->label('Volume (oz)')
+                                            ->numeric()
+                                            ->required(),
 
-                Section::make('Product Images')
-    ->description('Upload multiple product images. Drag to reorder, first image is primary.')
-    ->schema([
-        Repeater::make('images')
-            ->relationship()
-            ->schema([
-                FileUpload::make('image_url')
-                    ->label('Image')
-                    ->image()
-                    ->directory('products')
-                    ->maxSize(5120)
-                    ->imageEditor()
-                    ->imageEditorAspectRatios([
-                        '1:1',
-                        '4:3',
-                        '16:9',
-                    ])
-                    ->imagePreviewHeight('200')
-                    ->panelLayout('compact')
-                    ->saveUploadedFileUsing(function ($file) {
-                        return app(ProductImageService::class)->optimizeAndStore($file);
-                    })
-                    ->required()
-                    ->columnSpan(3),
+                                        TextInput::make('price')
+                                            ->label('Price')
+                                            ->numeric()
+                                            ->prefix('$')
+                                            ->required(),
 
-                Checkbox::make('is_primary')
-                    ->label('Primary')
-                    ->inline(false)
-                    ->columnSpan(1),
-            ])
-            ->columns(4)
-            ->orderColumn('sort_order')
-            ->reorderable()
-            ->reorderableWithButtons()
-            ->reorderableWithDragAndDrop()
-            ->collapsible()
-            ->collapsed(false)
-            ->cloneable()
-            ->itemLabel(fn (array $state): ?string => 
-                ($state['is_primary'] ?? false) 
-                    ? '⭐ Primary Image' 
-                    : 'Image'
-            )
-            ->addActionLabel('📸 Add Image')
-            ->defaultItems(1)
-            ->minItems(0)
-            ->maxItems(10)
-            ->deleteAction(
-                fn ($action) => $action
-                    ->requiresConfirmation()
-                    ->modalHeading('Delete image')
-                    ->modalDescription('This will permanently delete the image.')
-                    ->label('Delete')
-            )
-            ->addAction(
-                fn ($action) => $action
-                    ->label('Add Image')
-                    ->icon('heroicon-o-plus-circle')
-            )
-            ->grid(1)
-            ->columnSpanFull(),
-    ])
-    ->columnSpanFull()
-    ->icon('heroicon-o-photo')
-    ->collapsible()
-    ->persistCollapsed()
-    ->compact(),
+                                        TextInput::make('compare_at_price')
+                                            ->label('Original Price')
+                                            ->helperText('Shown as crossed out')
+                                            ->numeric()
+                                            ->prefix('$'),
 
-                Section::make('Description')
+                                        TextInput::make('stock_quantity')
+                                            ->label('Stock')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->required(),
+
+                                        Toggle::make('is_default')
+                                            ->label('Selected by default')
+                                            ->inline(false),
+                                        
+                                        TextInput::make('sort_order')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->hidden(), // Or make visible if you want manual sorting
+                                    ])
+                                    ->columns(3) // Compact layout for variants
+                                    ->orderColumn('sort_order')
+                                    ->defaultItems(1)
+                                    ->itemLabel(fn (array $state): ?string => $state['size_label'] ?? null),
+                            ]),
+
+                        Section::make('Marketing Details')
+                            ->collapsed()
+                            ->schema([
+                                TagsInput::make('benefits')
+                                    ->label('Key Benefits')
+                                    ->placeholder('Type and hit Enter (e.g. Kills on Contact)')
+                                    ->columnSpanFull(),
+
+                                Textarea::make('ingredients')
+                                    ->rows(3)
+                                    ->columnSpanFull(),
+
+                                RichEditor::make('usage_instructions')
+                                    ->label('How to Use')
+                                    ->toolbarButtons(['bold', 'bulletList', 'orderedList'])
+                                    ->columnSpanFull(),
+                            ]),
+                    ]),
+
+                // --- Right Column (Settings, Images, Specs) ---
+                Group::make()
+                    ->columnSpan(1)
                     ->schema([
-                        RichEditor::make('description')
-                            ->label('Product Description')
-                            ->toolbarButtons([
-                                'bold',
-                                'italic',
-                                'underline',
-                                'bulletList',
-                                'orderedList',
-                                'link',
-                                'h2',
-                                'h3',
-                            ])
-                            ->helperText('Detailed product information shown to customers')
-                            ->columnSpanFull(),
-                    ])
-                    ->columnSpanFull()
-                    ->collapsible(),
+                        Section::make('Status')
+                            ->schema([
+                                Toggle::make('is_active')
+                                    ->label('Active on Store')
+                                    ->default(true),
+                                
+                                // Read-only Stats (Calculated by Observer)
+                                TextInput::make('rating_avg')
+                                    ->label('Average Rating')
+                                    ->disabled()
+                                    ->numeric(),
+                                
+                                TextInput::make('reviews_count')
+                                    ->label('Total Reviews')
+                                    ->disabled()
+                                    ->numeric(),
+                            ]),
 
-                Section::make('Lawn Care Specifications')
-                    ->description('Application and coverage calculations')
-                    ->schema([
-                        TextInput::make('coverage_sqft')
-                            ->label('Coverage Area')
-                            ->numeric()
-                            ->minValue(0)
-                            ->suffix('sq ft')
-                            ->helperText('How much lawn area one unit covers')
-                            ->columnSpan(1),
+                        Section::make('Pricing Overview')
+                            ->description('Base display prices')
+                            ->schema([
+                                TextInput::make('base_price')
+                                    ->numeric()
+                                    ->prefix('$'),
+                                TextInput::make('discount_price')
+                                    ->numeric()
+                                    ->prefix('$'),
+                            ]),
 
-                        TextInput::make('application_rate_oz_per_1k')
-                            ->label('Application Rate')
-                            ->numeric()
-                            ->minValue(0)
-                            ->step(0.01)
-                            ->suffix('oz per 1,000 sq ft')
-                            ->helperText('Rate calculated from Python script')
-                            ->columnSpan(1),
-                    ])
-                    ->columns(2)
-                    ->columnSpanFull()
-                    ->collapsible(),
+                        Section::make('Images')
+                            ->schema([
+                                Repeater::make('images')
+                                    ->relationship()
+                                    ->schema([
+                                        FileUpload::make('image_url')
+                                            ->image()
+                                            ->disk('public')
+                                            ->directory('products')
+                                            ->maxSize(5120)
+                                            ->imageEditor()
+                                            ->saveUploadedFileUsing(function ($file) {
+                                                return app(ProductImageService::class)->optimizeAndStore($file);
+                                            })
+                                            ->required(),
+                                        Checkbox::make('is_primary'),
+                                    ])
+                                    ->grid(1)
+                                    ->minItems(1)
+                                    ->maxItems(10)
+                                    ->reorderableWithDragAndDrop()
+                                    ->collapsible()
+                                    ->itemLabel(fn (array $state): ?string => ($state['is_primary'] ?? false) ? '⭐ Primary' : 'Image'),
+                            ]),
+
+                        Section::make('Tech Specs')
+                            ->schema([
+                                TextInput::make('sku')
+                                    ->label('Master SKU'),
+                                TextInput::make('coverage_sqft')
+                                    ->label('Coverage (sq ft)')
+                                    ->numeric(),
+                                TextInput::make('application_rate_oz_per_1k')
+                                    ->label('App Rate (oz/1k)')
+                                    ->numeric(),
+                            ]),
+                    ]),
             ]);
     }
 }

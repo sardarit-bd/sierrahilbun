@@ -13,20 +13,29 @@ class Product extends Model
         'category_id',
         'sku',
         'name',
+        'subtitle',
         'slug',
         'description',
+        'benefits', 
+        'ingredients', 
+        'usage_instructions', 
         'coverage_sqft',
         'application_rate_oz_per_1k',
         'base_price',
         'discount_price',
+        'rating_avg',
+        'reviews_count', 
         'is_active',
     ];
 
     protected $casts = [
+        'benefits' => 'array',
         'coverage_sqft' => 'integer',
         'application_rate_oz_per_1k' => 'decimal:2',
         'base_price' => 'decimal:2',
         'discount_price' => 'decimal:2',
+        'rating_avg' => 'decimal:2', 
+        'reviews_count' => 'integer',
         'is_active' => 'boolean',
         'created_at' => 'datetime',
     ];
@@ -48,12 +57,12 @@ class Product extends Model
 
     public function variants(): HasMany
     {
-        return $this->hasMany(ProductVariant::class);
+        return $this->hasMany(ProductVariant::class)->orderBy('sort_order');
     }
 
     public function images(): HasMany
     {
-        return $this->hasMany(ProductImage::class);
+        return $this->hasMany(ProductImage::class)->orderBy('sort_order');
     }
 
     public function reviews(): HasMany

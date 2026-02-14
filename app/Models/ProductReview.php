@@ -11,15 +11,20 @@ class ProductReview extends Model
         'product_id',
         'user_id',
         'rating',
-        'comment',
+        'title', 
+        'content',        
         'images_json',
         'is_verified_purchase',
+        'helpful_count',  
+        'is_approved',    
     ];
 
     protected $casts = [
         'rating' => 'integer',
         'images_json' => 'array',
         'is_verified_purchase' => 'boolean',
+        'helpful_count' => 'integer',
+        'is_approved' => 'boolean',   
         'created_at' => 'datetime',
     ];
 

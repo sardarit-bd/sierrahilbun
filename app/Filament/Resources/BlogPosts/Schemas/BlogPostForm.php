@@ -21,11 +21,8 @@ class BlogPostForm
     public static function configure(Schema $schema): Schema
     {
         return $schema
-            ->columns(3)                    // top-level schema is a 3-column grid
+            ->columns(3)                    
             ->components([
-
-                // ── MAIN CONTENT (2 of 3 columns) ─────────────────────────
-
                 Section::make('Post Content')
                     ->description('The core content and identity of your blog post.')
                     ->icon('heroicon-o-document-text')
@@ -156,11 +153,6 @@ class BlogPostForm
                                     ->maxSize(4096)
                                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                                     ->helperText('JPEG · PNG · WebP — max 4 MB, 16:9 recommended'),
-
-                                TextInput::make('featured_image_alt')
-                                    ->label('Alt Text')
-                                    ->placeholder('Describe the image for screen readers…')
-                                    ->maxLength(125),
                             ]),
 
                     ]),
