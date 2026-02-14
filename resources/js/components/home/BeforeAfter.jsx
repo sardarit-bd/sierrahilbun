@@ -41,15 +41,14 @@ export default function BeforeAfter() {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 5000); // Rotate every 5 seconds
+    }, 5000);
 
     return () => clearInterval(timer);
   }, []);
 
   // Images representing the transformation
-  // Using Unsplash images for preview; replace with your local paths "/images/lawn-before.png" if available
-  const beforeImage = "/images/before-after/before_cropped.png";
-  const afterImage = "/images/before-after/after_cropped.png";
+  const beforeImage = "/images/before-after/before-lg-1.png";
+  const afterImage = "/images/before-after/after-lg-1-scaled.png";
 
   // Handlers for dragging interaction
   const handleMouseDown = () => setIsDragging(true);
@@ -112,56 +111,58 @@ export default function BeforeAfter() {
           </span>
         </h2>
 
-        {/* Comparison Slider */}
-        <div 
-          ref={containerRef}
-          className="relative w-full max-w-6xl mx-auto aspect-[16/9] rounded-xl overflow-hidden shadow-2xl cursor-ew-resize select-none group touch-none"
-          onMouseDown={handleInteractionStart}
-          onTouchStart={handleInteractionStart}
-        >
-          {/* Base Layer: AFTER Image (Right side visible by default) */}
-          <img 
-            src={afterImage} 
-            alt="After TurfTec treatment" 
-            className="absolute inset-0 w-full h-full object-cover" 
-          />
-          
-          {/* Badge: AFTER */}
-          <div className="absolute bottom-6 right-6 bg-[#1B5E20] text-white text-xs md:text-sm font-bold tracking-widest px-4 py-1.5 rounded-md shadow-lg">
-            AFTER
-          </div>
-
-          {/* Overlay Layer: BEFORE Image (Clipped) */}
+        {/* Comparison Slider — 923:446 ratio, full width */}
+        <div className="w-full max-w-7xl mx-auto">
           <div 
-            className="absolute inset-0 overflow-hidden bg-gray-200"
-            style={{ width: `${sliderPosition}%` }}
+            ref={containerRef}
+            className="relative w-full rounded-xl overflow-hidden shadow-2xl cursor-ew-resize select-none group touch-none"
+            style={{ aspectRatio: '923 / 446' }}
+            onMouseDown={handleInteractionStart}
+            onTouchStart={handleInteractionStart}
           >
-            {/* Before image is absolute to cover the base image exactly */}
+            {/* Base Layer: AFTER Image */}
             <img 
-              src={beforeImage} 
-              alt="Before TurfTec treatment" 
-              className="absolute inset-0 w-full h-full object-cover max-w-none"
-              style={{ width: containerRef.current ? containerRef.current.clientWidth : '100%' }}
+              src={afterImage} 
+              alt="After TurfTec treatment" 
+              className="absolute inset-0 w-full h-full object-cover" 
             />
             
-            {/* Badge: BEFORE */}
-            <div className="absolute bottom-6 left-6 bg-[#3F51B5] text-white text-xs md:text-sm font-bold tracking-widest px-4 py-1.5 rounded-md shadow-lg z-10">
-              BEFORE
+            {/* Badge: AFTER */}
+            <div className="absolute bottom-6 right-6 bg-[#1B5E20] text-white text-xs md:text-sm font-bold tracking-widest px-4 py-1.5 rounded-md shadow-lg">
+              AFTER
             </div>
-            
-            {/* Gradient Shadow on the cut line */}
-            <div className="absolute inset-y-0 right-0 w-1 bg-gradient-to-l from-black/20 to-transparent"></div>
-          </div>
 
-          {/* Slider Handle */}
-          <div 
-            className="absolute top-0 bottom-0 w-1 bg-white z-20 shadow-[0_0_10px_rgba(0,0,0,0.3)]"
-            style={{ left: `${sliderPosition}%` }}
-          >
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-[#2E7D32] transform transition-transform group-hover:scale-110">
-              <div className="flex gap-0.5">
-                <ChevronLeft size={18} strokeWidth={2.5} />
-                <ChevronRight size={18} strokeWidth={2.5} />
+            {/* Overlay Layer: BEFORE Image (Clipped) */}
+            <div 
+              className="absolute inset-0 overflow-hidden"
+              style={{ width: `${sliderPosition}%` }}
+            >
+              <img 
+                src={beforeImage} 
+                alt="Before TurfTec treatment" 
+                className="absolute inset-0 w-full h-full object-cover max-w-none"
+                style={{ width: containerRef.current ? containerRef.current.clientWidth : '100%' }}
+              />
+              
+              {/* Badge: BEFORE */}
+              <div className="absolute bottom-6 left-6 bg-[#3F51B5] text-white text-xs md:text-sm font-bold tracking-widest px-4 py-1.5 rounded-md shadow-lg z-10">
+                BEFORE
+              </div>
+              
+              {/* Gradient Shadow on the cut line */}
+              <div className="absolute inset-y-0 right-0 w-1 bg-gradient-to-l from-black/20 to-transparent"></div>
+            </div>
+
+            {/* Slider Handle */}
+            <div 
+              className="absolute top-0 bottom-0 w-1 bg-white z-20 shadow-[0_0_10px_rgba(0,0,0,0.3)]"
+              style={{ left: `${sliderPosition}%` }}
+            >
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-[#2E7D32] transform transition-transform group-hover:scale-110">
+                <div className="flex gap-0.5">
+                  <ChevronLeft size={18} strokeWidth={2.5} />
+                  <ChevronRight size={18} strokeWidth={2.5} />
+                </div>
               </div>
             </div>
           </div>
