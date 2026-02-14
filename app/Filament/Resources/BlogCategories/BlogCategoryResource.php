@@ -45,7 +45,7 @@ class BlogCategoryResource extends Resource
     {
         return [
             'index' => ListBlogCategories::route('/'),
-            'create' => CreateBlogCategory::route('/create'),
+            // 'create' => CreateBlogCategory::route('/create'),
             'edit' => EditBlogCategory::route('/{record}/edit'),
         ];
     }

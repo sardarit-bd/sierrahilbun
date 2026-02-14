@@ -135,8 +135,8 @@
 }
 
 .fi-checkbox-input:checked {
-    background-color: #9007EE !important;
-    border-color: #9007EE !important;
+    background-color: #2D4739 !important;
+    border-color: #2D4739 !important;
 }
 
 /* Custom Auth Panel */
@@ -148,8 +148,8 @@
 
 /* Input Focus States */
 .fi-input-wrp:focus-within {
-    box-shadow: 0 0 0 2px #F3E8FF !important;
-    border-color: #9007EE !important;
+    box-shadow: 0 0 0 2px #2D4739 !important;
+    border-color: #2D4739 !important;
 }
 
 .fi-main, .fi-width-7xl {
