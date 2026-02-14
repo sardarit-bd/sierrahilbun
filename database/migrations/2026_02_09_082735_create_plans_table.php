@@ -20,7 +20,7 @@ return new class extends Migration
             $table->boolean('is_recommended')->default(false);
             $table->string('target_audience')->nullable();
             
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
         });
     }
 

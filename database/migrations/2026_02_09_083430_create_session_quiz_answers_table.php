@@ -13,7 +13,7 @@ return new class extends Migration
             $table->uuid('session_id');
             $table->string('question_key')->comment("'pet_traffic'");
             $table->string('answer_value')->comment("'high'");
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
             
             $table->foreign('session_id')
                   ->references('id')
