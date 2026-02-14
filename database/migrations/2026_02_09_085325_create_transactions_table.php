@@ -21,7 +21,7 @@ return new class extends Migration
             // Debugging
             $table->json('gateway_response_json')->nullable()->comment('Full response from Gateway');
             
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
             
             $table->index(['user_id', 'status']);
         });

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('external_payment_method_id')->comment('pm_card_visa...');
             $table->boolean('is_default')->default(false);
             
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
             
             $table->index(['user_id', 'is_default']);
         });

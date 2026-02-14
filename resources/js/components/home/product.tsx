@@ -24,14 +24,14 @@ const mockProducts = [
     badge: { text: 'SAVE $8', type: 'save' },
     image: '/images/products/heatguard_quart_gallon.png',
     title: 'Bug Doom Home Insect Control',
-    subtitle: 'Gallon with Wand (2-pack)',
+    subtitle: 'Easy Hose-Connect Application',
     price: 72.00,
     originalPrice: 80.00,
     rating: 4,
     reviewCount: 53,
     isFreeShipping: true,
     category: 'Pest Control',
-    description: "Keep your home pest-free with our eco-friendly barrier spray. Effective against ants, spiders, roaches, and more. Includes a battery-operated wand for easy application."
+    description: "Keep your home pest-free with our eco-friendly barrier spray. Effective against ants, spiders, roaches, and more. Each TurfTec product includes a hose-connect siphon adapter that uses water pressure to automatically draw product from the jug and mix it with your garden hose spray. No spray wand or additional equipment is required."
   },
   {
     id: 3,

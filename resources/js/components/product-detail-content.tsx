@@ -6,30 +6,28 @@ import { useCart } from '../context/CartContext';
 const productData = {
   id: 'prod-001',
   title: "Bug Doom Home Insect Control",
-  subtitle: "Gallon with Wand (2-pack)",
+  subtitle: "Gallon Hose-Connect Application (2-pack)",
   price: 72.00,
   originalPrice: 80.00,
   rating: 4.5,
   reviewCount: 328,
   description: "Shield your home from invaders. Bug Doom creates a long-lasting barrier against ants, roaches, spiders, and other common household pests. Our pro-grade formula is tough on bugs but safe for use around kids and pets when used as directed.",
   images: [
-    "/images/products/heatguard_quart_gallon.png", // Main
-    "https://placehold.co/600x600/f0fdf4/166534?text=Wand+Detail",
-    "https://placehold.co/600x600/f0fdf4/166534?text=Application",
-    "https://placehold.co/600x600/f0fdf4/166534?text=Label"
+    "/images/products/heatguard_quart_gallon.png",
+    "/images/image1.png",
   ],
   benefits: [
     "Kills on contact & creates a barrier",
-    "Battery-operated wand included",
+    "Includes hose-connect siphon adapter",
     "Dries odorless & non-staining",
     "Safe for indoor & outdoor use"
   ],
   ingredients: "Active: Deltamethrin (0.02%). Other: Water, Solvent, Emulsifiers.",
-  howToUse: "Shake well. Connect the wand. Spray a 12-inch band along the foundation of your home, around doors, windows, and vents. Allow to dry completely before letting pets enter the area.",
-  category: "Pest Control", // ← NEW (for cart context)
-  image: "/images/products/heatguard_quart_gallon.png", // ← NEW (for cart context)
-  isFreeShipping: true, // ← NEW
-  inStock: true // ← NEW
+  howToUse:"Shake well. Attach the hose-connect siphon adapter to your garden hose. Turn on the water to automatically draw and mix the product. Spray a 12-inch band along the foundation of your home, around doors, windows, and vents. Allow to dry completely before letting pets enter the area.",
+  category: "Pest Control",
+  image: "/images/products/heatguard_quart_gallon.png",
+  isFreeShipping: true,
+  inStock: true
 };
 
 const reviewsData = [

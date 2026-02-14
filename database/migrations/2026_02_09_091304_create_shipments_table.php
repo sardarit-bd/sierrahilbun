@@ -17,7 +17,7 @@ return new class extends Migration
             $table->json('manifest_json');
             $table->string('tracking_number')->nullable();
             
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
             
             $table->index(['subscription_id', 'scheduled_date']);
             $table->index(['status', 'scheduled_date']);

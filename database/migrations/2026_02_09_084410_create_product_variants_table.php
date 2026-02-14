@@ -16,7 +16,7 @@ return new class extends Migration
             $table->integer('size_volume_oz');
             $table->decimal('price', 10, 2);
             $table->integer('stock_quantity')->default(0);
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
         });
     }
 
