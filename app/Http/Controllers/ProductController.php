@@ -26,9 +26,11 @@ class ProductController extends Controller
     public function show(string $slug): Response
     {
         $productData = $this->service->getProductDetails($slug);
+        $reviews     = $this->service->getProductReviews($slug);
 
         return Inertia::render('product/show', [
             'product' => $productData,
+            'reviews' => $reviews,
         ]);
     }
 }

@@ -30,11 +30,13 @@ interface Review {
     title: string;
     content: string;
     helpful: number;
+    images: string[];
 }
 
 interface Product {
     id: number;
     title: string;
+    slug: string;
     subtitle: string;
     description: string;
     benefits: string[];
@@ -101,7 +103,7 @@ const ReviewCard = ({ review }: { review: Review }) => (
         <div className="flex justify-between items-start mb-2">
             <div className="flex items-center gap-2">
                 <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500 text-sm">
-                    {review.author.charAt(0)}
+                    {review.author.charAt(0).toUpperCase()}
                 </div>
                 <div>
                     <h4 className="font-bold text-gray-900 text-sm">{review.author}</h4>
@@ -121,18 +123,32 @@ const ReviewCard = ({ review }: { review: Review }) => (
                     <Star
                         key={i}
                         size={16}
-                        className={`${
-                            i < review.rating
-                                ? 'fill-yellow-400 text-yellow-400'
-                                : 'fill-gray-100 text-gray-200'
-                        }`}
+                        className={i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'fill-gray-100 text-gray-200'}
                     />
                 ))}
             </div>
-            <span className="font-bold text-gray-900 text-sm">{review.title}</span>
+            {review.title && (
+                <span className="font-bold text-gray-900 text-sm">{review.title}</span>
+            )}
         </div>
 
-        <p className="text-gray-600 text-sm leading-relaxed mb-4">{review.content}</p>
+        {review.content && (
+            <p className="text-gray-600 text-sm leading-relaxed mb-4">{review.content}</p>
+        )}
+
+        {/* Review images */}
+        {review.images?.length > 0 && (
+            <div className="flex gap-2 mb-4 flex-wrap">
+                {review.images.map((img, i) => (
+                    <img
+                        key={i}
+                        src={img}
+                        alt=""
+                        className="w-16 h-16 rounded-lg object-cover border border-gray-100"
+                    />
+                ))}
+            </div>
+        )}
 
         <button className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 transition-colors">
             <ThumbsUp size={14} />
@@ -210,6 +226,13 @@ function ProductShowInner({ product, reviews }: { product: Product; reviews: Rev
         rating:        product.rating        ?? 0,
         reviews_count: product.reviewCount   ?? 0,
     };
+
+    const approvedRating = reviews.length > 0
+        ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+        : 0;
+
+    const approvedCount = reviews.length;
+    
 
     return (
         <>
@@ -316,7 +339,7 @@ function ProductShowInner({ product, reviews }: { product: Product; reviews: Rev
                                         href="#reviews"
                                         className="text-sm font-bold text-gray-500 hover:text-[#2E7D32] transition-colors border-b border-gray-300 hover:border-[#2E7D32] pb-0.5"
                                     >
-                                        Read {product.reviewCount ?? 0} Reviews
+                                        Read {approvedCount ?? 0} Reviews
                                     </a>
                                 </div>
 
@@ -466,11 +489,13 @@ function ProductShowInner({ product, reviews }: { product: Product; reviews: Rev
                     <div id="reviews" className="mt-24 border-t border-gray-200 pt-16">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
 
+                            {/* Summary sidebar */}
                             <div className="lg:col-span-4">
                                 <h2 className="text-3xl font-black font-serif text-gray-900 mb-6">Customer Reviews</h2>
+
                                 <div className="flex items-end gap-4 mb-6">
                                     <span className="text-6xl font-black text-gray-900">
-                                        {(product.rating ?? 0).toFixed(1)}
+                                        {approvedRating.toFixed(1)}
                                     </span>
                                     <div className="mb-2">
                                         <div className="flex text-yellow-400 mb-1">
@@ -478,19 +503,46 @@ function ProductShowInner({ product, reviews }: { product: Product; reviews: Rev
                                                 <Star
                                                     key={i}
                                                     size={20}
-                                                    fill={i < Math.round(product.rating ?? 0) ? 'currentColor' : 'none'}
-                                                    className={i >= Math.round(product.rating ?? 0) ? 'text-gray-200' : ''}
+                                                    fill={i < Math.round(approvedRating) ? 'currentColor' : 'none'}
+                                                    className={i >= Math.round(approvedRating) ? 'text-gray-200' : ''}
                                                 />
                                             ))}
                                         </div>
-                                        <p className="text-sm font-bold text-gray-500">Based on {product.reviewCount ?? 0} reviews</p>
+                                        <p className="text-sm font-bold text-gray-500">
+                                            Based on {approvedCount} reviews
+                                        </p>
                                     </div>
                                 </div>
-                                <button className="w-full bg-white border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white font-bold py-3 rounded-xl transition-colors">
-                                    <Link href={route('product.review')}>Write a Review</Link>
+
+                                {/* Rating breakdown — computed from actual reviews */}
+                                {reviews.length > 0 && (
+                                    <div className="space-y-2 mb-8">
+                                        {[5, 4, 3, 2, 1].map((star) => {
+                                            const count = reviews.filter((r) => r.rating === star).length;
+                                            const pct   = reviews.length > 0 ? Math.round((count / reviews.length) * 100) : 0;
+                                            return (
+                                                <div key={star} className="flex items-center gap-3">
+                                                    <span className="text-sm font-bold text-gray-500 w-3">{star}</span>
+                                                    <Star size={12} className="text-gray-400 flex-shrink-0" />
+                                                    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full bg-yellow-400 rounded-full transition-all duration-500"
+                                                            style={{ width: `${pct}%` }}
+                                                        />
+                                                    </div>
+                                                    <span className="text-xs font-bold text-gray-400 w-8 text-right">{pct}%</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                <button className="w-full bg-white border-2 border-[#007A55] text-gray-900 hover:bg-[#007A55] hover:text-white font-bold py-3 rounded-xl transition-colors">
+                                    <Link href={route('product.review', product.slug)}>Write a Review</Link>
                                 </button>
                             </div>
 
+                            {/* Reviews list */}
                             <div className="lg:col-span-8">
                                 {reviews.length > 0 ? (
                                     <>

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ReviewController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -14,9 +15,8 @@ Route::get('/', function () {
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('products.show');
 
-Route::get('/review', function () {
-    return Inertia::render('review/post');
-})->name('product.review');
+Route::get('/products/{slug}/review', [ReviewController::class, 'create'])->name('product.review');
+Route::post('/products/{slug}/review', [ReviewController::class, 'store'])->name('product.review.store');
 
 Route::get('/custom-lawn', function () {
     return Inertia::render('CustomLawnPlan');

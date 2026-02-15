@@ -2,9 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\ProductReview;
 use App\Repositories\ProductRepository;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Storage;
 
 class ProductService
 {
@@ -47,6 +48,7 @@ class ProductService
 
         return [
             'id'          => $product->id,
+            'slug'        => $product->slug,
             'title'       => $product->name,
             'subtitle'    => $product->subtitle,
             'description' => $product->description,
@@ -75,5 +77,31 @@ class ProductService
                 ])
                 ->toArray(),
         ];
+    }
+
+    /**
+     * Get approved reviews for the product detail page.
+     */
+    public function getProductReviews(string $slug): array
+    {
+        $product = $this->repository->findBySlug($slug);
+
+        return ProductReview::where('product_id', $product->id)
+            ->where('is_approved', true)
+            ->with('user:id,name')
+            ->latest()
+            ->get()
+            ->map(fn($review) => [
+                'id'       => $review->id,
+                'author'   => $review->user?->name ?? 'Anonymous',
+                'verified' => $review->is_verified_purchase,
+                'rating'   => $review->rating,
+                'date'     => $review->created_at->format('F j, Y'),
+                'title'    => $review->title ?? '',
+                'content'  => $review->content ?? '',
+                'helpful'  => $review->helpful_count,
+                'images'   => $review->images_json ?? [],
+            ])
+            ->toArray();
     }
 }

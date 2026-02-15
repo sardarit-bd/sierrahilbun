@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 #[ObservedBy(ProductObserver::class)]
 class Product extends Model
@@ -76,5 +77,22 @@ class Product extends Model
     public function planDeliverables(): HasMany
     {
         return $this->hasMany(PlanDeliverable::class, 'product_sku', 'sku');
+    }
+
+    public function orderItems(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            OrderItem::class,
+            ProductVariant::class,
+            'product_id',      
+            'product_variant_id',
+        );
+    }
+    
+    public function isPurchasedBy(int $userId): bool
+    {
+        return $this->orderItems()
+            ->whereHas('order', fn($q) => $q->where('user_id', $userId))
+            ->exists();
     }
 }

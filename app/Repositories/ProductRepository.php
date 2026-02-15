@@ -76,4 +76,11 @@ class ProductRepository
             ->withCount('reviews as reviews_count')
             ->firstOrFail();
     }
+
+    public function findBySlug(string $slug): Product
+    {
+        return Product::where('slug', $slug)
+            ->where('is_active', true)
+            ->firstOrFail();
+    }
 }
