@@ -19,7 +19,7 @@ class ProductController extends Controller
         return Inertia::render('products', [
             'products' => $this->service->getShopList($request->all()),
             'categories' => ProductCategory::select('name', 'slug')->get(),
-            'filters' => $request->only(['sort', 'category']),
+            'filters' => $request->only(['sort', 'category', 'search']),
         ]);
     }
 

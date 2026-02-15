@@ -13,7 +13,13 @@ class ProductRepository
     public function getShopProducts(array $filters, int $perPage = 12): LengthAwarePaginator
     {
         $page = request()->get('page', 1);
-        $cacheKey = "shop_index_cat_" . ($filters['category'] ?? 'all') . "_sort_" . ($filters['sort'] ?? 'newest') . "_page_" . $page;
+        $search = $filters['search'] ?? '';
+        
+        // Include search in the cache key
+        $cacheKey = "shop_index_cat_" . ($filters['category'] ?? 'all') . 
+                    "_sort_" . ($filters['sort'] ?? 'newest') . 
+                    "_search_" . md5($search) .
+                    "_page_" . $page;
 
         $cache = Cache::supportsTags() ? Cache::tags(['products']) : Cache::store();
 
@@ -27,6 +33,13 @@ class ProductRepository
                     'category:id,name,slug',
                     'images' => fn($q) => $q->where('is_primary', true)->select('id', 'product_id', 'image_url')
                 ])
+                ->when($filters['search'] ?? null, function($q, $search) {
+                    $q->where(function($query) use ($search) {
+                        $query->where('name', 'like', "%{$search}%")
+                            ->orWhere('subtitle', 'like', "%{$search}%");
+                    });
+                })
+                // -----------------------------
                 ->when($filters['category'] ?? null, fn($q, $slug) => $q->whereHas('category', fn($c) => $c->where('slug', $slug)))
                 ->when($filters['sort'] ?? 'newest', function ($query, $sort) {
                     match ($sort) {
@@ -36,7 +49,8 @@ class ProductRepository
                         default => $query->latest(),
                     };
                 })
-                ->paginate($perPage);
+                ->paginate($perPage)
+                ->withQueryString();
         });
     }
 

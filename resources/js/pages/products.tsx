@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Star, Truck, Eye, Search, X, Minus, Plus } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Star, Truck, Eye, Search, X, Minus, Plus, ChevronDown, ListFilter } from 'lucide-react';
 import AppHeaderLayout from '@/layouts/app/app-header-layout';
 import { Head, router, Link } from '@inertiajs/react';
 import AddToCartButton from '../components/AddToCartButton';
@@ -56,6 +56,7 @@ interface Props {
   filters: Filters;
 }
 
+// --- Quick View Modal ---
 
 const QuickViewModal = ({ product, onClose }: { product: Product; onClose: () => void }) => {
   const [quantity, setQuantity] = useState(1);
@@ -73,11 +74,10 @@ const QuickViewModal = ({ product, onClose }: { product: Product; onClose: () =>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col md:flex-row animate-in fade-in zoom-in-95 duration-200">
-        <button onClick={onClose} className="absolute top-4 right-4 z-10 p-2 bg-white/80 rounded-full hover:bg-gray-100">
+        <button onClick={onClose} className="absolute top-4 right-4 z-10 p-2 bg-gray-50 text-gray-600 rounded-full hover:bg-gray-100">
           <X size={20} />
         </button>
 
-        {/* Image */}
         <div className="w-full md:w-1/2 bg-gray-50 flex items-center justify-center p-8 relative">
           <img
             src={product.image}
@@ -91,7 +91,6 @@ const QuickViewModal = ({ product, onClose }: { product: Product; onClose: () =>
           )}
         </div>
 
-        {/* Details */}
         <div className="w-full md:w-1/2 p-8 md:p-10 flex flex-col">
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 font-serif mb-1">{product.name}</h2>
           {product.subtitle && <p className="text-gray-500 font-medium mb-4">{product.subtitle}</p>}
@@ -113,7 +112,6 @@ const QuickViewModal = ({ product, onClose }: { product: Product; onClose: () =>
           </div>
 
           <div className="mt-auto flex gap-4">
-            {/* Quantity */}
             <div className="flex items-center border border-gray-200 rounded-xl px-2 py-1">
               <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 text-gray-400 hover:text-gray-600">
                 <Minus size={16} />
@@ -124,7 +122,6 @@ const QuickViewModal = ({ product, onClose }: { product: Product; onClose: () =>
               </button>
             </div>
 
-            {/* Custom Add To Cart Button */}
             <AddToCartButton 
                 product={product} 
                 quantity={quantity}
@@ -150,7 +147,6 @@ const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: 
       <div className="h-full bg-white rounded-3xl p-5 flex flex-col transition-all duration-500 border border-gray-100 hover:border-transparent hover:shadow-xl relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-        {/* Badge */}
         <div className="flex justify-between items-start mb-4 relative z-20 min-h-[24px]">
           {savingsPercent > 0 ? (
             <span className="bg-emerald-50 text-emerald-700 text-[10px] font-black tracking-wider uppercase px-2 py-1 rounded-lg border border-emerald-100">
@@ -159,7 +155,6 @@ const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: 
           ) : <div />}
         </div>
 
-        {/* Image */}
         <div className="relative mb-6 group-hover:-translate-y-1 transition-transform duration-500">
           <div className="absolute inset-0 bg-gray-100/50 rounded-2xl transform rotate-3 group-hover:rotate-6 transition-transform duration-500 origin-bottom-right" />
           <div className="relative bg-gray-50 rounded-2xl p-6 overflow-hidden">
@@ -179,7 +174,6 @@ const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: 
           </div>
         </div>
 
-        {/* Content */}
         <div className="flex-1 flex flex-col gap-2 relative z-20">
           <Link href={route('products.show', product.slug)}>
             <h3 className="text-gray-900 font-bold text-lg leading-tight group-hover:text-emerald-700 transition-colors">
@@ -190,7 +184,6 @@ const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: 
             <p className="text-gray-500 text-xs font-medium">{product.subtitle}</p>
           )}
 
-          {/* Rating */}
           {product.rating > 0 && (
             <div className="flex items-center gap-2 mt-1">
               <div className="flex gap-0.5">
@@ -206,7 +199,6 @@ const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: 
             </div>
           )}
 
-          {/* Price */}
           <div className="mt-auto pt-4 flex items-end justify-between border-t border-gray-50">
             <div>
               <div className="flex items-center gap-2">
@@ -217,7 +209,6 @@ const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: 
               </div>
             </div>
             
-            {/* Custom Add To Cart Button in Card */}
             <AddToCartButton 
                 product={product} 
                 size="default"
@@ -234,23 +225,76 @@ const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: 
 export default function AllProductsPage({ products, categories, filters }: Props) {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState(filters.search ?? '');
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
+  
+  // Track if it's the first mount to avoid searching on initial load
+  const isFirstRender = useRef(true);
+
+  // Debounced search logic
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+        // Only trigger if the search query actually changed from the filter value
+        if (searchQuery !== (filters.search ?? '')) {
+            router.get(
+                route('products.index'), 
+                { ...filters, search: searchQuery || null, page: 1 }, 
+                { preserveState: true, replace: true, preserveScroll: true }
+            );
+        }
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
+        setIsSortOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const sortOptions = [
+    { label: 'Newest Arrivals', value: 'newest' },
+    { label: 'Price: Low to High', value: 'price_low' },
+    { label: 'Price: High to Low', value: 'price_high' },
+    { label: 'Top Rated', value: 'top_rated' },
+  ];
+
+  const currentSortLabel = sortOptions.find(o => o.value === (filters.sort || 'newest'))?.label;
 
   const handleCategoryChange = (slug: string | null) => {
-    router.get(route('products.index'), { ...filters, category: slug, page: 1 }, { preserveState: true, replace: true });
+    router.get(
+      route('products.index'), 
+      { ...filters, category: slug, page: 1 }, 
+      { preserveState: true, replace: true, preserveScroll: true }
+    );
   };
 
   const handleSortChange = (sort: string) => {
-    router.get(route('products.index'), { ...filters, sort, page: 1 }, { preserveState: true, replace: true });
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    router.get(route('products.index'), { ...filters, search: searchQuery, page: 1 }, { preserveState: true, replace: true });
+    router.get(
+      route('products.index'), 
+      { ...filters, sort, page: 1 }, 
+      { preserveState: true, replace: true, preserveScroll: true }
+    );
+    setIsSortOpen(false);
   };
 
   const handleClearSearch = () => {
     setSearchQuery('');
-    router.get(route('products.index'), { ...filters, search: null, page: 1 }, { preserveState: true, replace: true });
+    router.get(
+      route('products.index'), 
+      { ...filters, search: null, page: 1 }, 
+      { preserveState: true, replace: true, preserveScroll: true }
+    );
   };
 
   return (
@@ -273,7 +317,7 @@ export default function AllProductsPage({ products, categories, filters }: Props
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 justify-between items-center">
 
           {/* Category Filters */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto">
             <button
               onClick={() => handleCategoryChange(null)}
               className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
@@ -295,36 +339,57 @@ export default function AllProductsPage({ products, categories, filters }: Props
             ))}
           </div>
 
-          {/* Search + Sort */}
+          {/* Premium Search + Sort */}
           <div className="flex gap-3 w-full md:w-auto items-center">
-            {/* Sort */}
-            <select
-              value={filters.sort || 'newest'}
-              onChange={(e) => handleSortChange(e.target.value)}
-              className="border border-gray-200 rounded-full px-4 py-2 text-sm font-semibold text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="newest">Newest</option>
-              <option value="price_low">Price: Low to High</option>
-              <option value="price_high">Price: High to Low</option>
-              <option value="top_rated">Top Rated</option>
-            </select>
+            
+            {/* Custom Premium Sort Dropdown */}
+            <div className="relative" ref={sortRef}>
+              <button
+                onClick={() => setIsSortOpen(!isSortOpen)}
+                className="flex items-center justify-between gap-3 px-4 py-2 bg-white border border-gray-200 hover:border-emerald-500 rounded-full transition-all duration-200 min-w-[160px]"
+              >
+                <div className="flex items-center gap-2">
+                  <ListFilter size={14} className="text-emerald-600" />
+                  <span className="text-sm font-semibold text-gray-700">{currentSortLabel}</span>
+                </div>
+                <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${isSortOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-            {/* Search */}
-            <form onSubmit={handleSearch} className="relative w-full md:w-64">
+              {isSortOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 shadow-xl rounded-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  {sortOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => handleSortChange(option.value)}
+                      className={`w-full text-left px-4 py-2 text-sm font-semibold transition-colors
+                        ${filters.sort === option.value || (!filters.sort && option.value === 'newest')
+                          ? 'bg-emerald-50 text-emerald-700' 
+                          : 'text-gray-600 hover:bg-gray-50'}
+                      `}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Premium Search (Automatic with Debounce) */}
+            <div className="relative w-full md:w-64 group">
               <input
                 type="text"
                 placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-10 py-2 text-gray-900 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                className="w-full pl-10 pr-10 py-2 text-gray-900 rounded-full border border-gray-200 focus:border-emerald-500 bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all text-sm font-medium"
               />
-              <Search className="absolute left-3.5 top-2.5 text-gray-400" size={16} />
+              <Search className="absolute left-3.5 top-2.5 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={16} />
               {searchQuery && (
                 <button type="button" onClick={handleClearSearch} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
                   <X size={16} />
                 </button>
               )}
-            </form>
+            </div>
           </div>
         </div>
       </div>
@@ -344,7 +409,7 @@ export default function AllProductsPage({ products, categories, filters }: Props
               ))}
             </div>
 
-            {/* Pagination */}
+            {/* Pagination Links */}
             {products.last_page > 1 && (
               <div className="mt-16 flex justify-center gap-2 flex-wrap">
                 {products.links.map((link, i) => (
@@ -352,6 +417,7 @@ export default function AllProductsPage({ products, categories, filters }: Props
                     <Link
                       key={i}
                       href={link.url}
+                      preserveScroll
                       className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                         link.active
                           ? 'bg-emerald-600 text-white'
@@ -371,7 +437,6 @@ export default function AllProductsPage({ products, categories, filters }: Props
             )}
           </>
         ) : (
-          /* Empty State */
           <div className="text-center py-24">
             <div className="bg-gray-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Search className="text-gray-400" size={32} />
