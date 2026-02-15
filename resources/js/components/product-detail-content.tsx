@@ -332,7 +332,7 @@ function ProductShowInner({ product, reviews }: { product: Product; reviews: Rev
                                     <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100">
                                         <Star size={16} className="fill-yellow-400 text-yellow-400" />
                                         <span className="font-bold text-yellow-700">
-                                            {(product.rating ?? 0).toFixed(1)}
+                                            {approvedRating ?? 0}
                                         </span>
                                     </div>
                                     <a
