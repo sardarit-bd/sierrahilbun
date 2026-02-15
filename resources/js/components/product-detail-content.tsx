@@ -4,7 +4,7 @@ import {
     ChevronDown, ChevronUp, Check, Droplets, AlertCircle,
     Share2, ThumbsUp, ArrowLeft
 } from 'lucide-react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AddToCartButton from '@/components/AddToCartButton';
 
 declare function route(name: string, params?: any): string;
@@ -31,6 +31,7 @@ interface Review {
     content: string;
     helpful: number;
     images: string[];
+    hasLiked: boolean;
 }
 
 interface Product {
@@ -98,64 +99,106 @@ const Accordion = ({
     );
 };
 
-const ReviewCard = ({ review }: { review: Review }) => (
-    <div className="border-b border-gray-200 py-8 last:border-0">
-        <div className="flex justify-between items-start mb-2">
-            <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500 text-sm">
-                    {review.author.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                    <h4 className="font-bold text-gray-900 text-sm">{review.author}</h4>
-                    {review.verified && (
-                        <span className="text-xs text-[#2E7D32] flex items-center gap-0.5">
-                            <ShieldCheck size={12} /> Verified Buyer
-                        </span>
-                    )}
-                </div>
-            </div>
-            <span className="text-xs text-gray-400">{review.date}</span>
-        </div>
+const ReviewCard = ({ review }: { review: Review }) => {
+    const [helpful, setHelpful]   = useState(review.helpful);
+    const [hasLiked, setHasLiked] = useState(review.hasLiked);
+    const [loading, setLoading]   = useState(false);
 
-        <div className="flex items-center gap-2 my-3">
-            <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                    <Star
-                        key={i}
-                        size={16}
-                        className={i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'fill-gray-100 text-gray-200'}
-                    />
-                ))}
+    const toggleHelpful = () => {
+        if (loading) return;
+        setLoading(true);
+
+        // Optimistic UI update
+        const wasLiked = hasLiked;
+        setHasLiked(!wasLiked);
+        setHelpful((prev) => wasLiked ? prev - 1 : prev + 1);
+
+        router.post(
+            route('reviews.helpful', review.id),
+            {},
+            {
+                preserveScroll: true,
+                onError: () => {
+                    // Revert on error
+                    setHasLiked(wasLiked);
+                    setHelpful((prev) => wasLiked ? prev + 1 : prev - 1);
+                },
+                onFinish: () => setLoading(false),
+            }
+        );
+    };
+
+    return (
+        <div className="border-b border-gray-200 py-8 last:border-0">
+            <div className="flex justify-between items-start mb-2">
+                <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500 text-sm">
+                        {review.author.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-gray-900 text-sm">{review.author}</h4>
+                        {review.verified && (
+                            <span className="text-xs text-[#2E7D32] flex items-center gap-0.5">
+                                <ShieldCheck size={12} /> Verified Buyer
+                            </span>
+                        )}
+                    </div>
+                </div>
+                <span className="text-xs text-gray-400">{review.date}</span>
             </div>
-            {review.title && (
-                <span className="font-bold text-gray-900 text-sm">{review.title}</span>
+
+            <div className="flex items-center gap-2 my-3">
+                <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                        <Star
+                            key={i}
+                            size={16}
+                            className={i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'fill-gray-100 text-gray-200'}
+                        />
+                    ))}
+                </div>
+                {review.title && (
+                    <span className="font-bold text-gray-900 text-sm">{review.title}</span>
+                )}
+            </div>
+
+            {review.content && (
+                <p className="text-gray-600 text-sm leading-relaxed mb-4">{review.content}</p>
             )}
+
+            {/* Review images */}
+            {review.images?.length > 0 && (
+                <div className="flex gap-2 mb-4 flex-wrap">
+                    {review.images.map((img, i) => (
+                        <img
+                            key={i}
+                            src={img}
+                            alt=""
+                            className="w-16 h-16 rounded-lg object-cover border border-gray-100"
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Helpful toggle */}
+            <button
+                onClick={toggleHelpful}
+                disabled={loading}
+                className={`flex items-center gap-1.5 text-xs font-bold transition-all px-3 py-1.5 rounded-full border ${
+                    hasLiked
+                        ? 'border-[#2E7D32] text-[#2E7D32] bg-green-50'
+                        : 'border-gray-200 text-gray-400 hover:border-gray-400 hover:text-gray-600'
+                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+                <ThumbsUp
+                    size={13}
+                    className={hasLiked ? 'fill-[#2E7D32]' : ''}
+                />
+                {hasLiked ? 'Helpful' : 'Helpful'} ({helpful})
+            </button>
         </div>
-
-        {review.content && (
-            <p className="text-gray-600 text-sm leading-relaxed mb-4">{review.content}</p>
-        )}
-
-        {/* Review images */}
-        {review.images?.length > 0 && (
-            <div className="flex gap-2 mb-4 flex-wrap">
-                {review.images.map((img, i) => (
-                    <img
-                        key={i}
-                        src={img}
-                        alt=""
-                        className="w-16 h-16 rounded-lg object-cover border border-gray-100"
-                    />
-                ))}
-            </div>
-        )}
-
-        <button className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 transition-colors">
-            <ThumbsUp size={14} />
-            Helpful ({review.helpful})
-        </button>
-    </div>
-);
+    );
+};
 
 // ─── Loading Skeleton ─────────────────────────────────────────────────────────
 

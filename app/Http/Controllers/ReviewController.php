@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductReview;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -89,5 +90,44 @@ class ReviewController extends Controller
         return redirect()
             ->route('products.show', $product->slug)
             ->with('success', 'Thank you! Your review has been submitted for approval.');
+    }
+
+
+    public function toggleHelpful(ProductReview $review)
+    {
+        $user = Auth::user();
+
+        $existing = DB::table('review_helpful')
+            ->where('review_id', $review->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($existing) {
+            // Unlike
+            DB::table('review_helpful')
+                ->where('review_id', $review->id)
+                ->where('user_id', $user->id)
+                ->delete();
+
+            $review->decrement('helpful_count');
+            $helpful = false;
+        } else {
+            // Like
+            DB::table('review_helpful')->insert([
+                'review_id'  => $review->id,
+                'user_id'    => $user->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $review->increment('helpful_count');
+            $helpful = true;
+        }
+
+        return back()->with([
+            'helpful_review_id' => $review->id,
+            'helpful'           => $helpful,
+            'helpful_count'     => $review->fresh()->helpful_count,
+        ]);
     }
 }
