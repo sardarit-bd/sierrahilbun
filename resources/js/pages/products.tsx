@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Truck, ShoppingCart, Eye, Search, X, Minus, Plus } from 'lucide-react';
+import { Star, Truck, Eye, Search, X, Minus, Plus } from 'lucide-react';
 import AppHeaderLayout from '@/layouts/app/app-header-layout';
 import { Head, router, Link } from '@inertiajs/react';
-import { useCart } from '../context/CartContext';
+import AddToCartButton from '../components/AddToCartButton';
 
-// Ziggy is globally injected by Laravel — declare it so TypeScript is happy
 declare function route(name: string, params?: any): string;
-
-// --- Types ---
 
 interface ProductImage {
   image_url: string;
@@ -59,26 +56,14 @@ interface Props {
   filters: Filters;
 }
 
-// --- Quick View Modal ---
 
 const QuickViewModal = ({ product, onClose }: { product: Product; onClose: () => void }) => {
   const [quantity, setQuantity] = useState(1);
-  const { addToCart } = useCart();
-  const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = 'unset'; };
   }, []);
-
-  const handleAddToCart = () => {
-    setIsAdding(true);
-    addToCart(product, quantity);
-    setTimeout(() => {
-      setIsAdding(false);
-      onClose();
-    }, 800);
-  };
 
   const savingsPercent = product.max_price > product.price
     ? Math.round(((product.max_price - product.price) / product.max_price) * 100)
@@ -127,7 +112,7 @@ const QuickViewModal = ({ product, onClose }: { product: Product; onClose: () =>
             )}
           </div>
 
-          <div className="mt-auto pt-6 border-t flex gap-4">
+          <div className="mt-auto flex gap-4">
             {/* Quantity */}
             <div className="flex items-center border border-gray-200 rounded-xl px-2 py-1">
               <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 text-gray-400 hover:text-gray-600">
@@ -139,14 +124,13 @@ const QuickViewModal = ({ product, onClose }: { product: Product; onClose: () =>
               </button>
             </div>
 
-            <button
-              onClick={handleAddToCart}
-              disabled={isAdding}
-              className="flex-1 bg-[#2E7D32] hover:bg-[#1B5E20] text-white font-extrabold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors"
-            >
-              <ShoppingCart size={20} />
-              {isAdding ? 'Adding...' : 'Add to Cart'}
-            </button>
+            {/* Custom Add To Cart Button */}
+            <AddToCartButton 
+                product={product} 
+                quantity={quantity}
+                size="large"
+                className="flex-1"
+            />
           </div>
         </div>
       </div>
@@ -232,12 +216,12 @@ const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: 
                 )}
               </div>
             </div>
-            <Link
-              href={route('products.show', product.slug)}
-              className="p-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors"
-            >
-              <Plus size={20} />
-            </Link>
+            
+            {/* Custom Add To Cart Button in Card */}
+            <AddToCartButton 
+                product={product} 
+                size="default"
+            />
           </div>
         </div>
       </div>

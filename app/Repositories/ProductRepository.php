@@ -39,4 +39,27 @@ class ProductRepository
                 ->paginate($perPage);
         });
     }
+
+    public function findBySlugForDetail(string $slug): Product
+    {
+        return Product::query()
+            ->where('slug', $slug)
+            ->where('is_active', true)
+            ->with([
+                'category:id,name,slug',
+                
+                'images' => fn($q) => $q
+                    ->select('id', 'product_id', 'image_url', 'is_primary')
+                    ->orderByDesc('is_primary')
+                    ->orderBy('id'),
+
+                'variants' => fn($q) => $q
+                    ->select(['id', 'product_id', 'sku', 'size_label', 'price', 'compare_at_price', 'stock_quantity', 'is_default'])
+                    ->orderBy('is_default', 'desc')
+                    ->orderBy('price', 'asc'),
+            ])
+            ->withAvg('reviews as rating_avg', 'rating')
+            ->withCount('reviews as reviews_count')
+            ->firstOrFail();
+    }
 }

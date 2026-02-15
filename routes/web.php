@@ -11,19 +11,6 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
-// Route::get('/products', function () {
-//     return Inertia::render('products');
-// })->name('products');
-
-// Route::get('/product/{slug}', function ($slug) {
-//     // $post = BlogPost::where('slug', $slug)->firstOrFail();
-
-//     return Inertia::render('product/post', [
-//         'slug' => $slug,
-//         // 'post' => $post 
-//     ]);
-// })->name('product.post');
-
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('products.show');
 

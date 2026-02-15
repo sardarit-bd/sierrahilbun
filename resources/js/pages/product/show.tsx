@@ -4,11 +4,11 @@ import AppHeaderLayout from '@/layouts/app/app-header-layout';
 import ProductDetailContent from '../../components/product-detail-content';
 
 
-export default function ProductDetailPage() {
+export default function ProductDetailPage({ product, reviews = [] }) {
 
   return (
-    <AppHeaderLayout>
-      <ProductDetailContent />
-    </AppHeaderLayout>
+      <AppHeaderLayout>
+          <ProductDetailContent product={product} reviews={reviews} />
+      </AppHeaderLayout>
   );
 }

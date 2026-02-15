@@ -25,11 +25,9 @@ class ProductController extends Controller
 
     public function show(string $slug): Response
     {
-        // 1. Get the formatted product data
         $productData = $this->service->getProductDetails($slug);
 
-        // 2. Return the React page
-        return Inertia::render('Product/Show', [
+        return Inertia::render('product/show', [
             'product' => $productData,
         ]);
     }
