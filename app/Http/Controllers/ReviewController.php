@@ -70,7 +70,7 @@ class ReviewController extends Controller
             'content'               => $validated['content'] ?? null,
             'images_json'           => !empty($uploadedImages) ? $uploadedImages : null,
             'is_verified_purchase'  => $isVerified,
-            'is_approved'           => false,
+            'is_approved'           => true,
         ]);
 
         $avg = ProductReview::where('product_id', $product->id)
