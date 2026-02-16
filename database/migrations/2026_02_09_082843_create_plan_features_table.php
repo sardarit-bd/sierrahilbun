@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('title');
             $table->string('subtitle')->nullable();
             $table->string('icon_url')->nullable();
-            $table->string('image_url')->nullable();
+            $table->json('image_url')->nullable();
             $table->integer('sort_order')->default(0);
         });
     }

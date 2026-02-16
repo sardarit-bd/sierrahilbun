@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Product;
 use App\Models\ProductReview;
 use App\Repositories\ProductRepository;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -101,6 +102,40 @@ class ProductService
                 'content'  => $review->content ?? '',
                 'helpful'  => $review->helpful_count,
                 'images'   => $review->images_json ?? [],
+            ])
+            ->toArray();
+    }
+
+    public function getFeaturedProducts(int $limit = 8): array
+    {
+        return Product::query()
+            ->select(['id', 'name', 'slug', 'subtitle', 'category_id', 'base_price', 'rating_avg', 'reviews_count'])
+            ->withMin('variants as price_min', 'price')
+            ->withMax('variants as price_max', 'price')
+            ->where('is_active', true)
+            ->with([
+                'category:id,name,slug',
+                'images' => fn($q) => $q
+                    ->where('is_primary', true)
+                    ->select('id', 'product_id', 'image_url'),
+            ])
+            ->orderByDesc('rating_avg')
+            ->limit($limit)
+            ->get()
+            ->map(fn($product) => [
+                'id'            => $product->id,
+                'name'          => $product->name,
+                'slug'          => $product->slug,
+                'subtitle'      => $product->subtitle,
+                'category'      => $product->category?->name,
+                'image'         => $product->images->first()
+                    ? Storage::url($product->images->first()->image_url)
+                    : '/images/placeholder.png',
+                'price'         => (float) $product->base_price,
+                'min_price'     => (float) ($product->price_min ?: $product->base_price),
+                'max_price'     => (float) ($product->price_max ?: $product->base_price),
+                'rating'        => (float) $product->rating_avg,
+                'reviews_count' => (int) $product->reviews_count,
             ])
             ->toArray();
     }

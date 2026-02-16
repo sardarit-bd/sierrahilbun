@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { 
   MapPin, MonitorCheck, PackageOpen, Droplets, Star, ArrowRight, Sparkles, CheckCircle2, TrendingUp
 } from 'lucide-react';
+import { Link } from '@inertiajs/react';
 
 const StepItem = ({ icon: Icon, title, description, stepNumber, delay }) => (
   <div 
@@ -39,29 +40,6 @@ const StepItem = ({ icon: Icon, title, description, stepNumber, delay }) => (
   </div>
 );
 
-// const StarRating = () => (
-//   <div className="flex flex-col items-center gap-4 mt-12 animate-[fadeInUp_0.6s_ease-out]">
-//     <div className="flex items-center gap-2 bg-white px-6 py-3 rounded-full shadow-md hover:shadow-xl border-2 border-emerald-100 transition-all duration-300 hover:scale-105">
-//       <div className="flex gap-0.5">
-//         {[1, 2, 3, 4].map((i) => (
-//           <Star key={i} className="w-6 h-6 fill-amber-400 text-amber-400 drop-shadow-sm" />
-//         ))}
-//         <div className="relative">
-//           <Star className="w-6 h-6 text-amber-400/20" />
-//           <div className="absolute top-0 left-0 overflow-hidden w-[30%]">
-//             <Star className="w-6 h-6 fill-amber-400 text-amber-400 drop-shadow-sm" />
-//           </div>
-//         </div>
-//       </div>
-//       <span className="text-gray-900 font-bold ml-2 text-xl">4.3</span>
-//       <span className="text-gray-500 text-sm font-medium">/5</span>
-//     </div>
-//     <div className="text-base text-gray-600 font-medium flex items-center gap-2">
-//       <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-//       Trusted by over <span className="font-bold text-emerald-700">10,000+ happy homeowners</span>
-//     </div>
-//   </div>
-// );
 
 export default function HowItWorks() {
   const [address, setAddress] = useState('');
@@ -214,7 +192,7 @@ export default function HowItWorks() {
             </div>
             <button className="w-full md:w-auto bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600 hover:from-emerald-700 hover:via-teal-700 hover:to-green-700 text-white font-bold py-5 px-12 rounded-2xl shadow-xl shadow-emerald-900/30 hover:shadow-2xl hover:shadow-emerald-900/40 transition-all duration-500 flex items-center justify-center gap-3 group whitespace-nowrap active:scale-95 relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-              <span className="relative z-10">Get My Plan</span>
+              <span className="relative z-10"> <Link href="lawn-size">Get My Plan</Link></span>
               <ArrowRight className="w-6 h-6 transition-transform group-hover:translate-x-2 relative z-10" />
             </button>
           </div>

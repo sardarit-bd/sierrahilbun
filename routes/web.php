@@ -1,14 +1,17 @@
 <?php
 
+use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReviewController;
+use App\Services\ProductService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
-Route::get('/', function () {
+Route::get('/', function (ProductService $service) {
     return Inertia::render('home', [
-        'canRegister' => Features::enabled(Features::registration()),
+        'canRegister'     => Features::enabled(Features::registration()),
+        'featuredProducts' => $service->getFeaturedProducts(),
     ]);
 })->name('home');
 
@@ -29,6 +32,26 @@ Route::post('/reviews/{review}/helpful', [ReviewController::class, 'toggleHelpfu
     ->middleware('auth');
 
 
+
+
+// get your plan
+Route::get('/yard-issue', function () {
+    return Inertia::render('yard-issue');
+});
+
+Route::get('/yard/plan', [PlanController::class, 'index']);
+
+Route::get('/lawn-size', function () {
+    return Inertia::render('lawn-size');
+});
+
+Route::get('/lawns/post', function () {
+    return Inertia::render('lawns/post');
+});
+
+Route::get('/lawns/questions', function () {
+    return Inertia::render('lawns/questions/post');
+});
 
 
 

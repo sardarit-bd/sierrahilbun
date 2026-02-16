@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MapPin, ArrowRight, Check, Leaf, TreePine } from 'lucide-react';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 export default function HeroSection() {
   const [zipCode, setZipCode] = useState('');
   return (
@@ -50,7 +50,7 @@ export default function HeroSection() {
                 />
               </div>
               <button className="w-full md:w-auto bg-[#2E7D32] text-white font-extrabold py-3 md:py-4 px-8 rounded-md transition-colors duration-300 flex items-center justify-center gap-2 text-lg shadow-md whitespace-nowrap cursor-pointer">
-                Get your plan
+                <Link href="/lawn-size">Get your plan</Link>
               </button>
             </div>
           </div>

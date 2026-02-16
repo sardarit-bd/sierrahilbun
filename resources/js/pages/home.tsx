@@ -8,13 +8,13 @@ import WhyTurfTecWorks from '@/components/home/WhyItWorks';
 import Hero from '@/components/home/Hero';
 import BeforeAfter from '@/components/home/BeforeAfter';
 
-export default function Welcome() {
+export default function Welcome({ featuredProducts }) {
     return (
       <AppHeaderLayout>
         <Hero />
         <BeforeAfter />
         <HowItWorks />
-        <Product />
+        <Product products={featuredProducts} />
         <WhyTurfTecWorks />
       </AppHeaderLayout>  
     );
