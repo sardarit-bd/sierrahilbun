@@ -83,7 +83,6 @@ export default function PaymentPending({ transaction_id }) {
             }
         };
 
-        // Initial poll immediately then every POLL_MS
         poll();
         pollRef.current = setInterval(poll, POLL_MS);
 
