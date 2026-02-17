@@ -47,8 +47,8 @@ jobs:
           echo "⚙️ Building frontend assets"
           npm run build
 
-          echo "🔐 Fixing permissions"
-          chown -R apache:apache $PROJECT_DIR
+          echo "🔐 Providing permissions"
+          chown -R nginx:nginx $PROJECT_DIR
           chmod -R 775 storage bootstrap/cache
 
           echo "🧹 Running Laravel optimizations"
