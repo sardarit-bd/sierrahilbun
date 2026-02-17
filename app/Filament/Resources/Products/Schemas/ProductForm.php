@@ -40,7 +40,7 @@ class ProductForm
                                         $operation === 'create' ? $set('slug', Str::slug($state)) : null
                                     ),
 
-                                TextInput::make('subtitle') // NEW
+                                TextInput::make('subtitle')
                                     ->label('Subtitle / Tagline')
                                     ->placeholder('e.g. Gallon Hose-Connect Application (2-pack)')
                                     ->maxLength(255)
@@ -52,6 +52,7 @@ class ProductForm
                                     ->rules(['alpha_dash']),
                                 
                                 Select::make('category_id')
+                                    ->required()
                                     ->relationship('category', 'name')
                                     ->searchable()
                                     ->preload(),
@@ -61,12 +62,12 @@ class ProductForm
                                     ->toolbarButtons(['bold', 'italic', 'bulletList', 'h2', 'h3']),
                             ])->columns(2),
 
-                        // NEW: Product Variants (The Core Commerce Logic)
+        
                         Section::make('Product Variants')
                             ->description('Manage sizes, prices, and stock levels.')
                             ->schema([
                                 Repeater::make('variants')
-                                    ->relationship() // Connects to Product::variants()
+                                    ->relationship() 
                                     ->schema([
                                         TextInput::make('size_label')
                                             ->label('Size Label')
@@ -108,9 +109,9 @@ class ProductForm
                                         TextInput::make('sort_order')
                                             ->numeric()
                                             ->default(0)
-                                            ->hidden(), // Or make visible if you want manual sorting
+                                            ->hidden(), 
                                     ])
-                                    ->columns(3) // Compact layout for variants
+                                    ->columns(3)
                                     ->orderColumn('sort_order')
                                     ->defaultItems(1)
                                     ->itemLabel(fn (array $state): ?string => $state['size_label'] ?? null),
