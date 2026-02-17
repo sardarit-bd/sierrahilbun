@@ -3,6 +3,7 @@ import { Star, Truck, Eye, Search, X, Minus, Plus, ChevronDown, ListFilter } fro
 import AppHeaderLayout from '@/layouts/app/app-header-layout';
 import { Head, router, Link } from '@inertiajs/react';
 import AddToCartButton from '../components/AddToCartButton';
+import { assert } from 'console';
 
 declare function route(name: string, params?: any): string;
 
@@ -159,7 +160,7 @@ const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: 
           <div className="absolute inset-0 bg-gray-100/50 rounded-2xl transform rotate-3 group-hover:rotate-6 transition-transform duration-500 origin-bottom-right" />
           <div className="relative bg-gray-50 rounded-2xl p-6 overflow-hidden">
             <img
-              src={product.image}
+              src={product.image ?? '/images/placeholder.png'}
               alt={product.name}
               className="w-full aspect-[4/5] object-contain mix-blend-multiply"
             />
