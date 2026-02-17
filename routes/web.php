@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReviewController;
@@ -87,5 +88,16 @@ Route::get('/terms', function () {
 Route::get('dashboard', function () {
     return Inertia::render('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+
+// payment gateway
+Route::middleware(['auth'])->group(function () {
+    Route::get('/payment',                          [PaymentController::class, 'index'])->name('payment.index');
+    Route::post('/payment/charge',                  [PaymentController::class, 'charge'])->name('payment.charge');
+    Route::get('/payment/pending',                  [PaymentController::class, 'pending'])->name('payment.pending');
+    Route::get('/payment/success',                  [PaymentController::class, 'success'])->name('payment.success');
+    Route::get('/payment/failed',                   [PaymentController::class, 'failed'])->name('payment.failed');
+    Route::get('/payment/status/{transactionId}',   [PaymentController::class, 'status'])->name('payment.status');
+});
 
 require __DIR__.'/settings.php';

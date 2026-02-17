@@ -10,20 +10,16 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('provider_id')->constrained('payment_providers')->onDelete('restrict');
-            
-            $table->string('transaction_reference')->unique()->comment('ch_12345 or trx_999');
+            $table->string('transaction_id')->unique();
+            $table->string('gateway');
             $table->decimal('amount', 10, 2);
-            $table->char('currency', 3)->default('USD');
-            $table->string('status')->comment("'pending', 'success', 'failed', 'refunded'");
-            
-            // Debugging
-            $table->json('gateway_response_json')->nullable()->comment('Full response from Gateway');
-            
+            $table->string('currency');
+            $table->string('status');
+            $table->string('payment_method_id')->nullable();
+            $table->text('error_message')->nullable();
+            $table->json('raw_response')->nullable();
+            $table->nullableMorphs('payable');
             $table->timestamps();
-            
-            $table->index(['user_id', 'status']);
         });
     }
 

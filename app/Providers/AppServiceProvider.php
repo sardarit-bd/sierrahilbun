@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Services\Payment\Contracts\WebhookHandlerInterface;
+use App\Services\Payment\Factory\PaymentGatewayFactory;
+use App\Services\Payment\PaymentService;
+use App\Services\Payment\Webhooks\StripeWebhookHandler;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +19,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(PaymentGatewayFactory::class);
+        $this->app->singleton(PaymentService::class);
+        $this->app->bind(WebhookHandlerInterface::class, StripeWebhookHandler::class);
     }
 
     /**

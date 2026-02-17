@@ -3,41 +3,33 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Transaction extends Model
 {
     protected $fillable = [
-        'user_id',
-        'provider_id',
-        'transaction_reference',
+        'transaction_id',
+        'gateway',
         'amount',
         'currency',
         'status',
-        'gateway_response_json',
+        'payment_method_id',
+        'error_message',
+        'raw_response',
+        'payable_id',
+        'payable_type',
     ];
 
     protected $casts = [
-        'amount' => 'decimal:2',
-        'gateway_response_json' => 'array',
-        'created_at' => 'datetime',
+        'raw_response' => 'array',
+        'amount'       => 'decimal:2',
     ];
 
-    public const UPDATED_AT = null;
+    protected $hidden = [
+        'raw_response',
+    ];
 
-    public function user(): BelongsTo
+    public function payable()
     {
-        return $this->belongsTo(User::class);
-    }
-
-    public function provider(): BelongsTo
-    {
-        return $this->belongsTo(PaymentProvider::class, 'provider_id');
-    }
-
-    public function order(): HasOne
-    {
-        return $this->hasOne(Order::class);
+        return $this->morphTo();
     }
 }
