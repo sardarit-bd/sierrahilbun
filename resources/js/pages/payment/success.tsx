@@ -1,14 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@inertiajs/react";
 import { useCart } from "../../context/CartContext";
-import AppHeaderLayout from "@/layouts/app/app-header-layout";
 
 function ConfettiPiece({ style }) {
     return <div className="absolute rounded-sm animate-bounce" style={style} />;
 }
 
 export default function PaymentSuccess({ transaction_id, amount, currency }) {
-    const { clearCart } = useCart(); 
     const [visible, setVisible] = useState(false);
     const [checkDrawn, setCheckDrawn] = useState(false);
     const confettiRef = useRef([]);
@@ -17,8 +15,9 @@ export default function PaymentSuccess({ transaction_id, amount, currency }) {
         setTimeout(() => setVisible(true), 100);
         setTimeout(() => setCheckDrawn(true), 600);
 
-        clearCart();
-    }, [clearCart]);
+        localStorage.removeItem('turftec_cart');
+        localStorage.removeItem('turftec_promo');
+    }, []);
 
     const confettiPieces = Array.from({ length: 24 }, (_, i) => ({
         key: i,
@@ -44,9 +43,7 @@ export default function PaymentSuccess({ transaction_id, amount, currency }) {
     const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 
     return (
-        <AppHeaderLayout>
-
-            <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4 overflow-hidden">
+        <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4 overflow-hidden">
             {/* Ambient */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute top-[-10%] left-[20%] w-[500px] h-[500px] rounded-full bg-[#51cf66] opacity-[0.04] blur-[120px] transition-all duration-1000"
@@ -192,6 +189,5 @@ export default function PaymentSuccess({ transaction_id, amount, currency }) {
                 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Mono:wght@300;400&display=swap');
             `}</style>
         </div>
-        </AppHeaderLayout>
     );
 }
