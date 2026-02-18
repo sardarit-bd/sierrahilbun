@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "@inertiajs/react";
+import { Link, router } from "@inertiajs/react";
 import { useCart } from "../../context/CartContext";
 
 function ConfettiPiece({ style }) {
@@ -17,6 +17,13 @@ export default function PaymentSuccess({ transaction_id, amount, currency }) {
 
         localStorage.removeItem('turftec_cart');
         localStorage.removeItem('turftec_promo');
+
+        const redirectTimer = setTimeout(() => {
+            router.visit('/');
+        }, 10000);
+    
+        
+        return () => clearTimeout(redirectTimer);
     }, []);
 
     const confettiPieces = Array.from({ length: 24 }, (_, i) => ({

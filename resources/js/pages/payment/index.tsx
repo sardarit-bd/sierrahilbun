@@ -197,41 +197,11 @@ export default function PaymentIndex(props) {
         return "border-white/[0.07]";
     };
 
-    // const handleSubmit = (e) => {
-    //     e.preventDefault();
-    //     if (!validateAll()) return;
-
-    //     const btn = e.nativeEvent.submitter;
-    //     if (btn) {
-    //         const rect = btn.getBoundingClientRect();
-    //         setRipple({ x: rect.width / 2, y: rect.height / 2 });
-    //         setTimeout(() => setRipple(null), 600);
-    //     }
-    //     setSubmitting(true);
-    //     router.post(route("payment.charge"), {
-    //         gateway:           form.gateway,
-    //         amount:            form.amount,
-    //         currency:          form.currency,
-    //         payment_method_id: form.payment_method_id,
-    //         description:       form.description,
-    //     }, {
-    //         onFinish: () => setSubmitting(false),
-    //     });
-    // };
-
 
     const handleSubmit = (e) => {
         e.preventDefault();
         
-        console.log('=== PAYMENT FORM SUBMIT DEBUG ===');
-        console.log('1. Form data:', form);
-        console.log('2. Card number:', form.cardNumber);
-        console.log('3. Expiry:', form.expiry);
-        console.log('4. CVV:', form.cvv);
-        
         const isValid = validateAll();
-        console.log('5. Validation result:', isValid);
-        console.log('6. Field errors:', fieldErrors);
         
         if (!isValid) {
             console.log('❌ Validation failed - form NOT submitted');
@@ -248,15 +218,6 @@ export default function PaymentIndex(props) {
         }
         
         setSubmitting(true);
-        
-        console.log('7. Posting to:', route("payment.charge"));
-        console.log('8. Payload:', {
-            session_id:        form.session_id, 
-            gateway:           form.gateway,
-            currency:          form.currency,
-            payment_method_id: form.payment_method_id,
-            description:       form.description,
-        });
         
         router.post(route("payment.charge"), {
             session_id:        form.session_id, 
