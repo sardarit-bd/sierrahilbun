@@ -4,6 +4,7 @@ namespace App\Services\Checkout;
 
 use App\Models\CheckoutSession;
 use App\Models\Product;
+use App\Models\PromoCode;
 use App\Services\Checkout\DTO\CheckoutCalculationDTO;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -101,23 +102,38 @@ class CheckoutService
 
         // Step 3: Apply promo code
         $discountAmount = 0.00;
-        $validatedPromo = null;
+    $validatedPromo = null;
 
-        if ($promoCode) {
-            $promo = self::PROMO_CODES[strtoupper(trim($promoCode))] ?? null;
+    if ($promoCode) {
+        $promo = PromoCode::where('code', strtoupper(trim($promoCode)))->first();
 
-            if (!$promo) {
-                throw new \InvalidArgumentException("Invalid promo code: [{$promoCode}]");
-            }
-
-            $discountAmount = match($promo['type']) {
-                'percentage' => round($subtotal * ($promo['value'] / 100), 2),
-                'fixed'      => min((float) $promo['value'], $subtotal),
-                default      => 0.00,
-            };
-
-            $validatedPromo = strtoupper(trim($promoCode));
+        if (!$promo) {
+            throw new \InvalidArgumentException("Invalid promo code: [{$promoCode}]");
         }
+
+        if (!$promo->isValid()) {
+            throw new \InvalidArgumentException("Promo code has expired or is no longer valid.");
+        }
+
+        if ($subtotal < $promo->min_purchase) {
+            throw new \InvalidArgumentException(
+                "Minimum purchase of \${$promo->min_purchase} required for this promo code."
+            );
+        }
+
+        $discountAmount = match($promo->type) {
+            'percentage' => round($subtotal * ($promo->value / 100), 2),
+            'fixed'      => min((float) $promo->value, $subtotal),
+        };
+
+        // Apply max discount cap if set
+        if ($promo->max_discount) {
+            $discountAmount = min($discountAmount, (float) $promo->max_discount);
+        }
+
+        $validatedPromo = strtoupper(trim($promoCode));
+    }
+
 
         // Step 4: Calculate shipping
         $taxableAmount = $subtotal - $discountAmount;

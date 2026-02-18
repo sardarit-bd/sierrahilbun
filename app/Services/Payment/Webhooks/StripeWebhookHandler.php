@@ -2,6 +2,8 @@
 
 namespace App\Services\Payment\Webhooks;
 
+use App\Models\CheckoutSession;
+use App\Models\PromoCode;
 use App\Models\Transaction;
 use App\Services\Payment\Contracts\WebhookHandlerInterface;
 use App\Services\Payment\Factory\PaymentGatewayFactory;
@@ -58,6 +60,39 @@ class StripeWebhookHandler implements WebhookHandlerInterface
         };
     }
 
+    // private function onPaymentSucceeded(Event $event): void
+    // {
+    //     $paymentIntent = $event->data->object;
+
+    //     DB::transaction(function () use ($paymentIntent) {
+    //         $transaction = Transaction::where('transaction_id', $paymentIntent->id)
+    //             ->lockForUpdate()
+    //             ->first();
+
+    //         if (!$transaction) {
+    //             Log::warning('Stripe webhook: transaction not found', [
+    //                 'transaction_id' => $paymentIntent->id,
+    //             ]);
+    //             return;
+    //         }
+
+    //         if ($transaction->status === 'succeeded') {
+    //             return;
+    //         }
+
+    //         $transaction->update([
+    //             'status'       => 'succeeded',
+    //             'raw_response' => $paymentIntent->toArray(),
+    //         ]);
+
+    //         // ✅ Complete checkout session when payment succeeds
+    //         if ($transaction->checkout_session_id) {
+    //             \App\Models\CheckoutSession::where('session_id', $transaction->checkout_session_id)
+    //                 ->update(['status' => 'completed']);
+    //         }
+    //     });
+    // }
+
     private function onPaymentSucceeded(Event $event): void
     {
         $paymentIntent = $event->data->object;
@@ -83,10 +118,18 @@ class StripeWebhookHandler implements WebhookHandlerInterface
                 'raw_response' => $paymentIntent->toArray(),
             ]);
 
-            // ✅ Complete checkout session when payment succeeds
             if ($transaction->checkout_session_id) {
-                \App\Models\CheckoutSession::where('session_id', $transaction->checkout_session_id)
-                    ->update(['status' => 'completed']);
+                $session = CheckoutSession::where('session_id', $transaction->checkout_session_id)
+                    ->first();
+
+                if ($session) {
+                    $session->update(['status' => 'completed']);
+
+                    if ($session->promo_code) {
+                        PromoCode::where('code', $session->promo_code)
+                            ->increment('usage_count');
+                    }
+                }
             }
         });
     }
