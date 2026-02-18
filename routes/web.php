@@ -40,17 +40,13 @@ Route::post('/reviews/{review}/helpful', [ReviewController::class, 'toggleHelpfu
 Route::get('/yard-issue', function () {
     return Inertia::render('yard-issue');
 });
-
 Route::get('/yard/plan', [PlanController::class, 'index']);
-
 Route::get('/lawn-size', function () {
     return Inertia::render('lawn-size');
 });
-
 Route::get('/lawns/post', function () {
     return Inertia::render('lawns/post');
 });
-
 Route::get('/lawns/questions', function () {
     return Inertia::render('lawns/questions/post');
 });
@@ -74,6 +70,8 @@ Route::get('/blogs/{slug}', function ($slug) {
     ]);
 })->name('blogs.post');
 
+
+// cart
 Route::get('/cart', function () {
     return Inertia::render('cart');
 })->name('cart');

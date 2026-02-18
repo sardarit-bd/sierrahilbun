@@ -7,7 +7,7 @@ const AddToCartButton = ({
   quantity = 1, 
   className = "",
   showIcon = true,
-  size = "default" // "small", "default", "large"
+  size = "default"
 }) => {
   const { addToCart } = useCart();
   const [isAdding, setIsAdding] = useState(false);
@@ -20,7 +20,7 @@ const AddToCartButton = ({
   };
 
   const handleAddToCart = (e) => {
-    e.stopPropagation(); // Prevent triggering parent click events
+    e.stopPropagation();
     
     const button = e.currentTarget;
     const buttonRect = button.getBoundingClientRect();
@@ -57,7 +57,7 @@ const AddToCartButton = ({
       ">
         <img 
           src="${product.image}" 
-          alt="${product.title}"
+          alt="${product.name || product.title}"
           style="
             width: 100%;
             height: 100%;

@@ -32,8 +32,8 @@ export default function CartContent() {
   const [promoCode,    setPromoCode]    = useState('');
   const [promoError,   setPromoError]   = useState('');
   const [promoSuccess, setPromoSuccess] = useState('');
-  const [checking,     setChecking]     = useState(false);  // ✅ loading state
-  const [checkoutError, setCheckoutError] = useState('');   // ✅ server error
+  const [checking,     setChecking]     = useState(false); 
+  const [checkoutError, setCheckoutError] = useState('');
 
   // Show loading state while cart loads from localStorage
   if (!isLoaded) {
