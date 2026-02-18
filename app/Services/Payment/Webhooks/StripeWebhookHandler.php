@@ -74,7 +74,6 @@ class StripeWebhookHandler implements WebhookHandlerInterface
                 return;
             }
 
-            // Guard: already succeeded — idempotent webhook handling
             if ($transaction->status === 'succeeded') {
                 return;
             }
@@ -83,6 +82,12 @@ class StripeWebhookHandler implements WebhookHandlerInterface
                 'status'       => 'succeeded',
                 'raw_response' => $paymentIntent->toArray(),
             ]);
+
+            // ✅ Complete checkout session when payment succeeds
+            if ($transaction->checkout_session_id) {
+                \App\Models\CheckoutSession::where('session_id', $transaction->checkout_session_id)
+                    ->update(['status' => 'completed']);
+            }
         });
     }
 

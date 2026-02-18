@@ -1,5 +1,71 @@
 import { useState, useEffect } from "react";
 import { router, usePage } from "@inertiajs/react";
+import AppHeaderLayout from "@/layouts/app/app-header-layout";
+
+// ── Validation Helpers ────────────────────────────────────────────
+function luhnCheck(number) {
+    const digits = number.replace(/\s/g, "");
+    let sum     = 0;
+    let isEven  = false;
+    for (let i = digits.length - 1; i >= 0; i--) {
+        let d = parseInt(digits[i], 10);
+        if (isEven) {
+            d *= 2;
+            if (d > 9) d -= 9;
+        }
+        sum    += d;
+        isEven  = !isEven;
+    }
+    return sum % 10 === 0;
+}
+
+function getCardType(number) {
+    const digits = number.replace(/\s/g, "");
+    if (/^4/.test(digits))                    return "visa";
+    if (/^(5[1-5]|2[2-7])/.test(digits))     return "mastercard";
+    if (/^3[47]/.test(digits))                return "amex";
+    return "unknown";
+}
+
+function validateField(field, value, form) {
+    switch (field) {
+        case "amount": {
+            const num = parseFloat(value);
+            if (!value)        return "Amount is required.";
+            if (isNaN(num))    return "Enter a valid amount.";
+            if (num < 0.50)    return "Minimum amount is $0.50.";
+            return null;
+        }
+        case "cardNumber": {
+            const digits = value.replace(/\s/g, "");
+            if (!digits)             return "Card number is required.";
+            if (digits.length < 16)  return "Card number must be 16 digits.";
+            if (!luhnCheck(digits))  return "Invalid card number.";
+            return null;
+        }
+        case "expiry": {
+            if (!value || value.length < 5) return "Expiry date is required.";
+            const [mm, yy]  = value.split("/").map(Number);
+            if (!mm || mm < 1 || mm > 12)   return "Invalid month.";
+            const now          = new Date();
+            const currentYear  = now.getFullYear() % 100;
+            const currentMonth = now.getMonth() + 1;
+            if (yy < currentYear || (yy === currentYear && mm < currentMonth))
+                return "Card has expired.";
+            return null;
+        }
+        case "cvv": {
+            const cardType = getCardType(form.cardNumber);
+            const required = cardType === "amex" ? 4 : 3;
+            if (!value)                  return "CVV is required.";
+            if (value.length < required) return `CVV must be ${required} digits.`;
+            return null;
+        }
+        default:
+            return null;
+    }
+}
+// ─────────────────────────────────────────────────────────────────
 
 const CARD_BRANDS = {
     visa: (
@@ -34,32 +100,58 @@ function CardIcon({ number }) {
 function formatCardNumber(val) {
     return val.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
 }
+
 function formatExpiry(val) {
     const digits = val.replace(/\D/g, "").slice(0, 4);
     if (digits.length >= 3) return digits.slice(0, 2) + "/" + digits.slice(2);
     return digits;
 }
 
-export default function PaymentIndex() {
+function FieldError({ message }) {
+    if (!message) return null;
+    return (
+        <p className="text-red-400 text-xs mt-1.5 flex items-center gap-1">
+            <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            {message}
+        </p>
+    );
+}
+
+export default function PaymentIndex(props) {
+
     const { errors, flash } = usePage().props;
 
+     const {
+        session_id    = "",
+        subtotal      = "0.00",
+        discount_amount = "0.00",
+        shipping_cost = "0.00",
+        tax_amount    = "0.00",
+        total         = "0.00",
+        currency      = "USD",
+        expires_at,
+    } = props;
+
     const [form, setForm] = useState({
-        gateway: "stripe",
-        amount: "",
-        currency: "USD",
+        gateway:           "stripe",
+        amount:            total,   
+        currency:          currency,
+        session_id:        session_id,   
         payment_method_id: "pm_card_visa",
-        description: "",
-        cardNumber: "",
-        expiry: "",
-        cvv: "",
-        cardHolder: "",
+        description:       "",
+        cardNumber:        "",
+        expiry:            "",
+        cvv:               "",
+        cardHolder:        "",
     });
 
-    const [focused, setFocused] = useState(null);
-    const [isFlipped, setIsFlipped] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const [step, setStep] = useState(1);
-    const [ripple, setRipple] = useState(null);
+    const [focused,     setFocused]     = useState(null);
+    const [isFlipped,   setIsFlipped]   = useState(false);
+    const [submitting,  setSubmitting]  = useState(false);
+    const [ripple,      setRipple]      = useState(null);
+    const [fieldErrors, setFieldErrors] = useState({});
 
     useEffect(() => {
         setIsFlipped(focused === "cvv");
@@ -68,14 +160,47 @@ export default function PaymentIndex() {
     const handleChange = (field) => (e) => {
         let val = e.target.value;
         if (field === "cardNumber") val = formatCardNumber(val);
-        if (field === "expiry") val = formatExpiry(val);
-        if (field === "cvv") val = val.replace(/\D/g, "").slice(0, 4);
-        if (field === "amount") val = val.replace(/[^\d.]/g, "");
+        if (field === "expiry")     val = formatExpiry(val);
+        if (field === "cvv")        val = val.replace(/\D/g, "").slice(0, 4);
+        if (field === "amount")     val = val.replace(/[^\d.]/g, "");
         setForm((p) => ({ ...p, [field]: val }));
+        // Clear error as user types
+        if (fieldErrors[field]) {
+            setFieldErrors(prev => ({ ...prev, [field]: null }));
+        }
+    };
+
+    // Validate single field on blur
+    const handleBlur = (field) => () => {
+        setFocused(null);
+        const error = validateField(field, form[field], form);
+        setFieldErrors(prev => ({ ...prev, [field]: error }));
+    };
+
+    // Validate all fields on submit
+    const validateAll = () => {
+        const fields  = ["cardNumber", "expiry", "cvv"]; // ✅ removed "amount"
+        const errs    = {};
+        let   isValid = true;
+        fields.forEach(field => {
+            const error = validateField(field, form[field], form);
+            if (error) { errs[field] = error; isValid = false; }
+        });
+        setFieldErrors(errs);
+        return isValid;
+    };
+
+    // Returns border + bg class based on field state
+    const borderClass = (field) => {
+        if (fieldErrors[field]) return "border-red-500/50 bg-red-500/5";
+        if (focused === field)  return "border-[#c9a84c]/50 bg-[#c9a84c]/5 shadow-[0_0_20px_rgba(201,168,76,0.08)]";
+        return "border-white/[0.07]";
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (!validateAll()) return; // ✅ block submit if invalid
+
         const btn = e.nativeEvent.submitter;
         if (btn) {
             const rect = btn.getBoundingClientRect();
@@ -84,11 +209,11 @@ export default function PaymentIndex() {
         }
         setSubmitting(true);
         router.post(route("payment.charge"), {
-            gateway: form.gateway,
-            amount: form.amount,
-            currency: form.currency,
+            gateway:           form.gateway,
+            amount:            form.amount,
+            currency:          form.currency,
             payment_method_id: form.payment_method_id,
-            description: form.description,
+            description:       form.description,
         }, {
             onFinish: () => setSubmitting(false),
         });
@@ -102,24 +227,24 @@ export default function PaymentIndex() {
         }).join("")
         : "•••• •••• •••• ••••";
 
-    const displayExpiry = form.expiry || "MM/YY";
-    const displayCVV = form.cvv ? "•".repeat(form.cvv.length) : "•••";
+    const displayExpiry = form.expiry     || "MM/YY";
+    const displayCVV    = form.cvv        ? "•".repeat(form.cvv.length) : "•••";
     const displayHolder = form.cardHolder || "FULL NAME";
 
     return (
+        <AppHeaderLayout>
         <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4 overflow-hidden">
             {/* Ambient background effects */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-[#c9a84c] opacity-[0.04] blur-[120px]" />
                 <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#7b5ea7] opacity-[0.06] blur-[100px]" />
                 <div className="absolute top-[40%] left-[40%] w-[300px] h-[300px] rounded-full bg-[#1a3a6e] opacity-[0.08] blur-[80px]" />
-                {/* Grid lines */}
                 <div className="absolute inset-0 opacity-[0.025]"
                     style={{ backgroundImage: "linear-gradient(#c9a84c 1px, transparent 1px), linear-gradient(90deg, #c9a84c 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
             </div>
 
             <div className="relative w-full max-w-[460px] z-10">
-                {/* Logo / Header */}
+                {/* Header */}
                 <div className="text-center mb-8 animate-[fadeDown_0.6s_ease_forwards]">
                     <div className="inline-flex items-center gap-2 mb-3">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#c9a84c] to-[#a07830] flex items-center justify-center shadow-[0_0_20px_rgba(201,168,76,0.3)]">
@@ -136,10 +261,9 @@ export default function PaymentIndex() {
                         style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
                         Complete Your Payment
                     </h1>
-                    {/* <p className="text-gray-900 text-sm mt-1 tracking-wide">256-bit encrypted · PCI compliant</p> */}
                 </div>
 
-                {/* Error Flash */}
+                {/* Server error flash */}
                 {flash?.error && (
                     <div className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-3">
                         <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -155,21 +279,16 @@ export default function PaymentIndex() {
 
                     {/* 3D Credit Card Preview */}
                     <div className="px-8 pt-8 pb-6 text-gray-50">
-                        <div className="relative h-[200px] perspective-[1200px]" style={{ perspective: "1200px" }}>
+                        <div className="relative h-[200px]" style={{ perspective: "1200px" }}>
                             <div
                                 className="w-full h-full relative transition-all duration-700"
-                                style={{
-                                    transformStyle: "preserve-3d",
-                                    transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-                                }}
+                                style={{ transformStyle: "preserve-3d", transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)" }}
                             >
                                 {/* Card Front */}
                                 <div className="absolute inset-0 rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
                                     style={{ backfaceVisibility: "hidden", background: "linear-gradient(135deg, #1a1a35 0%, #0d0d22 40%, #1a2540 100%)" }}>
-                                    {/* Card shimmer */}
                                     <div className="absolute inset-0 opacity-30"
                                         style={{ backgroundImage: "radial-gradient(ellipse at 30% 30%, rgba(201,168,76,0.2) 0%, transparent 60%)" }} />
-                                    {/* Chip */}
                                     <div className="absolute top-6 left-6">
                                         <div className="w-10 h-8 rounded bg-gradient-to-br from-[#d4a843] to-[#a07830] relative overflow-hidden shadow-sm">
                                             <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-px p-1">
@@ -179,32 +298,22 @@ export default function PaymentIndex() {
                                             </div>
                                         </div>
                                     </div>
-                                    {/* Card brand */}
                                     <div className="absolute top-4 right-4">
                                         <CardIcon number={form.cardNumber.replace(/\s/g, "")} />
                                     </div>
-                                    {/* Card number */}
                                     <div className="absolute bottom-16 left-6 right-6">
-                                        <p className="text-white/90 text-xl tracking-[0.25em] font-mono font-light">
-                                            {maskedNumber}
-                                        </p>
+                                        <p className="text-white/90 text-xl tracking-[0.25em] font-mono font-light">{maskedNumber}</p>
                                     </div>
-                                    {/* Card bottom */}
                                     <div className="absolute bottom-5 left-6 right-6 flex justify-between items-end">
                                         <div>
                                             <p className="text-white/30 text-[9px] uppercase tracking-widest mb-0.5">Card Holder</p>
-                                            <p className="text-white/80 text-sm tracking-widest uppercase font-light truncate max-w-[160px]">
-                                                {displayHolder}
-                                            </p>
+                                            <p className="text-white/80 text-sm tracking-widest uppercase font-light truncate max-w-[160px]">{displayHolder}</p>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-white/30 text-[9px] uppercase tracking-widest mb-0.5">Expires</p>
-                                            <p className="text-white/80 text-sm tracking-widest font-mono">
-                                                {displayExpiry}
-                                            </p>
+                                            <p className="text-white/80 text-sm tracking-widest font-mono">{displayExpiry}</p>
                                         </div>
                                     </div>
-                                    {/* Decorative circles */}
                                     <div className="absolute -bottom-8 -right-8 w-32 h-32 rounded-full border border-white/5" />
                                     <div className="absolute -bottom-4 -right-4 w-20 h-20 rounded-full border border-white/5" />
                                 </div>
@@ -229,37 +338,44 @@ export default function PaymentIndex() {
 
                     {/* Form */}
                     <form onSubmit={handleSubmit} className="px-8 py-6 space-y-4">
-                        {/* Amount + Currency */}
-                        <div className="flex gap-3">
-                            <div className="flex-1">
-                                <label className="block text-gray-50 text-xs tracking-widest uppercase mb-1.5">Amount</label>
-                                <div className={`relative flex items-center rounded-xl border transition-all duration-300 ${focused === "amount" ? "border-[#c9a84c]/50 bg-[#c9a84c]/5 shadow-[0_0_20px_rgba(201,168,76,0.08)]" : "border-white/[0.07] bg-white/[0.03]"}`}>
-                                    <span className="pl-4 text-gray-50 text-lg font-light">$</span>
-                                    <input
-                                        type="text"
-                                        value={form.amount}
-                                        onChange={handleChange("amount")}
-                                        onFocus={() => setFocused("amount")}
-                                        onBlur={() => setFocused(null)}
-                                        placeholder="0.00"
-                                        className="flex-1 bg-transparent text-white pl-2 pr-4 py-3.5 text-lg font-light outline-none placeholder-[#ffffff]/50"
-                                        style={{ fontFamily: "'DM Mono', monospace, serif" }}
-                                        required
-                                    />
+
+                        {/* Order Total — Read-only from server */}
+                        <div>
+                            <label className="block text-gray-50 text-xs tracking-widest uppercase mb-1.5">
+                                Order Total
+                            </label>
+                            <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3.5 space-y-2">
+                                <div className="flex justify-between text-white/50 text-xs">
+                                    <span>Subtotal</span>
+                                    <span>${parseFloat(subtotal ?? 0).toFixed(2)}</span>
                                 </div>
-                                {errors?.amount && <p className="text-red-400 text-xs mt-1">{errors.amount}</p>}
-                            </div>
-                            <div className="w-[90px]">
-                                <label className="block text-gray-50 text-xs tracking-widest uppercase mb-1.5">Currency</label>
-                                <select
-                                    value={form.currency}
-                                    onChange={handleChange("currency")}
-                                    className="w-full bg-white/[0.03] border border-white/[0.07] text-white rounded-xl px-3 py-3.5 outline-none text-sm appearance-none text-center cursor-pointer hover:border-white/20 transition-colors"
-                                >
-                                    {["USD", "EUR", "GBP", "CAD", "AUD"].map(c => (
-                                        <option key={c} value={c} className="bg-[#13131f]">{c}</option>
-                                    ))}
-                                </select>
+                                {parseFloat(discount_amount ?? 0) > 0 && (
+                                    <div className="flex justify-between text-[#c9a84c] text-xs">
+                                        <span>Discount</span>
+                                        <span>-${parseFloat(discount_amount).toFixed(2)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between text-white/50 text-xs">
+                                    <span>Shipping</span>
+                                    <span>
+                                        {parseFloat(shipping_cost ?? 0) === 0
+                                            ? "FREE"
+                                            : `$${parseFloat(shipping_cost).toFixed(2)}`}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between text-white/50 text-xs">
+                                    <span>Tax</span>
+                                    <span>${parseFloat(tax_amount ?? 0).toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between text-white pt-2 border-t border-white/10">
+                                    <span className="text-sm font-semibold tracking-wide">Total</span>
+                                    <span
+                                        className="text-lg font-bold text-[#c9a84c]"
+                                        style={{ fontFamily: "'DM Mono', monospace" }}
+                                    >
+                                        ${parseFloat(total ?? 0).toFixed(2)} {currency}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -273,20 +389,20 @@ export default function PaymentIndex() {
                                 onFocus={() => setFocused("cardHolder")}
                                 onBlur={() => setFocused(null)}
                                 placeholder="Full name on card"
-                                className={`w-full bg-white/[0.03] border rounded-xl px-4 py-3.5 text-white outline-none placeholder-[#ffffff]/50 transition-all duration-300 uppercase tracking-wider text-sm ${focused === "cardHolder" ? "border-[#c9a84c]/50 bg-[#c9a84c]/5 shadow-[0_0_20px_rgba(201,168,76,0.08)]" : "border-white/[0.07]"}`}
+                                className={`w-full bg-white/[0.03] border rounded-xl px-4 py-3.5 text-white outline-none placeholder-[#ffffff]/50 transition-all duration-300 uppercase tracking-wider text-sm ${borderClass("cardHolder")}`}
                             />
                         </div>
 
                         {/* Card Number */}
                         <div>
                             <label className="block text-gray-50 text-xs tracking-widest uppercase mb-1.5">Card Number</label>
-                            <div className={`relative flex items-center rounded-xl border transition-all duration-300 ${focused === "cardNumber" ? "border-[#c9a84c]/50 bg-[#c9a84c]/5 shadow-[0_0_20px_rgba(201,168,76,0.08)]" : "border-white/[0.07] bg-white/[0.03]"}`}>
+                            <div className={`relative flex items-center rounded-xl border transition-all duration-300 ${borderClass("cardNumber")}`}>
                                 <input
                                     type="text"
                                     value={form.cardNumber}
                                     onChange={handleChange("cardNumber")}
                                     onFocus={() => setFocused("cardNumber")}
-                                    onBlur={() => setFocused(null)}
+                                    onBlur={handleBlur("cardNumber")}
                                     placeholder="•••• •••• •••• ••••"
                                     className="flex-1 bg-transparent text-white px-4 py-3.5 outline-none placeholder-[#ffffff]/50 tracking-widest font-mono text-sm"
                                 />
@@ -294,6 +410,7 @@ export default function PaymentIndex() {
                                     <CardIcon number={form.cardNumber.replace(/\s/g, "")} />
                                 </div>
                             </div>
+                            <FieldError message={fieldErrors.cardNumber} />
                         </div>
 
                         {/* Expiry + CVV */}
@@ -305,10 +422,11 @@ export default function PaymentIndex() {
                                     value={form.expiry}
                                     onChange={handleChange("expiry")}
                                     onFocus={() => setFocused("expiry")}
-                                    onBlur={() => setFocused(null)}
+                                    onBlur={handleBlur("expiry")}
                                     placeholder="MM / YY"
-                                    className={`w-full bg-white/[0.03] border rounded-xl px-4 py-3.5 text-white outline-none placeholder-[#ffffff]/50 transition-all duration-300 font-mono text-sm tracking-widest ${focused === "expiry" ? "border-[#c9a84c]/50 bg-[#c9a84c]/5 shadow-[0_0_20px_rgba(201,168,76,0.08)]" : "border-white/[0.07]"}`}
+                                    className={`w-full bg-white/[0.03] border rounded-xl px-4 py-3.5 text-white outline-none placeholder-[#ffffff]/50 transition-all duration-300 font-mono text-sm tracking-widest ${borderClass("expiry")}`}
                                 />
+                                <FieldError message={fieldErrors.expiry} />
                             </div>
                             <div className="flex-1">
                                 <label className="block text-gray-50 text-xs tracking-widest uppercase mb-1.5">CVV</label>
@@ -317,16 +435,19 @@ export default function PaymentIndex() {
                                     value={form.cvv}
                                     onChange={handleChange("cvv")}
                                     onFocus={() => setFocused("cvv")}
-                                    onBlur={() => setFocused(null)}
+                                    onBlur={handleBlur("cvv")}
                                     placeholder="•••"
-                                    className={`w-full bg-white/[0.03] border rounded-xl px-4 py-3.5 text-white outline-none placeholder-[#ffffff]/50 transition-all duration-300 font-mono text-sm tracking-widest ${focused === "cvv" ? "border-[#c9a84c]/50 bg-[#c9a84c]/5 shadow-[0_0_20px_rgba(201,168,76,0.08)]" : "border-white/[0.07]"}`}
+                                    className={`w-full bg-white/[0.03] border rounded-xl px-4 py-3.5 text-white outline-none placeholder-[#ffffff]/50 transition-all duration-300 font-mono text-sm tracking-widest ${borderClass("cvv")}`}
                                 />
+                                <FieldError message={fieldErrors.cvv} />
                             </div>
                         </div>
 
                         {/* Description */}
                         <div>
-                            <label className="block text-gray-50 text-xs tracking-widest uppercase mb-1.5">Description <span className="normal-case">(optional)</span></label>
+                            <label className="block text-gray-50 text-xs tracking-widest uppercase mb-1.5">
+                                Description <span className="normal-case">(optional)</span>
+                            </label>
                             <input
                                 type="text"
                                 value={form.description}
@@ -334,7 +455,7 @@ export default function PaymentIndex() {
                                 onFocus={() => setFocused("description")}
                                 onBlur={() => setFocused(null)}
                                 placeholder="Order #1234, Subscription renewal..."
-                                className={`w-full bg-white/[0.03] border rounded-xl px-4 py-3.5 text-white outline-none placeholder-[#ffffff]/50 transition-all duration-300 text-sm ${focused === "description" ? "border-[#c9a84c]/50 bg-[#c9a84c]/5 shadow-[0_0_20px_rgba(201,168,76,0.08)]" : "border-white/[0.07]"}`}
+                                className={`w-full bg-white/[0.03] border rounded-xl px-4 py-3.5 text-white outline-none placeholder-[#ffffff]/50 transition-all duration-300 text-sm ${borderClass("description")}`}
                             />
                         </div>
 
@@ -370,7 +491,9 @@ export default function PaymentIndex() {
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                             </svg>
-                                            {form.amount ? `Pay $${parseFloat(form.amount || 0).toFixed(2)} ${form.currency}` : "Pay Securely"}
+                                            {total
+                                                ? `Pay $${parseFloat(total).toFixed(2)} ${currency}`
+                                                : "Pay Securely"}
                                         </>
                                     )}
                                 </span>
@@ -405,5 +528,6 @@ export default function PaymentIndex() {
                 }
             `}</style>
         </div>
+        </AppHeaderLayout>
     );
 }

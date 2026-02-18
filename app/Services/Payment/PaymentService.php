@@ -18,9 +18,10 @@ class PaymentService
 
     public function charge(string $gateway, PaymentRequestDTO $request, ?object $payable = null): PaymentResponseDTO
     {
-        $idempotencyKey = Str::uuid()->toString();
+        $idempotencyKey  = Str::uuid()->toString();
         $gatewayInstance = $this->factory->make($gateway);
 
+        // Persist pending transaction before hitting gateway
         $transaction = DB::transaction(function () use ($gateway, $request, $idempotencyKey, $payable) {
             return Transaction::create([
                 'transaction_id'    => $idempotencyKey,
@@ -34,6 +35,7 @@ class PaymentService
             ]);
         });
 
+        // Call gateway with idempotency key
         try {
             $response = $gatewayInstance->charge($request, $idempotencyKey);
         } catch (\Throwable $e) {
@@ -58,6 +60,7 @@ class PaymentService
             );
         }
 
+        // Update transaction — status stays pending until webhook confirms
         DB::transaction(function () use ($transaction, $response) {
             $transaction->update([
                 'transaction_id' => $response->transactionId ?: $transaction->transaction_id,

@@ -11,8 +11,9 @@ import {
   Tag,
   ShoppingCart,
   X,
+  AlertCircle,
 } from 'lucide-react';
-import { Link } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { useCart } from '../context/CartContext';
 
 export default function CartContent() {
@@ -22,15 +23,17 @@ export default function CartContent() {
     updateQuantity,
     removeFromCart,
     getCartTotal,
-    appliedPromo, 
-    applyPromoCode, 
-    removePromoCode, 
+    appliedPromo,
+    applyPromoCode,
+    removePromoCode,
     getDiscountAmount,
   } = useCart();
 
-  const [promoCode, setPromoCode] = useState('');
-  const [promoError, setPromoError] = useState(''); 
-  const [promoSuccess, setPromoSuccess] = useState(''); 
+  const [promoCode,    setPromoCode]    = useState('');
+  const [promoError,   setPromoError]   = useState('');
+  const [promoSuccess, setPromoSuccess] = useState('');
+  const [checking,     setChecking]     = useState(false);  // ✅ loading state
+  const [checkoutError, setCheckoutError] = useState('');   // ✅ server error
 
   // Show loading state while cart loads from localStorage
   if (!isLoaded) {
@@ -44,46 +47,86 @@ export default function CartContent() {
     );
   }
 
-  // Calculations
-  const subtotal = getCartTotal();
+  // Calculations (display only — real totals come from backend)
+  const subtotal      = getCartTotal();
   const discountAmount = getDiscountAmount();
   const shippingThreshold = 75;
-  const isFreeShipping = subtotal >= shippingThreshold;
-  const shippingCost = isFreeShipping ? 0 : 9.99;
-  const taxEstimate = (subtotal - discountAmount) * 0.08;
-  const total = subtotal - discountAmount + shippingCost + taxEstimate;
+  const isFreeShipping    = subtotal >= shippingThreshold;
+  const shippingCost      = isFreeShipping ? 0 : 9.99;
+  const taxEstimate       = (subtotal - discountAmount) * 0.08;
+  const total             = subtotal - discountAmount + shippingCost + taxEstimate;
 
   const hasItems = cart.length > 0;
 
-  // ──────────────────────────────────────────────────
-  //   NEW: Handle Promo Code Application
-  // ──────────────────────────────────────────────────
+  // ── Promo Code Handlers ──────────────────────────────────────────
   const handleApplyPromo = () => {
     setPromoError('');
     setPromoSuccess('');
-    
+
     if (!promoCode.trim()) {
       setPromoError('Please enter a promo code');
       return;
     }
-    
+
     const result = applyPromoCode(promoCode);
-    
+
     if (result.success) {
       setPromoSuccess(result.message);
       setPromoCode('');
-      // Clear success message after 3 seconds
       setTimeout(() => setPromoSuccess(''), 3000);
     } else {
       setPromoError(result.message);
     }
   };
 
-  // Handle removing promo code
   const handleRemovePromo = () => {
     removePromoCode();
     setPromoError('');
     setPromoSuccess('');
+  };
+
+  // ── Secure Checkout Handler ──────────────────────────────────────
+  const handleCheckout = async () => {
+    setCheckoutError('');
+    setChecking(true);
+
+    try {
+      // Send only product_id + quantity — never prices
+      const items = cart.map(item => ({
+        product_id: item.id,
+        quantity:   item.quantity || 1,
+      }));
+
+      const response = await fetch(route('checkout.create'), {
+        method:  'POST',
+        headers: {
+          'Content-Type':     'application/json',
+          'Accept':           'application/json',
+          'X-CSRF-TOKEN':     document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+        },
+        body: JSON.stringify({
+          items,
+          promo_code: appliedPromo?.code ?? null,
+          currency:   'USD',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setCheckoutError(data.message || 'Unable to create checkout session. Please try again.');
+        return;
+      }
+
+      // Redirect to server-validated checkout page
+      router.visit(route('checkout.show', { sessionId: data.session_id }));
+
+    } catch (err) {
+      setCheckoutError('Something went wrong. Please try again.');
+      console.error('Checkout error:', err);
+    } finally {
+      setChecking(false);
+    }
   };
 
   return (
@@ -96,7 +139,6 @@ export default function CartContent() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           {/* Left Column: Cart Items */}
           <div className="lg:col-span-8">
-            {/* Cart List */}
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="divide-y divide-gray-100">
                 {cart.map((item) => (
@@ -142,18 +184,11 @@ export default function CartContent() {
                           </div>
                           <div className="text-right shrink-0">
                             <p className="font-black text-lg text-gray-900">
-                              $
-                              {(
-                                (item.price || 0) * (item.quantity || 1)
-                              ).toFixed(2)}
+                              ${((item.price || 0) * (item.quantity || 1)).toFixed(2)}
                             </p>
                             {item.originalPrice && (
                               <p className="text-sm text-gray-400 line-through">
-                                $
-                                {(
-                                  (item.originalPrice || 0) *
-                                  (item.quantity || 1)
-                                ).toFixed(2)}
+                                ${((item.originalPrice || 0) * (item.quantity || 1)).toFixed(2)}
                               </p>
                             )}
                           </div>
@@ -166,10 +201,7 @@ export default function CartContent() {
                           <div className="flex items-center border border-gray-200 rounded-lg p-1 bg-white">
                             <button
                               onClick={() =>
-                                updateQuantity(
-                                  item.id,
-                                  Math.max(1, (item.quantity || 1) - 1),
-                                )
+                                updateQuantity(item.id, Math.max(1, (item.quantity || 1) - 1))
                               }
                               className="p-2 text-gray-700 hover:text-black hover:bg-gray-100 rounded-md transition-colors"
                               disabled={(item.quantity || 1) <= 1}
@@ -215,12 +247,9 @@ export default function CartContent() {
               <div className="space-y-4 text-sm">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span className="font-bold text-gray-900">
-                    ${subtotal.toFixed(2)}
-                  </span>
+                  <span className="font-bold text-gray-900">${subtotal.toFixed(2)}</span>
                 </div>
 
-                {/* NEW: Show Discount if promo applied */}
                 {appliedPromo && (
                   <div className="flex justify-between text-[#2E7D32]">
                     <span className="flex items-center gap-2">
@@ -233,9 +262,7 @@ export default function CartContent() {
                         <X size={14} />
                       </button>
                     </span>
-                    <span className="font-bold">
-                      -${discountAmount.toFixed(2)}
-                    </span>
+                    <span className="font-bold">-${discountAmount.toFixed(2)}</span>
                   </div>
                 )}
 
@@ -244,19 +271,16 @@ export default function CartContent() {
                   {isFreeShipping ? (
                     <span className="font-bold text-[#2E7D32]">FREE</span>
                   ) : (
-                    <span className="font-bold text-gray-900">
-                      ${shippingCost.toFixed(2)}
-                    </span>
+                    <span className="font-bold text-gray-900">${shippingCost.toFixed(2)}</span>
                   )}
                 </div>
+
                 <div className="flex justify-between text-gray-600">
                   <span>Tax estimate</span>
-                  <span className="font-bold text-gray-900">
-                    ${taxEstimate.toFixed(2)}
-                  </span>
+                  <span className="font-bold text-gray-900">${taxEstimate.toFixed(2)}</span>
                 </div>
 
-                {/* Promo Code - UPDATED */}
+                {/* Promo Code */}
                 {!appliedPromo && (
                   <div className="pt-4 pb-2">
                     <label
@@ -277,9 +301,7 @@ export default function CartContent() {
                           setPromoError('');
                         }}
                         onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            handleApplyPromo();
-                          }
+                          if (e.key === 'Enter') handleApplyPromo();
                         }}
                         className="w-full bg-gray-50 border border-gray-200 rounded-lg py-3 pl-4 pr-24 text-gray-900 text-sm focus:outline-none focus:border-[#2E7D32] focus:ring-1 focus:ring-[#2E7D32] transition-all"
                       />
@@ -302,27 +324,48 @@ export default function CartContent() {
 
                 <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
                   <span className="text-base font-black text-gray-900">Total</span>
-                  <span className="text-2xl font-black text-gray-900">
-                    ${total.toFixed(2)}
-                  </span>
+                  <div className="text-right">
+                    <span className="text-2xl font-black text-gray-900">
+                      ${total.toFixed(2)}
+                    </span>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Final total confirmed at checkout</p>
+                  </div>
                 </div>
               </div>
 
-              <Link
-                href="/"
-                className="w-full bg-[#2E7D32] hover:bg-[#1B5E20] text-white font-extrabold py-4 rounded-xl shadow-lg shadow-green-900/20 mt-8 flex items-center justify-center gap-2 group transition-all active:scale-[0.98]"
+              {/* Checkout error */}
+              {checkoutError && (
+                <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-100 flex items-start gap-2">
+                  <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-red-600 text-xs">{checkoutError}</p>
+                </div>
+              )}
+
+              {/* Checkout Button */}
+              <button
+                onClick={handleCheckout}
+                disabled={checking || !hasItems}
+                className="w-full bg-[#2E7D32] hover:bg-[#1B5E20] disabled:opacity-60 disabled:cursor-not-allowed text-white font-extrabold py-4 rounded-xl shadow-lg shadow-green-900/20 mt-6 flex items-center justify-center gap-2 group transition-all active:scale-[0.98]"
               >
-                Proceed to Checkout
-                <ArrowRight
-                  className="group-hover:translate-x-1 transition-transform"
-                  size={20}
-                />
-              </Link>
+                {checking ? (
+                  <>
+                    <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeDashoffset="12" />
+                    </svg>
+                    Preparing checkout...
+                  </>
+                ) : (
+                  <>
+                    Proceed to Checkout
+                    <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
+                  </>
+                )}
+              </button>
 
               <div className="mt-6 flex flex-col gap-3 text-xs text-gray-500 text-center">
                 <div className="flex items-center justify-center gap-2">
                   <ShieldCheck size={14} className="text-[#2E7D32]" />
-                  <span>Secure checkout guaranteed</span>
+                  <span>Prices verified at checkout</span>
                 </div>
                 <div className="flex items-center justify-center gap-2">
                   <CreditCard size={14} />
@@ -344,13 +387,13 @@ export default function CartContent() {
           <p className="text-gray-500 max-w-md mx-auto mb-8">
             Looks like you haven't added anything yet. Let's find something great for your project!
           </p>
-          <Link
+          <a
             href="/products"
             className="inline-flex items-center gap-2 bg-[#2E7D32] text-white hover:brightness-110 font-extrabold py-4 px-10 rounded-full transition-all shadow-sm"
           >
             Browse Products
             <ChevronRight size={20} />
-          </Link>
+          </a>
         </div>
       )}
     </div>

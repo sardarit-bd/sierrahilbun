@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProductController;
@@ -90,7 +91,7 @@ Route::get('dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 
-// payment gateway
+// payment gateway & checkout
 Route::middleware(['auth'])->group(function () {
     Route::get('/payment',                          [PaymentController::class, 'index'])->name('payment.index');
     Route::post('/payment/charge',                  [PaymentController::class, 'charge'])->name('payment.charge');
@@ -98,6 +99,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/payment/success',                  [PaymentController::class, 'success'])->name('payment.success');
     Route::get('/payment/failed',                   [PaymentController::class, 'failed'])->name('payment.failed');
     Route::get('/payment/status/{transactionId}',   [PaymentController::class, 'status'])->name('payment.status');
+
+    // checkout
+    Route::post('/checkout',              [CheckoutController::class, 'create'])->name('checkout.create');
+    Route::get('/checkout/{sessionId}',   [CheckoutController::class, 'show'])->name('checkout.show');
+
 });
 
 require __DIR__.'/settings.php';
