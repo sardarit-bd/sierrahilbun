@@ -179,7 +179,7 @@ export default function PaymentIndex(props) {
 
     // Validate all fields on submit
     const validateAll = () => {
-        const fields  = ["cardNumber", "expiry", "cvv"]; // ✅ removed "amount"
+        const fields  = ["cardNumber", "expiry", "cvv"];
         const errs    = {};
         let   isValid = true;
         fields.forEach(field => {
@@ -197,62 +197,27 @@ export default function PaymentIndex(props) {
         return "border-white/[0.07]";
     };
 
-    // const handleSubmit = (e) => {
-    //     e.preventDefault();
-    //     if (!validateAll()) return; // ✅ block submit if invalid
-
-    //     const btn = e.nativeEvent.submitter;
-    //     if (btn) {
-    //         const rect = btn.getBoundingClientRect();
-    //         setRipple({ x: rect.width / 2, y: rect.height / 2 });
-    //         setTimeout(() => setRipple(null), 600);
-    //     }
-    //     setSubmitting(true);
-    //     router.post(route("payment.charge"), {
-    //         gateway:           form.gateway,
-    //         amount:            form.amount,
-    //         currency:          form.currency,
-    //         payment_method_id: form.payment_method_id,
-    //         description:       form.description,
-    //     }, {
-    //         onFinish: () => setSubmitting(false),
-    //     });
-    // };
-
     const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    console.log('Form submitted');
-    console.log('Form data:', form);
-    
-    const isValid = validateAll();
-    console.log('Validation result:', isValid);
-    console.log('Field errors:', fieldErrors);
-    
-    if (!isValid) {
-        console.log('Validation failed - stopping submission');
-        return;
-    }
-    
-    console.log('Proceeding with payment...');
-    
-    const btn = e.nativeEvent.submitter;
-    if (btn) {
-        const rect = btn.getBoundingClientRect();
-        setRipple({ x: rect.width / 2, y: rect.height / 2 });
-        setTimeout(() => setRipple(null), 600);
-    }
-    setSubmitting(true);
-    router.post(route("payment.charge"), {
-        session_id:        form.session_id, 
-        gateway:           form.gateway,
-        currency:          form.currency,
-        payment_method_id: form.payment_method_id,
-        description:       form.description,
-    }, {
-        onFinish: () => setSubmitting(false),
-    });
-};
+        e.preventDefault();
+        if (!validateAll()) return;
+
+        const btn = e.nativeEvent.submitter;
+        if (btn) {
+            const rect = btn.getBoundingClientRect();
+            setRipple({ x: rect.width / 2, y: rect.height / 2 });
+            setTimeout(() => setRipple(null), 600);
+        }
+        setSubmitting(true);
+        router.post(route("payment.charge"), {
+            gateway:           form.gateway,
+            amount:            form.amount,
+            currency:          form.currency,
+            payment_method_id: form.payment_method_id,
+            description:       form.description,
+        }, {
+            onFinish: () => setSubmitting(false),
+        });
+    };
 
     const maskedNumber = form.cardNumber
         ? form.cardNumber.padEnd(19, "·").split("").map((c, i) => {

@@ -176,9 +176,9 @@ export default function PaymentSuccess({ transaction_id, amount, currency }) {
                     </div>
                 </div>
 
-                <p className="text-center text-[#2a2a3e] text-xs mt-6 tracking-wider">
+                {/* <p className="text-center text-[#2a2a3e] text-xs mt-6 tracking-wider">
                     A confirmation has been sent to your email
-                </p>
+                </p> */}
             </div>
 
             <style>{`
