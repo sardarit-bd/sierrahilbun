@@ -30,7 +30,7 @@ class ProductService
             'image' => $product->images->first()
                 ? Storage::url($product->images->first()->image_url)
                 : '/images/placeholder.png',
-            'price' => (float) $product->base_price,
+            'base_price' => (float) $product->base_price,
             'min_price' => (float) ($product->price_min ?: $product->base_price),
             'max_price' => (float) ($product->price_max ?: $product->base_price),
             'rating' => (float) $product->rating_avg,
@@ -131,7 +131,7 @@ class ProductService
                 'image'         => $product->images->first()
                     ? Storage::url($product->images->first()->image_url)
                     : '/images/placeholder.png',
-                'price'         => (float) $product->base_price,
+                'base_price'         => (float) $product->base_price,
                 'min_price'     => (float) ($product->price_min ?: $product->base_price),
                 'max_price'     => (float) ($product->price_max ?: $product->base_price),
                 'rating'        => (float) $product->rating_avg,

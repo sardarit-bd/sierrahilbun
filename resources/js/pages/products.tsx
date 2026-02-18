@@ -18,7 +18,8 @@ interface Product {
   subtitle: string;
   category: string | null;
   image: string;
-  price: number;
+  base_price: number;      
+  discount_price: number | null;
   min_price: number;
   max_price: number;
   rating: number;
@@ -67,8 +68,8 @@ const QuickViewModal = ({ product, onClose }: { product: Product; onClose: () =>
     return () => { document.body.style.overflow = 'unset'; };
   }, []);
 
-  const savingsPercent = product.max_price > product.price
-    ? Math.round(((product.max_price - product.price) / product.max_price) * 100)
+  const savingsPercent = product.max_price > product.base_price
+    ? Math.round(((product.max_price - product.base_price) / product.max_price) * 100)
     : 0;
 
   return (
@@ -106,8 +107,8 @@ const QuickViewModal = ({ product, onClose }: { product: Product; onClose: () =>
           </div>
 
           <div className="flex items-baseline gap-3 mb-6">
-            <span className="text-3xl font-black text-[#2E7D32]">${product.price.toFixed(2)}</span>
-            {product.max_price > product.price && (
+            <span className="text-3xl font-black text-[#2E7D32]">${(product.base_price ?? 0).toFixed(2)}</span>
+            {product.max_price > product.base_price && (
               <span className="text-lg text-gray-400 line-through">${product.max_price.toFixed(2)}</span>
             )}
           </div>
@@ -139,8 +140,8 @@ const QuickViewModal = ({ product, onClose }: { product: Product; onClose: () =>
 // --- Product Card ---
 
 const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: (p: Product) => void }) => {
-  const savingsPercent = product.max_price > product.price
-    ? Math.round(((product.max_price - product.price) / product.max_price) * 100)
+  const savingsPercent = product.max_price > product.base_price
+    ? Math.round(((product.max_price - product.base_price) / product.max_price) * 100)
     : 0;
 
   return (
@@ -203,8 +204,8 @@ const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: 
           <div className="mt-auto pt-4 flex items-end justify-between border-t border-gray-50">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-gray-900 font-extrabold text-2xl">${product.price.toFixed(2)}</span>
-                {product.max_price > product.price && (
+                <span className="text-gray-900 font-extrabold text-2xl">${(product.base_price ?? 0).toFixed(2)}</span>
+                {product.max_price > product.base_price && (
                   <span className="text-gray-400 text-sm line-through">${product.max_price.toFixed(2)}</span>
                 )}
               </div>
