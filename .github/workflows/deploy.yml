@@ -23,17 +23,7 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-
-          if [ -z "${{ secrets.HOST }}" ]; then
-            echo "HOST secret is empty!"
-            exit 1
-          fi
-
-          ssh-keyscan -p 22 -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts 2>/dev/null || {
-            echo "ssh-keyscan failed"
-            exit 1
-          }
-
+          ssh-keyscan -p 2222 -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
 
