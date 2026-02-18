@@ -19,40 +19,36 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Add VPS to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+
       - name: Deploy to VPS
         run: |
-          ssh ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
           set -e
-
           PROJECT_DIR="/var/www/sira.sardarit.cloud"
 
-          echo "🔐 Mark repository as safe for Git"
           git config --global --add safe.directory $PROJECT_DIR
-
-          echo "🚀 Deploying to $PROJECT_DIR"
           cd $PROJECT_DIR
 
-          echo "📥 Fetching latest code"
           git fetch origin
           git reset --hard origin/main
 
-          echo "📦 Installing PHP dependencies"
           composer install --no-interaction --prefer-dist --optimize-autoloader
-
-          echo "📦 Installing Node dependencies"
           npm install
-
-          echo "⚙️ Building frontend assets"
           npm run build
 
-          echo "🔐 Providing permissions"
           chown -R nginx:nginx $PROJECT_DIR
           chmod -R 775 storage bootstrap/cache
 
-          echo "🧹 Running Laravel optimizations"
           php artisan migrate --force || true
           php artisan optimize:clear
           php artisan optimize
 
-          echo "✅ Deployment completed successfully"
+      - name: Restart Nginx
+        run: |
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
+          sudo systemctl restart nginx
           EOF
