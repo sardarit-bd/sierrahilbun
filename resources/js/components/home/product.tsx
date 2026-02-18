@@ -12,7 +12,7 @@ interface Product {
     subtitle: string | null;
     category: string | null;
     image: string;
-    price: number;
+    base_price: number;
     min_price: number;
     max_price: number;
     rating: number;
@@ -31,8 +31,8 @@ const QuickViewModal = ({ product, onClose }: { product: Product; onClose: () =>
         return () => { document.body.style.overflow = 'unset'; };
     }, []);
 
-    const savingsPercent = product.max_price > product.price
-        ? Math.round(((product.max_price - product.price) / product.max_price) * 100)
+    const savingsPercent = product.max_price > product.base_price
+        ? Math.round(((product.max_price - product.base_price) / product.max_price) * 100)
         : 0;
 
     const cartProduct = {
@@ -42,7 +42,7 @@ const QuickViewModal = ({ product, onClose }: { product: Product; onClose: () =>
         subtitle:      product.subtitle ?? '',
         category:      product.category ?? null,
         image:         product.image,
-        price:         product.price,
+        base_price:    product.base_price,
         min_price:     product.min_price,
         max_price:     product.max_price,
         rating:        product.rating,
@@ -106,8 +106,8 @@ const QuickViewModal = ({ product, onClose }: { product: Product; onClose: () =>
                         </div>
 
                         <div className="flex items-baseline gap-3 mb-6">
-                            <span className="text-3xl font-black text-[#2E7D32]">${product.price.toFixed(2)}</span>
-                            {product.max_price > product.price && (
+                            <span className="text-3xl font-black text-[#2E7D32]">${product.base_price.toFixed(2)}</span>
+                            {product.max_price > product.base_price && (
                                 <span className="text-lg text-gray-400 line-through font-medium">
                                     ${product.max_price.toFixed(2)}
                                 </span>
@@ -155,8 +155,8 @@ const QuickViewModal = ({ product, onClose }: { product: Product; onClose: () =>
 
 
 const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: (p: Product) => void }) => {
-    const savingsPercent = product.max_price > product.price
-        ? Math.round(((product.max_price - product.price) / product.max_price) * 100)
+    const savingsPercent = product.max_price > product.base_price
+        ? Math.round(((product.max_price - product.base_price) / product.max_price) * 100)
         : 0;
 
     const cartProduct = {
@@ -166,7 +166,7 @@ const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: 
         subtitle:      product.subtitle ?? '',
         category:      product.category ?? null,
         image:         product.image,
-        price:         product.price,
+        base_price:    product.base_price,
         min_price:     product.min_price,
         max_price:     product.max_price,
         rating:        product.rating,
@@ -256,9 +256,9 @@ const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: 
                         <div>
                             <div className="flex items-center gap-2">
                                 <span className="text-gray-900 font-extrabold text-2xl">
-                                    ${product.price.toFixed(2)}
+                                    ${product.base_price.toFixed(2)}
                                 </span>
-                                {product.max_price > product.price && (
+                                {product.max_price > product.base_price && (
                                     <span className="text-gray-400 text-sm line-through decoration-red-400/50">
                                         ${product.max_price.toFixed(2)}
                                     </span>

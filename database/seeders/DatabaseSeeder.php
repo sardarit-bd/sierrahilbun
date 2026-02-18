@@ -16,7 +16,8 @@ class DatabaseSeeder extends Seeder
             ProductCategorySeeder::class,
             ProductSeeder::class,
             PlanSeeder::class,
-            PaymentGatewaySettingSeeder::class
+            PaymentGatewaySettingSeeder::class,
+            BlogCategorySeeder::class
         ]);
     }
 }

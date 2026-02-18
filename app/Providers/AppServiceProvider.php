@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Repositories\BlogRepository;
+use App\Repositories\Contracts\BlogRepositoryInterface;
 use App\Services\Checkout\CheckoutService;
 use App\Services\Payment\Contracts\WebhookHandlerInterface;
 use App\Services\Payment\Factory\PaymentGatewayFactory;
@@ -24,6 +26,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(PaymentService::class);
         $this->app->bind(WebhookHandlerInterface::class, StripeWebhookHandler::class);
         $this->app->singleton(CheckoutService::class);
+
+        $this->app->bind(
+            BlogRepositoryInterface::class,
+            BlogRepository::class
+        );
     }
 
     /**

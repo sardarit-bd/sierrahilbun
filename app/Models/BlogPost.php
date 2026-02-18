@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Services\CacheService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\Cache;
 
 class BlogPost extends Model
 {
@@ -25,6 +27,18 @@ class BlogPost extends Model
         'published_at' => 'datetime',
         'created_at' => 'datetime',
     ];
+
+    protected static function booted()
+    {
+        static::saved(function () {
+            app(CacheService::class)->flush(['blogs']);
+        });
+
+        static::deleted(function () {
+            app(CacheService::class)->flush(['blogs']);
+        });
+    }
+
 
     public function category(): BelongsTo
     {

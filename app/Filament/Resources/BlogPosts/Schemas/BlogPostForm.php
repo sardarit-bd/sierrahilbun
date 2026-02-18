@@ -81,7 +81,7 @@ class BlogPostForm
                             ->columnSpanFull(),
                     ]),
 
-                // ── SIDEBAR (1 of 3 columns) ───────────────────────────────
+                //SIDEBAR
 
                 Grid::make(1)
                     ->columnSpan(1)
@@ -104,6 +104,7 @@ class BlogPostForm
                                 Select::make('category_id')
                                     ->label('Category')
                                     ->relationship('category', 'name')
+                                    ->required()
                                     ->searchable()
                                     ->preload()
                                     ->native(false),

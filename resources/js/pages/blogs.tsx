@@ -10,94 +10,12 @@ interface BlogPost {
   excerpt: string;
   image: string;
   category: string;
+  category_slug?: string;
   author: string;
   date: string;
-  readTime: string;
+  readTime?: string;
   featured: boolean;
 }
-
-// --- Mock Data ---
-const categories = ["All", "Seasonal Care", "Science", "Pest Control", "Lawn Renovation", "Equipment"];
-
-const blogPosts: BlogPost[] = [
-  {
-    id: 1,
-    title: "The Ultimate Guide to Spring Lawn Wake-Up",
-    excerpt: "Spring is the most critical time for your lawn. Learn the exact steps to wake up your turf from dormancy and prepare it for a lush, disease-free growing season.",
-    image: "https://images.unsplash.com/photo-1558905540-212847de5fd6?q=80&w=2070&auto=format&fit=crop",
-    category: "Seasonal Care",
-    author: "Dr. Sarah Green",
-    date: "Mar 15, 2026",
-    readTime: "8 min read",
-    featured: true
-  },
-  {
-    id: 2,
-    title: "Liquid vs. Granular: Why Liquid Wins",
-    excerpt: "Granular fertilizers sit on top of the soil. Liquid nutrients penetrate immediately. Here is the science behind absorption rates.",
-    image: "https://images.unsplash.com/photo-1592419044706-39796d40f98c?q=80&w=2021&auto=format&fit=crop",
-    category: "Science",
-    author: "Mike Ross",
-    date: "Mar 12, 2026",
-    readTime: "5 min read",
-    featured: false
-  },
-  {
-    id: 3,
-    title: "Banishing Crabgrass Before It Starts",
-    excerpt: "The secret to weed control isn't killing weeds—it's preventing them. A guide to pre-emergents.",
-    image: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?q=80&w=2064&auto=format&fit=crop",
-    category: "Pest Control",
-    author: "Jon Doe",
-    date: "Mar 08, 2026",
-    readTime: "6 min read",
-    featured: false
-  },
-  {
-    id: 4,
-    title: "How to Read Your Soil Test Results",
-    excerpt: "pH, Nitrogen, Phosphorus? We decode the confusing numbers on your soil analysis report.",
-    image: "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?q=80&w=2070&auto=format&fit=crop",
-    category: "Science",
-    author: "Dr. Sarah Green",
-    date: "Mar 01, 2026",
-    readTime: "10 min read",
-    featured: false
-  },
-  {
-    id: 5,
-    title: "Watering 101: You're Doing It Wrong",
-    excerpt: "Deep and infrequent vs. shallow and daily. Why your watering schedule might be causing shallow roots.",
-    image: "https://images.unsplash.com/photo-1525498128493-380d1990a112?q=80&w=2070&auto=format&fit=crop",
-    category: "Seasonal Care",
-    author: "Mike Ross",
-    date: "Feb 28, 2026",
-    readTime: "4 min read",
-    featured: false
-  },
-  {
-    id: 6,
-    title: "Pet-Safe Lawn Care: A Myth?",
-    excerpt: "Can you have a golf-course lawn and a dog? Yes, but you need to choose your products carefully.",
-    image: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=2069&auto=format&fit=crop",
-    category: "Lawn Renovation",
-    author: "Jon Doe",
-    date: "Feb 20, 2026",
-    readTime: "7 min read",
-    featured: false
-  },
-  {
-    id: 7,
-    title: "Pet-Safe Lawn Care: A Myth?",
-    excerpt: "Can you have a golf-course lawn and a dog? Yes, but you need to choose your products carefully.",
-    image: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=2069&auto=format&fit=crop",
-    category: "Lawn Renovation",
-    author: "Jon Doe",
-    date: "Feb 20, 2026",
-    readTime: "7 min read",
-    featured: false
-  }
-];
 
 // --- Sub-Components ---
 
@@ -128,8 +46,12 @@ const PostCard = ({ post }: { post: BlogPost }) => (
     <div className="flex-1 p-8 flex flex-col">
       <div className="flex items-center gap-3 text-xs text-gray-500 font-medium mb-4 uppercase tracking-wide">
         <span>{post.date}</span>
-        <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-        <span>{post.readTime}</span>
+        {post.readTime && (
+          <>
+            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+            <span>{post.readTime}</span>
+          </>
+        )}
       </div>
       
       <h3 className="text-xl font-bold text-gray-900 mb-3 font-serif leading-tight group-hover:text-[#2E7D32] transition-colors">
@@ -147,7 +69,7 @@ const PostCard = ({ post }: { post: BlogPost }) => (
           </div>
           <span className="text-xs font-bold text-gray-700">{post.author}</span>
         </div>
-        <Link href="/blogs/post" className="text-[#2E7D32] font-bold text-sm flex items-center gap-1 group/btn">
+        <Link href={`/blogs/${post.slug}`} className="text-[#2E7D32] font-bold text-sm flex items-center gap-1 group/btn">
           Read Article 
           <ChevronRight size={16} className="transition-transform group-hover/btn:translate-x-1" />
         </Link>
@@ -158,16 +80,23 @@ const PostCard = ({ post }: { post: BlogPost }) => (
 
 // --- Main Page Component ---
 
-export default function BlogPage() {
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [searchQuery, setSearchQuery] = useState("");
+interface BlogPageProps {
+  posts: BlogPost[];
+  categories: { name: string; slug: string }[];
+  filters?: { category?: string; search?: string };
+}
 
-  const featuredPost = blogPosts.find(p => p.featured);
-  const regularPosts = blogPosts.filter(p => !p.featured);
-  
-  // Basic filtering logic
+export default function BlogPage({ posts, categories, filters }: BlogPageProps) {
+  const postsArray = Array.isArray(posts) ? posts : posts.data;
+
+  const [activeCategory, setActiveCategory] = useState(filters?.category ?? 'All');
+  const [searchQuery, setSearchQuery] = useState(filters?.search ?? '');
+
+  const featuredPost = postsArray.find(p => p.featured);
+  const regularPosts = postsArray.filter(p => !p.featured);
+
   const filteredPosts = regularPosts.filter(post => {
-    const matchesCategory = activeCategory === "All" || post.category === activeCategory;
+    const matchesCategory = activeCategory === 'All' || post.category === activeCategory;
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
@@ -203,15 +132,15 @@ export default function BlogPage() {
             <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 no-scrollbar">
               {categories.map((cat) => (
                 <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
+                  key={cat.name}
+                  onClick={() => setActiveCategory(cat.name)}
                   className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
-                    activeCategory === cat
+                    activeCategory === cat.name
                       ? 'bg-[#1A1A1A] text-white shadow-lg'
                       : 'bg-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
-                  {cat}
+                  {cat.name}
                 </button>
               ))}
             </div>

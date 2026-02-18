@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PlanController;
@@ -57,18 +58,18 @@ Route::get('/custom-lawn', function () {
     return Inertia::render('CustomLawnPlan');
 })->name('custom-lawn');
 
-Route::get('/blogs', function () {
-    return Inertia::render('blogs');
-})->name('blogs');
+// blog
+Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
+Route::get('/blogs/{slug}', [BlogController::class, 'show'])->name('blogs.show');
 
-Route::get('/blogs/{slug}', function ($slug) {
-    // $post = BlogPost::where('slug', $slug)->firstOrFail();
+// Route::get('/blogs/{slug}', function ($slug) {
+//     // $post = BlogPost::where('slug', $slug)->firstOrFail();
 
-    return Inertia::render('blogs/post', [
-        'slug' => $slug,
-        // 'post' => $post 
-    ]);
-})->name('blogs.post');
+//     return Inertia::render('blogs/post', [
+//         'slug' => $slug,
+//         // 'post' => $post 
+//     ]);
+// })->name('blogs.post');
 
 
 // cart
