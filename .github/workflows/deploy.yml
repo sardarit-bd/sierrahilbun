@@ -46,9 +46,4 @@ jobs:
           php artisan migrate --force || true
           php artisan optimize:clear
           php artisan optimize
-
-      - name: Restart Nginx
-        run: |
-          ssh -o StrictHostKeyChecking=yes ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
-          sudo systemctl restart nginx
           EOF
