@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentController;
@@ -18,6 +19,27 @@ Route::get('/', function (ProductService $service) {
         'featuredProducts' => $service->getFeaturedProducts(),
     ]);
 })->name('home');
+
+
+
+Route::group(['middleware' => ['auth', 'verified']], function () {
+
+    // dashboard
+    Route::get('/dashboard', function () {
+        return Inertia::render('dashboard');
+    })->name('dashboard');
+
+    // soil
+    Route::get('/soil', function () {
+        return Inertia::render('front/soil');
+    })->name('soil.index');
+});
+
+// OAuth routes
+Route::prefix('auth')->name('auth.')->group(function () {
+    Route::get('{provider}/redirect', [OAuthController::class, 'redirect'])->name('oauth.redirect');
+    Route::get('{provider}/callback', [OAuthController::class, 'callback'])->name('oauth.callback');
+});
 
 
 // product
@@ -63,15 +85,6 @@ Route::get('/custom-lawn', function () {
 Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
 Route::get('/blogs/{slug}', [BlogController::class, 'show'])->name('blogs.show');
 
-// Route::get('/blogs/{slug}', function ($slug) {
-//     // $post = BlogPost::where('slug', $slug)->firstOrFail();
-
-//     return Inertia::render('blogs/post', [
-//         'slug' => $slug,
-//         // 'post' => $post 
-//     ]);
-// })->name('blogs.post');
-
 
 // cart
 Route::get('/cart', function () {
@@ -86,10 +99,6 @@ Route::get('/privacy', function () {
 Route::get('/terms', function () {
     return Inertia::render('terms');
 })->name('terms');
-
-Route::get('dashboard', function () {
-    return Inertia::render('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
 
 
 // payment gateway & checkout
