@@ -58,8 +58,8 @@ export default function CartContent() {
 
   const hasItems = cart.length > 0;
 
-  // ── Promo Code Handlers ──────────────────────────────────────────
-  const handleApplyPromo = () => {
+  // ── Promo Code Handlers 
+  const handleApplyPromo = async () => {
     setPromoError('');
     setPromoSuccess('');
 
@@ -68,7 +68,11 @@ export default function CartContent() {
       return;
     }
 
-    const result = applyPromoCode(promoCode);
+    setChecking(true);
+
+    const result = await applyPromoCode(promoCode);
+
+    setChecking(false);
 
     if (result.success) {
       setPromoSuccess(result.message);
@@ -249,23 +253,7 @@ export default function CartContent() {
                   <span>Subtotal</span>
                   <span className="font-bold text-gray-900">${subtotal.toFixed(2)}</span>
                 </div>
-
-                {appliedPromo && (
-                  <div className="flex justify-between text-[#2E7D32]">
-                    <span className="flex items-center gap-2">
-                      Discount ({appliedPromo.code})
-                      <button
-                        onClick={handleRemovePromo}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
-                        title="Remove promo code"
-                      >
-                        <X size={14} />
-                      </button>
-                    </span>
-                    <span className="font-bold">-${discountAmount.toFixed(2)}</span>
-                  </div>
-                )}
-
+            
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping estimate</span>
                   {isFreeShipping ? (
@@ -281,46 +269,65 @@ export default function CartContent() {
                 </div>
 
                 {/* Promo Code */}
-                {!appliedPromo && (
-                  <div className="pt-4 pb-2">
-                    <label
-                      htmlFor="promo"
-                      className="flex items-center gap-2 text-xs font-bold text-gray-700 uppercase tracking-wide mb-2"
-                    >
-                      <Tag size={14} className="text-[#2E7D32]" />
-                      Promo Code
-                    </label>
+                <div className="pt-4 pb-2">
+                  <label
+                    htmlFor="promo"
+                    className="flex items-center gap-2 text-xs font-bold text-gray-700 uppercase tracking-wide mb-2"
+                  >
+                    <Tag size={14} className="text-[#2E7D32]" />
+                    Promo Code
+                  </label>
+
+                  {appliedPromo ? (
                     <div className="relative flex items-center">
                       <input
-                        id="promo"
                         type="text"
-                        placeholder="Enter code"
-                        value={promoCode}
-                        onChange={(e) => {
-                          setPromoCode(e.target.value);
-                          setPromoError('');
-                        }}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') handleApplyPromo();
-                        }}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg py-3 pl-4 pr-24 text-gray-900 text-sm focus:outline-none focus:border-[#2E7D32] focus:ring-1 focus:ring-[#2E7D32] transition-all"
+                        value={appliedPromo.code}
+                        readOnly
+                        className="w-full bg-gray-50 border border-[#2E7D32] rounded-lg py-3 pl-4 pr-24 text-[#2E7D32] text-sm font-bold focus:outline-none"
                       />
                       <button
                         type="button"
-                        onClick={handleApplyPromo}
-                        className="absolute right-1 top-1 bottom-1 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-4 rounded-md transition-colors shadow-sm"
+                        onClick={handleRemovePromo}
+                        className="absolute right-1 top-1 bottom-1 bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-4 rounded-md transition-colors shadow-sm"
                       >
-                        Apply
+                        Remove
                       </button>
                     </div>
-                    {promoError && (
-                      <p className="text-red-500 text-xs mt-2">{promoError}</p>
-                    )}
-                    {promoSuccess && (
-                      <p className="text-[#2E7D32] text-xs mt-2">{promoSuccess}</p>
-                    )}
-                  </div>
-                )}
+                  ) : (
+                    <>
+                      <div className="relative flex items-center">
+                        <input
+                          id="promo"
+                          type="text"
+                          placeholder="Enter code"
+                          value={promoCode}
+                          onChange={(e) => {
+                            setPromoCode(e.target.value);
+                            setPromoError('');
+                          }}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') handleApplyPromo();
+                          }}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-lg py-3 pl-4 pr-24 text-gray-900 text-sm focus:outline-none focus:border-[#2E7D32] focus:ring-1 focus:ring-[#2E7D32] transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyPromo}
+                          className="absolute right-1 top-1 bottom-1 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-4 rounded-md transition-colors shadow-sm"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                      {promoError && (
+                        <p className="text-red-500 text-xs mt-2">{promoError}</p>
+                      )}
+                      {promoSuccess && (
+                        <p className="text-[#2E7D32] text-xs mt-2">{promoSuccess}</p>
+                      )}
+                    </>
+                  )}
+                </div>
 
                 <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
                   <span className="text-base font-black text-gray-900">Total</span>

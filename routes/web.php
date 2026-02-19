@@ -5,6 +5,7 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\PromoCodeController;
 use App\Http\Controllers\ReviewController;
 use App\Services\ProductService;
 use Illuminate\Support\Facades\Route;
@@ -76,6 +77,7 @@ Route::get('/blogs/{slug}', [BlogController::class, 'show'])->name('blogs.show')
 Route::get('/cart', function () {
     return Inertia::render('cart');
 })->name('cart');
+Route::post('/promo/validate', [PromoCodeController::class, 'validate'])->name('promo.validate');
 
 Route::get('/privacy', function () {
     return Inertia::render('privacy');

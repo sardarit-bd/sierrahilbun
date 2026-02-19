@@ -13,55 +13,41 @@ export const useCart = () => {
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [appliedPromo, setAppliedPromo] = useState(null); // ← NEW
+  const [appliedPromo, setAppliedPromo] = useState(null);
 
-  // Load cart from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('turftec_cart');
-    const savedPromo = localStorage.getItem('turftec_promo'); // ← NEW
-    
+    const savedCart  = localStorage.getItem('turftec_cart');
+    const savedPromo = localStorage.getItem('turftec_promo');
+
     if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart));
-      } catch (error) {
-        console.error('Error loading cart:', error);
-      }
+      try { setCart(JSON.parse(savedCart)); }
+      catch (e) { console.error('Error loading cart:', e); }
     }
-    
-    if (savedPromo) { // ← NEW
-      try {
-        setAppliedPromo(JSON.parse(savedPromo));
-      } catch (error) {
-        console.error('Error loading promo:', error);
-      }
+
+    if (savedPromo) {
+      try { setAppliedPromo(JSON.parse(savedPromo)); }
+      catch (e) { console.error('Error loading promo:', e); }
     }
-    
+
     setIsLoaded(true);
   }, []);
 
-  // Save cart to localStorage whenever it changes
   useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem('turftec_cart', JSON.stringify(cart));
-    }
+    if (isLoaded) localStorage.setItem('turftec_cart', JSON.stringify(cart));
   }, [cart, isLoaded]);
 
-  // Save promo to localStorage whenever it changes ← NEW
   useEffect(() => {
-    if (isLoaded) {
-      if (appliedPromo) {
-        localStorage.setItem('turftec_promo', JSON.stringify(appliedPromo));
-      } else {
-        localStorage.removeItem('turftec_promo');
-      }
+    if (!isLoaded) return;
+    if (appliedPromo) {
+      localStorage.setItem('turftec_promo', JSON.stringify(appliedPromo));
+    } else {
+      localStorage.removeItem('turftec_promo');
     }
   }, [appliedPromo, isLoaded]);
 
-  // Add item to cart
   const addToCart = (product, quantity = 1) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find(item => item.id === product.id);
-
       if (existingItem) {
         return prevCart.map(item =>
           item.id === product.id
@@ -69,117 +55,87 @@ export const CartProvider = ({ children }) => {
             : item
         );
       }
-
       return [
         ...prevCart,
         {
-          id: product.id,
-          name: product.name || product.title,
-          price: product.base_price || product.price,
+          id:            product.id,
+          name:          product.name || product.title,
+          price:         product.base_price || product.price,
           originalPrice: product.original_price ?? null,
-          image: product.image,
-          variant: product.variant ?? '',
-          inStock: product.inStock ?? true,
+          image:         product.image,
+          variant:       product.variant ?? '',
+          inStock:       product.inStock ?? true,
           quantity,
-        }
+        },
       ];
     });
   };
 
-  // Remove item from cart
-  const removeFromCart = (productId) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== productId));
-  };
+  const removeFromCart = (productId) =>
+    setCart((prev) => prev.filter((item) => item.id !== productId));
 
-  // Update item quantity
   const updateQuantity = (productId, quantity) => {
-    if (quantity <= 0) {
-      removeFromCart(productId);
-      return;
-    }
-    
-    setCart((prevCart) =>
-      prevCart.map((item) =>
-        item.id === productId ? { ...item, quantity } : item
-      )
+    if (quantity <= 0) { removeFromCart(productId); return; }
+    setCart((prev) =>
+      prev.map((item) => item.id === productId ? { ...item, quantity } : item)
     );
   };
 
-  // Clear cart
   const clearCart = () => {
     setCart([]);
-    setAppliedPromo(null); // ← Clear promo when cart is cleared
-  };
-
-  // Get cart total
-  const getCartTotal = () => {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
-  };
-
-  // Get cart count
-  const getCartCount = () => {
-    return cart.reduce((count, item) => count + item.quantity, 0);
-  };
-
-  // ──────────────────────────────────────────────────
-  //   NEW: Promo Code Functions
-  // ──────────────────────────────────────────────────
-  
-  // Available promo codes (you can move this to a database later)
-  const PROMO_CODES = {
-    SPRINGREADY20: {
-      code: 'SPRINGREADY20',
-      discount: 0.20, // 20%
-      type: 'percentage',
-      description: '20% off your order'
-    },
-    // Add more promo codes here as needed
-    // SUMMER10: {
-    //   code: 'SUMMER10',
-    //   discount: 0.10,
-    //   type: 'percentage',
-    //   description: '10% off your order'
-    // },
-    // FLAT15: {
-    //   code: 'FLAT15',
-    //   discount: 15,
-    //   type: 'fixed',
-    //   description: '$15 off your order'
-    // }
-  };
-
-  // Apply promo code
-  const applyPromoCode = (code) => {
-    const upperCode = code.trim().toUpperCase();
-    const promo = PROMO_CODES[upperCode];
-    
-    if (!promo) {
-      return { success: false, message: 'Invalid promo code' };
-    }
-    
-    setAppliedPromo(promo);
-    return { success: true, message: `Promo code applied: ${promo.description}` };
-  };
-
-  // Remove promo code
-  const removePromoCode = () => {
     setAppliedPromo(null);
   };
 
-  // Calculate discount amount
-  const getDiscountAmount = () => {
-    if (!appliedPromo) return 0;
-    
+  const getCartTotal = () =>
+    cart.reduce((total, item) => total + item.price * item.quantity, 0);
+
+  const getCartCount = () =>
+    cart.reduce((count, item) => count + item.quantity, 0);
+
+  // ── Promo Code ────────────────────────────────────────────────────
+
+  /**
+   * Validates the code against the backend and stores the result.
+   * Returns { success: bool, message: string }
+   */
+  const applyPromoCode = async (code) => {
     const subtotal = getCartTotal();
-    
-    if (appliedPromo.type === 'percentage') {
-      return subtotal * appliedPromo.discount;
-    } else if (appliedPromo.type === 'fixed') {
-      return Math.min(appliedPromo.discount, subtotal); // Don't exceed subtotal
+
+    try {
+      const response = await fetch('/promo/validate', {
+        method:  'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept':       'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+        },
+        body: JSON.stringify({ code: code.trim(), subtotal }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { success: false, message: data.message || 'Invalid promo code.' };
+      }
+
+      setAppliedPromo({
+        code:     data.promo.code,
+        type:     data.promo.type,
+        value:    data.promo.value,
+        discount: data.promo.discount, // server-calculated dollar amount
+      });
+
+      return { success: true, message: data.message };
+
+    } catch {
+      return { success: false, message: 'Could not validate promo code. Please try again.' };
     }
-    
-    return 0;
   };
+
+  const removePromoCode = () => setAppliedPromo(null);
+
+  // Uses the server-calculated discount amount directly
+  const getDiscountAmount = () => appliedPromo?.discount ?? 0;
 
   const value = {
     cart,
@@ -190,9 +146,9 @@ export const CartProvider = ({ children }) => {
     clearCart,
     getCartTotal,
     getCartCount,
-    appliedPromo, 
-    applyPromoCode, 
-    removePromoCode, 
+    appliedPromo,
+    applyPromoCode,
+    removePromoCode,
     getDiscountAmount,
   };
 
