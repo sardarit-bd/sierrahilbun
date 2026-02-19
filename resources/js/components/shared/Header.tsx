@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, User, ShoppingCart, Menu, X, ChevronRight, Sprout, Star, ArrowRight } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import { useCart } from '../../context/CartContext';
+import DiscountBanner from './DiscountBanner';
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -89,12 +90,7 @@ const Header = () => {
     <>
       <header className="w-full bg-white font-sans text-slate-900 border-b border-gray-100 font-poppins relative z-40">
         
-        {/* Top Banner - Visible on ALL devices now */}
-        <div className="bg-[#2E7D32] text-white text-center py-2.5 px-4 text-xs md:text-sm font-bold tracking-wide">
-          <p>
-            Pre-order 2026 plans and save 20%! <span className="mx-1 opacity-60">|</span> Code: <span className="underline decoration-white/40 underline-offset-2">SPRINGREADY20</span>
-          </p>
-        </div>
+        <DiscountBanner />
 
         {/* Main Header Container */}
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-3 lg:py-4">

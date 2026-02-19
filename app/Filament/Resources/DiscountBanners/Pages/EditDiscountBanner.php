@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Filament\Resources\PaymentGatewaySettings\Pages;
+namespace App\Filament\Resources\DiscountBanners\Pages;
 
-use App\Filament\Resources\PaymentGatewaySettings\PaymentGatewaySettingResource;
+use App\Filament\Resources\DiscountBanners\DiscountBannerResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
-class EditPaymentGatewaySetting extends EditRecord
+class EditDiscountBanner extends EditRecord
 {
-    protected static string $resource = PaymentGatewaySettingResource::class;
+    protected static string $resource = DiscountBannerResource::class;
 
     protected function getRedirectUrl(): string
     {
