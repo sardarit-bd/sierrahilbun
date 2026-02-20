@@ -4,10 +4,15 @@ use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PromoCodeController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\Lawn\LocationController;
+use App\Http\Controllers\Lawn\CategoryController;
+use App\Http\Controllers\Lawn\LawnSizeController;
+use App\Http\Controllers\Lawn\SoilProfileController;
+use App\Http\Controllers\Lawn\QuestionnaireController;
+use App\Http\Controllers\Lawn\PlanController;
 use App\Services\ProductService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -15,83 +20,80 @@ use Laravel\Fortify\Features;
 
 Route::get('/', function (ProductService $service) {
     return Inertia::render('home', [
-        'canRegister'     => Features::enabled(Features::registration()),
+        'canRegister'      => Features::enabled(Features::registration()),
         'featuredProducts' => $service->getFeaturedProducts(),
     ]);
 })->name('home');
 
-
-
 Route::group(['middleware' => ['auth', 'verified']], function () {
-
-    // dashboard
     Route::get('/dashboard', function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
 
-    // soil
     Route::get('/soil', function () {
         return Inertia::render('front/soil');
     })->name('soil.index');
 });
 
-// OAuth routes
+// OAuth
 Route::prefix('auth')->name('auth.')->group(function () {
     Route::get('{provider}/redirect', [OAuthController::class, 'redirect'])->name('oauth.redirect');
     Route::get('{provider}/callback', [OAuthController::class, 'callback'])->name('oauth.callback');
 });
 
-
-// product
+// Products
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('products.show');
 
-
-// product review
+// Product Reviews
 Route::get('/products/{slug}/review', [ReviewController::class, 'create'])->name('product.review');
 Route::post('/products/{slug}/review', [ReviewController::class, 'store'])->name('product.review.store');
-
-
-// helpful review
 Route::post('/reviews/{review}/helpful', [ReviewController::class, 'toggleHelpful'])
     ->name('reviews.helpful')
     ->middleware('auth');
 
+// -------------------------------------------------------
+// Lawn Assessment Flow 
+// -------------------------------------------------------
+
+// Zip Code Entry
+Route::get('/custom-lawn', [LocationController::class, 'show'])->name('yard.start');
+Route::post('/custom-lawn', [LocationController::class, 'store'])->name('yard.start.store');
+
+// Service Selection
+Route::get('/yard-issue', [CategoryController::class, 'show'])->name('yard.category');
+Route::post('/yard-issue', [CategoryController::class, 'store'])->name('yard.category.store');
+
+// Lawn Size
+Route::get('/lawn-size', [LawnSizeController::class, 'show'])->name('yard.size');
+Route::post('/lawn-size', [LawnSizeController::class, 'store'])->name('yard.size.store');
+Route::post('/lawn-size/confirm', [LawnSizeController::class, 'confirm'])->name('yard.size.confirm');
+
+// Soil Profile Visualization
+Route::get('/lawns/post', [SoilProfileController::class, 'show'])->name('yard.soil');
+
+// Quiz
+Route::get('/lawns/questions', [QuestionnaireController::class, 'show'])->name('yard.quiz');
+Route::post('/lawns/questions', [QuestionnaireController::class, 'store'])->name('yard.quiz.store');
+
+// Generated Plan
+Route::get('/yard/plan', [PlanController::class, 'show'])->name('yard.plan');
 
 
 
-// get your plan
-Route::get('/yard-issue', function () {
-    return Inertia::render('yard-issue');
-});
-Route::get('/yard/plan', [PlanController::class, 'index']);
-Route::get('/lawn-size', function () {
-    return Inertia::render('lawn-size');
-});
-Route::get('/lawns/post', function () {
-    return Inertia::render('lawns/post');
-});
-Route::get('/lawns/questions', function () {
-    return Inertia::render('lawns/questions/post');
-});
 
 
-
-Route::get('/custom-lawn', function () {
-    return Inertia::render('CustomLawnPlan');
-})->name('custom-lawn');
-
-// blog
+// Blog
 Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
 Route::get('/blogs/{slug}', [BlogController::class, 'show'])->name('blogs.show');
 
-
-// cart
+// Cart
 Route::get('/cart', function () {
     return Inertia::render('cart');
 })->name('cart');
 Route::post('/promo/validate', [PromoCodeController::class, 'validate'])->name('promo.validate');
 
+// Static Pages
 Route::get('/privacy', function () {
     return Inertia::render('privacy');
 })->name('privacy');
@@ -100,20 +102,17 @@ Route::get('/terms', function () {
     return Inertia::render('terms');
 })->name('terms');
 
-
-// payment gateway & checkout
+// Payment & Checkout
 Route::middleware(['auth'])->group(function () {
-    Route::get('/payment',                          [PaymentController::class, 'index'])->name('payment.index');
-    Route::post('/payment/charge',                  [PaymentController::class, 'charge'])->name('payment.charge');
-    Route::get('/payment/pending',                  [PaymentController::class, 'pending'])->name('payment.pending');
-    Route::get('/payment/success',                  [PaymentController::class, 'success'])->name('payment.success');
-    Route::get('/payment/failed',                   [PaymentController::class, 'failed'])->name('payment.failed');
-    Route::get('/payment/status/{transactionId}',   [PaymentController::class, 'status'])->name('payment.status');
+    Route::get('/payment', [PaymentController::class, 'index'])->name('payment.index');
+    Route::post('/payment/charge', [PaymentController::class, 'charge'])->name('payment.charge');
+    Route::get('/payment/pending', [PaymentController::class, 'pending'])->name('payment.pending');
+    Route::get('/payment/success', [PaymentController::class, 'success'])->name('payment.success');
+    Route::get('/payment/failed', [PaymentController::class, 'failed'])->name('payment.failed');
+    Route::get('/payment/status/{transactionId}', [PaymentController::class, 'status'])->name('payment.status');
 
-    // checkout
-    Route::post('/checkout',              [CheckoutController::class, 'create'])->name('checkout.create');
-    Route::get('/checkout/{sessionId}',   [CheckoutController::class, 'show'])->name('checkout.show');
-
+    Route::post('/checkout', [CheckoutController::class, 'create'])->name('checkout.create');
+    Route::get('/checkout/{sessionId}', [CheckoutController::class, 'show'])->name('checkout.show');
 });
 
 require __DIR__.'/settings.php';

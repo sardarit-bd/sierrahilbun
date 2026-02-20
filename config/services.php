@@ -47,4 +47,10 @@ return [
         'redirect'      => env('FACEBOOK_REDIRECT_URI'),
     ],
 
+
+    // Geocodio
+    'geocodio' => [
+        'key' => env('GEOCODIO_API_KEY'),
+    ],
+
 ];
