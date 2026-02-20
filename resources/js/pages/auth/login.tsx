@@ -177,7 +177,7 @@ export default function Login({ status = '', canResetPassword = true, canRegiste
                                     <Label htmlFor="remember">Remember me</Label>
                                 </div>
 
-                                <Button type="submit" className="mt-2 w-full text-base py-6" tabIndex={4} disabled={processing}>
+                                <Button type="submit" className="mt-2 w-full text-base py-6 cursor-pointer" tabIndex={4} disabled={processing}>
                                     {processing && <span className="animate-spin mr-2">⟳</span>}
                                     Log in
                                     <ArrowRight className="ml-2 w-4 h-4" />
@@ -193,23 +193,23 @@ export default function Login({ status = '', canResetPassword = true, canRegiste
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4">
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    className="w-full gap-2 font-semibold text-gray-700 h-12"
+                                    className="w-full gap-2 font-semibold text-gray-700 h-12 cursor-pointer"
                                     onClick={() => window.location.href = '/auth/google/redirect'}
                                 >
                                     <GoogleIcon className="w-5 h-5" /> Google
                                 </Button>
-                                <Button
+                                {/* <Button
                                     type="button"
                                     variant="outline"
                                     className="w-full gap-2 font-semibold text-gray-700 h-12"
                                     onClick={() => window.location.href = '/auth/facebook/redirect'}
                                 >
                                     <FacebookIcon className="w-5 h-5" /> Facebook
-                                </Button>
+                                </Button> */}
                             </div>
 
                             {canRegister && (

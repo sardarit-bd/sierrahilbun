@@ -208,15 +208,15 @@ export default function Register() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                     <Button type="button" variant="outline" className="w-full gap-2 font-semibold text-gray-700 h-12"
-                        onClick={() => window.location.href = '/auth/google'}>
+                        onClick={() => window.location.href = '/auth/google/redirect'}>
                         <GoogleIcon className="w-5 h-5" /> Google
                     </Button>
-                    <Button type="button" variant="outline" className="w-full gap-2 font-semibold text-gray-700 h-12"
+                    {/* <Button type="button" variant="outline" className="w-full gap-2 font-semibold text-gray-700 h-12"
                         onClick={() => window.location.href = '/auth/facebook'}>
                         <FacebookIcon className="w-5 h-5" /> Facebook
-                    </Button>
+                    </Button> */}
                 </div>
 
                 <div className="text-center mt-6 pt-4 border-t border-gray-100">
