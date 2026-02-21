@@ -13,6 +13,7 @@ import {
   Award
 } from 'lucide-react';
 import AppHeaderLayout from '@/layouts/app/app-header-layout';
+import AddToCartButton from '@/components/AddToCartButton';
 
 /**
  * --- Premium Select Component ---
@@ -33,6 +34,7 @@ const PremiumPlanDropdown = ({ options, value, onChange, recommendedTier, label 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+  
 
   return (
     <div className="relative w-full sm:max-w-xs" ref={dropdownRef}>
@@ -231,6 +233,20 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
     );
   }
 
+  const cartProduct = {
+    id: `bundle-${selectedLawnPlanId}${pestPlanEnabled && hasPest ? `-${selectedPestPlanId}` : ''}`,
+    name: pestPlanEnabled && hasPest
+      ? `${selectedLawnPlan?.name} + ${selectedPestPlan?.name}`
+      : selectedLawnPlan?.name,
+    title: selectedLawnPlan?.name,
+    image: 'https://images.unsplash.com/photo-1605117882932-f9e32b03fea9?q=80&w=300&auto=format&fit=crop',
+    price: totalToday,
+    price_yearly: totalYearly,
+    plans: {
+      lawn: selectedLawnPlan,
+      ...(pestPlanEnabled && hasPest ? { pest: selectedPestPlan } : {}),
+    },
+  };
   return (
     <AppHeaderLayout>
       <div className="min-h-screen bg-gray-50 selection:bg-green-100">
@@ -382,10 +398,17 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                     <div className="text-right text-xs text-gray-500 mb-6">
                       ${totalYearly.toFixed(2)} total for the year <Info size={10} className="inline" />
                     </div>
-                    <button className="w-full bg-[#2E7D32] text-gray-50 font-extrabold text-lg py-3 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.98] mb-4 cursor-pointer">
+                    {/* <button className="w-full bg-[#2E7D32] text-gray-50 font-extrabold text-lg py-3 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.98] mb-4 cursor-pointer">
                       Add to cart
-                    </button>
-                    <p className="text-[10px] text-gray-400 text-center leading-tight">
+                    </button> */}
+                    <AddToCartButton
+                      product={cartProduct}
+                      quantity={1}
+                      className="w-full"
+                      size="large"
+                      showIcon={true}
+                    />
+                    <p className="text-[10px] text-gray-400 text-center leading-tight mt-2">
                       Your fertilizer selection and timing may be updated based on real-time weather and soil analysis. Yearly plan renews each spring. Cancel anytime.
                     </p>
                   </div>

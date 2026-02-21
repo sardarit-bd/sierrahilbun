@@ -256,7 +256,7 @@ const LawnSizeView = ({ onManualContinue, onAddressCalculated, zipCode }) => {
         </div>
 
         {/* Right: Live satellite map (zoomed out, no marker) */}
-        <div className="w-full lg:w-1/2 relative min-h-[300px] order-1 lg:order-2 overflow-hidden bg-gray-900">
+        <div className="hidden lg:block lg:w-1/2 relative order-1 lg:order-2 overflow-hidden bg-gray-900">
           <SatelliteMap lat={null} lon={null} />
         </div>
       </div>
@@ -305,11 +305,11 @@ const ConfirmAreaView = ({ squareFeet, estimated, matchedAddress, lat, lon, onCo
     };
 
   return (
-    <div className="relative h-screen w-full flex flex-col md:flex-row overflow-hidden bg-gray-100 font-sans">
+    <div className="relative h-[100dvh] w-full flex flex-col md:flex-row overflow-hidden bg-gray-100 font-sans">
 
-      {/* Left: Panel */}
-      <div className="relative z-20 w-full md:w-[480px] lg:w-[500px] flex-shrink-0 bg-white h-auto md:h-full shadow-2xl flex flex-col overflow-y-auto">
-        <div className="p-8 md:p-12 flex flex-col justify-center h-full">
+      {/* Left: Panel (Bottom on mobile) */}
+      <div className="relative z-20 w-full md:w-[480px] lg:w-[500px] flex-shrink-0 bg-white h-[60dvh] md:h-full shadow-2xl flex flex-col overflow-y-auto order-2 md:order-1">
+        <div className="p-8 md:p-12 flex flex-col md:justify-center md:h-full">
           <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-6 leading-tight">
             Confirm the area you want treated
           </h1>
@@ -382,8 +382,8 @@ const ConfirmAreaView = ({ squareFeet, estimated, matchedAddress, lat, lon, onCo
         </div>
       </div>
 
-      {/* Right: Live satellite map centered on the matched address */}
-      <div className="absolute inset-0 md:relative flex-grow z-0">
+      {/* Right: Live satellite map (Top on mobile) */}
+      <div className="relative w-full h-[40dvh] md:h-auto md:flex-grow z-0 order-1 md:order-2">
         <SatelliteMap
           lat={lat}
           lon={lon}

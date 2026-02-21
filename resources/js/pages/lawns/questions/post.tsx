@@ -47,9 +47,9 @@ const QUESTIONS = [
       { id: 'other',     label: "Other/Not sure", img: "https://images.unsplash.com/photo-1606749482582-8c73563adc2b?auto=format&fit=crop&q=80&w=400" },
     ],
     moreOptions: [
-      { id: 'zoysia',    label: "Zoysiagrass",        img: "https://images.unsplash.com/photo-1590579491624-f98f36d4c763?auto=format&fit=crop&q=80&w=400" },
-      { id: 'fescue',    label: "Fescue",             img: "https://images.unsplash.com/photo-1533460004989-acf6be3fab53?auto=format&fit=crop&q=80&w=400" },
-      { id: 'bluegrass', label: "Kentucky Bluegrass", img: "https://images.unsplash.com/photo-1605112525264-165f12e84c98?auto=format&fit=crop&q=80&w=400" },
+      { id: 'zoysia',    label: "Zoysiagrass",        img: "https://images.unsplash.com/photo-1540470174401-f25e9eb17c1c?auto=format&fit=crop&q=80&w=400" },
+      { id: 'fescue',    label: "Fescue",             img: "https://images.unsplash.com/photo-1470137430626-983a37b8ea46?auto=format&fit=crop&q=80&w=400" },
+      { id: 'bluegrass', label: "Kentucky Bluegrass", img: "https://images.unsplash.com/photo-1524491596574-ffd31af46beb?auto=format&fit=crop&q=80&w=400" },
     ],
   },
   {
