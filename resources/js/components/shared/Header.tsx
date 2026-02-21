@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search, User, ShoppingCart, Menu, X, ChevronRight, Sprout, Star, ArrowRight } from 'lucide-react';
-import { Link } from '@inertiajs/react';
+import { Search, User, ShoppingCart, Menu, X, ChevronRight, Sprout, Star, ArrowRight, LogOut } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
 import { useCart } from '../../context/CartContext';
 import DiscountBanner from './DiscountBanner';
 
@@ -10,6 +10,8 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { getCartCount } = useCart();
   const [cartBounce, setCartBounce] = useState(false);
+  const { props } = usePage();                         
+  const authUser = props.auth?.user;
 
   // Lock body scroll when mobile menu or search is open
   useEffect(() => {
@@ -132,7 +134,6 @@ const Header = () => {
               </div>
             </div>
 
-            {/* 3. Right Actions: Search (Mobile), Sign In & Cart */}
             <div className="flex items-center gap-2 lg:gap-6 flex-shrink-0">
               {/* Mobile Search Icon */}
               <button 
@@ -142,10 +143,30 @@ const Header = () => {
                 <Search size={24} strokeWidth={2} />
               </button>
 
-              <Link href="/login" className="hidden lg:flex items-center gap-2 text-slate-700 hover:text-[#2E7D32] font-bold text-sm group transition-colors">
-                <User size={20} className="text-slate-900 group-hover:text-[#2E7D32] transition-colors" />
-                <span className="group-hover:underline decoration-[#2E7D32] decoration-2 underline-offset-4">Sign in</span>
-              </Link>
+              {/* ─── Auth Button (changes based on login state) ─── */}
+              {authUser ? (
+                <Link 
+                  href="/logout" 
+                  method="post" 
+                  as="button"
+                  className="hidden lg:flex items-center gap-2 text-slate-700 hover:text-red-600 font-bold text-sm group transition-colors"
+                >
+                  <LogOut size={20} className="text-slate-900 group-hover:text-red-600 transition-colors" />
+                  <span className="group-hover:underline decoration-red-600 decoration-2 underline-offset-4">
+                    Logout
+                  </span>
+                </Link>
+              ) : (
+                <Link 
+                  href="/login" 
+                  className="hidden lg:flex items-center gap-2 text-slate-700 hover:text-[#2E7D32] font-bold text-sm group transition-colors"
+                >
+                  <User size={20} className="text-slate-900 group-hover:text-[#2E7D32] transition-colors" />
+                  <span className="group-hover:underline decoration-[#2E7D32] decoration-2 underline-offset-4">
+                    Sign in
+                  </span>
+                </Link>
+              )}
               
               <Link 
                 href="/cart" 
@@ -231,8 +252,6 @@ const Header = () => {
 
         {/* Drawer Content */}
         <div className="flex-1 overflow-y-auto py-4">
-          
-          {/* Navigation Links (No "Shop" text, No Chevrons) */}
           <nav className="flex flex-col">
             {navLinks.map((link) => (
               <Link
@@ -245,10 +264,26 @@ const Header = () => {
             ))}
             
             <div className="mt-4 px-7 text-xs font-bold text-gray-400 uppercase tracking-wider">Account</div>
-            <Link href="/login" className="flex items-center gap-3 px-6 py-2 text-[15px] font-bold text-slate-800 hover:bg-gray-50 transition-colors">
-              <User size={20} className="text-slate-400" />
-              Sign In
-            </Link>
+            
+            {authUser ? (
+              <Link 
+                href="/logout" 
+                method="post" 
+                as="button"
+                className="flex items-center gap-3 px-6 py-2 text-[15px] font-bold text-red-600 hover:bg-gray-50 transition-colors"
+              >
+                <LogOut size={20} />
+                Logout
+              </Link>
+            ) : (
+              <Link 
+                href="/login" 
+                className="flex items-center gap-3 px-6 py-2 text-[15px] font-bold text-slate-800 hover:bg-gray-50 transition-colors"
+              >
+                <User size={20} className="text-slate-400" />
+                Sign In
+              </Link>
+            )}
           </nav>
         </div>
 
