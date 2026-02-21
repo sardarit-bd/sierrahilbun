@@ -94,12 +94,10 @@ export default function CartContent() {
     setCheckoutError('');
 
     if (!auth?.user) {
-      router.visit(route('login'), {
-        data: { redirect: route('cart') }, // optional: return to cart after login
-      });
+      router.visit(route('login'));
       return;
     }
-    
+
     setChecking(true);
 
     try {
