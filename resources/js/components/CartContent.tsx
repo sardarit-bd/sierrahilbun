@@ -92,6 +92,14 @@ export default function CartContent() {
   // ── Secure Checkout Handler ──────────────────────────────────────
   const handleCheckout = async () => {
     setCheckoutError('');
+
+    if (!auth?.user) {
+      router.visit(route('login'), {
+        data: { redirect: route('cart') }, // optional: return to cart after login
+      });
+      return;
+    }
+    
     setChecking(true);
 
     try {
