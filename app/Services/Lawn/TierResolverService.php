@@ -4,10 +4,6 @@ namespace App\Services\Lawn;
 
 class TierResolverService
 {
-    // -------------------------------------------------------
-    // Base tier from goals answer
-    // -------------------------------------------------------
-
     private const GOAL_TIER_MAP = [
         'looks'  => 'bronze',
         'health' => 'silver',
@@ -15,44 +11,44 @@ class TierResolverService
         'all'    => 'gold',
     ];
 
-    // -------------------------------------------------------
-    // Tier rank for upgrade comparisons
-    // -------------------------------------------------------
-
     private const TIER_RANK = [
         'bronze' => 1,
         'silver' => 2,
         'gold'   => 3,
     ];
 
+    // Pest has no gold tier — caps at silver
+    private const PEST_MAX_TIER = 'silver';
+
     // -------------------------------------------------------
     // Public Entry Point
+    // Returns per-service tier map e.g:
+    // ['lawn' => 'gold', 'pest' => 'silver']
+    // Only resolves tiers for selected services.
     // -------------------------------------------------------
 
-    public function resolve(array $answers): string
+    public function resolve(array $answers, array $selectedServices): array
+    {
+        $tiers = [];
+
+        if (in_array('lawn', $selectedServices)) {
+            $tiers['lawn'] = $this->resolveLawn($answers);
+        }
+
+        if (in_array('pest', $selectedServices)) {
+            $tiers['pest'] = $this->resolvePest($answers);
+        }
+
+        return $tiers;
+    }
+
+    // -------------------------------------------------------
+    // Lawn Tier Resolution
+    // -------------------------------------------------------
+
+    private function resolveLawn(array $answers): string
     {
         $tier = $this->baseFromGoals($answers['goals'] ?? 'looks');
-        $tier = $this->applyUpgradeRules($tier, $answers);
-
-        return $tier;
-    }
-
-    // -------------------------------------------------------
-    // Base Tier
-    // -------------------------------------------------------
-
-    private function baseFromGoals(string $goal): string
-    {
-        return self::GOAL_TIER_MAP[$goal] ?? 'bronze';
-    }
-
-    // -------------------------------------------------------
-    // Upgrade Rules
-    // Each rule can only upgrade, never downgrade.
-    // -------------------------------------------------------
-
-    private function applyUpgradeRules(string $tier, array $answers): string
-    {
         $tier = $this->applyPetsRule($tier, $answers);
         $tier = $this->applyWeedsRule($tier, $answers);
         $tier = $this->applyCareRule($tier, $answers);
@@ -62,18 +58,45 @@ class TierResolverService
         return $tier;
     }
 
-    // Pets on lawn "a lot" + bronze → upgrade to silver
+    // -------------------------------------------------------
+    // Pest Tier Resolution — same rules, caps at silver
+    // -------------------------------------------------------
+
+    private function resolvePest(array $answers): string
+    {
+        $tier = $this->baseFromGoals($answers['goals'] ?? 'looks');
+        $tier = $this->applyPetsRule($tier, $answers);
+        $tier = $this->applyWeedsRule($tier, $answers);
+        $tier = $this->applyCareRule($tier, $answers);
+        $tier = $this->applyKnowledgeRule($tier, $answers);
+
+        // Pest has no gold — cap at silver
+        return $this->upgrade($tier, self::PEST_MAX_TIER) === 'gold'
+            ? self::PEST_MAX_TIER
+            : $this->capAt($tier, self::PEST_MAX_TIER);
+    }
+
+    // -------------------------------------------------------
+    // Base Tier from Goals
+    // -------------------------------------------------------
+
+    private function baseFromGoals(string $goal): string
+    {
+        return self::GOAL_TIER_MAP[$goal] ?? 'bronze';
+    }
+
+    // -------------------------------------------------------
+    // Upgrade Rules
+    // -------------------------------------------------------
+
     private function applyPetsRule(string $tier, array $answers): string
     {
         if (($answers['pets'] ?? '') === 'lot' && $tier === 'bronze') {
             return 'silver';
         }
-
         return $tier;
     }
 
-    // Weeds everywhere → upgrade to gold
-    // Leafy or pre-emergent needed → upgrade bronze to silver
     private function applyWeedsRule(string $tier, array $answers): string
     {
         $weeds = $answers['weeds'] ?? 'none';
@@ -89,8 +112,6 @@ class TierResolverService
         return $tier;
     }
 
-    // High-frequency care (3–5x/year) + bronze → upgrade to silver
-    // Lawn service does it all → upgrade to gold
     private function applyCareRule(string $tier, array $answers): string
     {
         $care = $answers['care'] ?? 'mow';
@@ -106,37 +127,41 @@ class TierResolverService
         return $tier;
     }
 
-    // Lots of bare patches → upgrade bronze to silver
     private function applyPatchesRule(string $tier, array $answers): string
     {
         if (($answers['patches'] ?? 'none') === 'lots' && $tier === 'bronze') {
             return 'silver';
         }
-
         return $tier;
     }
 
-    // Expert knowledge + bronze → upgrade to silver
-    // (Experts expect more from their plan)
     private function applyKnowledgeRule(string $tier, array $answers): string
     {
         if (($answers['knowledge'] ?? '') === 'expert' && $tier === 'bronze') {
             return 'silver';
         }
-
         return $tier;
     }
 
     // -------------------------------------------------------
-    // Upgrade Helper
-    // Only moves tier up, never down.
+    // Helpers
     // -------------------------------------------------------
 
+    // Only upgrades, never downgrades
     private function upgrade(string $current, string $target): string
     {
         $currentRank = self::TIER_RANK[$current] ?? 1;
         $targetRank  = self::TIER_RANK[$target] ?? 1;
 
         return $targetRank > $currentRank ? $target : $current;
+    }
+
+    // Caps tier at a maximum allowed tier
+    private function capAt(string $tier, string $max): string
+    {
+        $tierRank = self::TIER_RANK[$tier] ?? 1;
+        $maxRank  = self::TIER_RANK[$max] ?? 1;
+
+        return $tierRank > $maxRank ? $max : $tier;
     }
 }

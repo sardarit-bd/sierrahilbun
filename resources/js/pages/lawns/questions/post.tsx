@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import AppHeaderLayout from '@/layouts/app/app-header-layout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 
 // -------------------------------------------------------
 // Questions Definition
@@ -15,7 +15,7 @@ const QUESTIONS = [
       { id: 'looks',  label: "A great-looking lawn",           img: "https://images.unsplash.com/photo-1558904541-efa843a96f01?auto=format&fit=crop&q=80&w=400" },
       { id: 'health', label: "Healthy soil and healthy grass",  img: "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&q=80&w=400" },
       { id: 'safety', label: "Safe for people, pets, and nature", img: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&q=80&w=400" },
-      { id: 'all',    label: "All of the above!",               img: "https://images.unsplash.com/photo-1622383563227-044011358d16?auto=format&fit=crop&q=80&w=400" },
+      { id: 'all',    label: "All of the above!",               img: "https://images.unsplash.com/reserve/Af0sF2OS5S5gatqrKzVP_Silhoutte.jpg?auto=format&fit=crop&q=80&w=400" },
     ],
   },
   {
@@ -30,10 +30,10 @@ const QUESTIONS = [
     id: 'knowledge',
     title: "Rate your lawn care knowledge.",
     options: [
-      { id: 'expert',   label: "Expert",   img: "https://images.unsplash.com/photo-1615423612887-b089c894235e?auto=format&fit=crop&q=80&w=400" },
-      { id: 'hobbyist', label: "Hobbyist", img: "https://images.unsplash.com/photo-1592424037340-076a081a2dcc?auto=format&fit=crop&q=80&w=400" },
-      { id: 'amateur',  label: "Amateur",  img: "https://images.unsplash.com/photo-1560518883-ce09059ee971?auto=format&fit=crop&q=80&w=400" },
-      { id: 'rookie',   label: "Rookie",   img: "https://images.unsplash.com/photo-1595116489814-c8c368689b0d?auto=format&fit=crop&q=80&w=400" },
+      { id: 'expert',   label: "Expert",   img: "https://images.unsplash.com/photo-1501520158826-76df880863a3?auto=format&fit=crop&q=80&w=400" },
+      { id: 'hobbyist', label: "Hobbyist", img: "https://images.unsplash.com/photo-1527840330704-143cde6c566e?auto=format&fit=crop&q=80&w=400" },
+      { id: 'amateur',  label: "Amateur",  img: "https://images.unsplash.com/photo-1608101854678-b45ad1d25556?auto=format&fit=crop&q=80&w=400" },
+      { id: 'rookie',   label: "Rookie",   img: "https://images.unsplash.com/photo-1629193434016-60c866628d22?auto=format&fit=crop&q=80&w=400" },
     ],
   },
   {
@@ -41,10 +41,10 @@ const QUESTIONS = [
     title: "Confirm your grass type.",
     hasMore: true,
     options: [
-      { id: 'bermuda',   label: "Bermudagrass",   img: "https://images.unsplash.com/photo-1584444453896-1d374421b88e?auto=format&fit=crop&q=80&w=400" },
-      { id: 'centipede', label: "Centipedegrass", img: "https://images.unsplash.com/photo-1576041695662-38d7d63ce3c7?auto=format&fit=crop&q=80&w=400" },
-      { id: 'augustine', label: "St. Augustine",  img: "https://images.unsplash.com/photo-1589803158022-83505c21f95d?auto=format&fit=crop&q=80&w=400" },
-      { id: 'other',     label: "Other/Not sure", img: "https://images.unsplash.com/photo-1516981879613-9f5da904015f?auto=format&fit=crop&q=80&w=400" },
+      { id: 'bermuda',   label: "Bermudagrass",   img: "https://images.unsplash.com/photo-1700547492500-92fbcc77fa70?auto=format&fit=crop&q=80&w=400" },
+      { id: 'centipede', label: "Centipedegrass", img: "https://images.unsplash.com/photo-1651177931602-17c680dd6782?auto=format&fit=crop&q=80&w=400" },
+      { id: 'augustine', label: "St. Augustine",  img: "https://images.unsplash.com/photo-1533460004989-cef01064af7e?auto=format&fit=crop&q=80&w=400" },
+      { id: 'other',     label: "Other/Not sure", img: "https://images.unsplash.com/photo-1606749482582-8c73563adc2b?auto=format&fit=crop&q=80&w=400" },
     ],
     moreOptions: [
       { id: 'zoysia',    label: "Zoysiagrass",        img: "https://images.unsplash.com/photo-1590579491624-f98f36d4c763?auto=format&fit=crop&q=80&w=400" },
@@ -57,19 +57,19 @@ const QUESTIONS = [
     title: "Does your lawn have any bare patches?",
     options: [
       { id: 'none',     label: "Nope, none",      img: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=400" },
-      { id: 'few',      label: "A few",           img: "https://images.unsplash.com/photo-1600355171739-16e6d1c9533a?auto=format&fit=crop&q=80&w=400" },
-      { id: 'moderate', label: "Moderate",        img: "https://images.unsplash.com/photo-1589400266396-e8d19798488e?auto=format&fit=crop&q=80&w=400" },
-      { id: 'lots',     label: "Lots of patches", img: "https://images.unsplash.com/photo-1599940778173-e276d4acb2be?auto=format&fit=crop&q=80&w=400" },
+      { id: 'few',      label: "A few",           img: "https://www.greenviewfertilizer.com/media/1646/brown-dead-bare-spot-on-lawn.jpg" },
+      { id: 'moderate', label: "Moderate",        img: "https://www.thespruce.com/thmb/fJXprM1KepAlHbv2J7eOjVbGa1A=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/what-are-dead-spots-on-lawn-2152737-01-8895e31ce33e4c5fa5c3d8a83ea11d6b.jpg" },
+      { id: 'lots',     label: "Lots of patches", img: "https://www.cobbittyturf.com.au/wp-content/uploads/2020/01/lawn-care-dry-spots.jpg" },
     ],
   },
   {
     id: 'weeds',
     title: "What's your weed situation?",
     options: [
-      { id: 'none',       label: "Weeds aren't an issue",              img: "https://images.unsplash.com/photo-1598902598372-9694e803a55e?auto=format&fit=crop&q=80&w=400" },
-      { id: 'leafy',      label: "Leafy lawn weeds",                   img: "https://images.unsplash.com/photo-1530968033775-2c92733b0c41?auto=format&fit=crop&q=80&w=400" },
-      { id: 'stubborn',   label: "Patio, garden, and stubborn weeds",  img: "https://images.unsplash.com/photo-1597843786271-105124152c92?auto=format&fit=crop&q=80&w=400" },
-      { id: 'everywhere', label: "Weeds are everywhere",               img: "https://images.unsplash.com/photo-1557053503-0c252e5c8093?auto=format&fit=crop&q=80&w=400" },
+      { id: 'none',       label: "Weeds aren't an issue",              img: "https://plus.unsplash.com/premium_photo-1664126702385-104edee258d7?auto=format&fit=crop&q=80&w=400" },
+      { id: 'leafy',      label: "Leafy lawn weeds",                   img: "https://images.unsplash.com/photo-1662559459212-d9cbe0276702?auto=format&fit=crop&q=80&w=400" },
+      { id: 'stubborn',   label: "Patio, garden, and stubborn weeds",  img: "https://images.unsplash.com/photo-1706611893334-c50aaca22dbf?auto=format&fit=crop&q=80&w=400" },
+      { id: 'everywhere', label: "Weeds are everywhere",               img: "https://images.unsplash.com/photo-1527455505333-9d3ac7adf523?auto=format&fit=crop&q=80&w=400" },
       { id: 'pre',        label: "I want a pre-emergent",              img: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=400" },
     ],
   },
@@ -77,9 +77,9 @@ const QUESTIONS = [
     id: 'care',
     title: "How do you care for your lawn?",
     options: [
-      { id: 'service',   label: "A lawn service does it all",          img: "https://images.unsplash.com/photo-1621981298583-1eb954002c91?auto=format&fit=crop&q=80&w=400" },
-      { id: 'fert_high', label: "I fertilize three to five times a year", tag: "3-5x", img: "https://images.unsplash.com/photo-1615423612887-b089c894235e?auto=format&fit=crop&q=80&w=400" },
-      { id: 'fert_low',  label: "I fertilize once or twice a year",    tag: "1-2x", img: "https://images.unsplash.com/photo-1530836369250-ef7208b5c300?auto=format&fit=crop&q=80&w=400" },
+      { id: 'service',   label: "A lawn service does it all",          img: "https://images.unsplash.com/photo-1746436576978-21632bf9790d?auto=format&fit=crop&q=80&w=400" },
+      { id: 'fert_high', label: "I fertilize three to five times a year", tag: "3-5x", img: "https://images.unsplash.com/photo-1683316924890-6a8c5ab10d29?auto=format&fit=crop&q=80&w=400" },
+      { id: 'fert_low',  label: "I fertilize once or twice a year",    tag: "1-2x", img: "https://images.unsplash.com/photo-1769000066710-40ac0c0ca2a6?auto=format&fit=crop&q=80&w=400" },
       { id: 'mow',       label: "I just mow it",                       img: "https://images.unsplash.com/photo-1590682680695-43b964a3ae17?auto=format&fit=crop&q=80&w=400" },
     ],
   },
@@ -92,12 +92,12 @@ const QUESTIONS = [
         label: "Liquid hose-on fertilizer",
         recommended: true,
         desc: "You'll love our innovative liquid fertilizers for fastest results with easiest precision. All you need is a hose and about 10 minutes per application.",
-        img: "https://images.unsplash.com/photo-1622383563227-044011358d16?auto=format&fit=crop&q=80&w=400",
+        img: "https://images.unsplash.com/photo-1693776472225-be367ccf88b7?auto=format&fit=crop&q=80&w=400",
       },
       {
         id: 'granular',
         label: "Dry granular fertilizer",
-        img: "https://images.unsplash.com/photo-1611735341450-74d61e66ee69?auto=format&fit=crop&q=80&w=400",
+        img: "https://images.unsplash.com/photo-1690776826053-7f1366e0cfc9?auto=format&fit=crop&q=80&w=400",
       },
     ],
   },
@@ -110,7 +110,7 @@ const QUESTIONS = [
 const ProgressBar = ({ current, total }) => {
   const progress = ((current + 1) / total) * 100;
   return (
-    <div className="w-full h-1.5 bg-gray-200 fixed top-28 lg:top-44 left-0 z-40">
+    <div className="w-full h-1.5 bg-gray-200 top-28 lg:top-44 left-0 z-40">
       <div
         className="h-full bg-green-600 transition-all duration-500 ease-out"
         style={{ width: `${progress}%` }}
@@ -172,8 +172,7 @@ export default function Questionnaire({ zip_code, square_feet }) {
   const [answers, setAnswers]           = useState({});
   const [showMoreGrass, setShowMoreGrass] = useState(false);
   const [isAnimating, setIsAnimating]   = useState(false);
-
-  const { post, processing } = useForm({});
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -217,9 +216,10 @@ export default function Questionnaire({ zip_code, square_feet }) {
   };
 
   const handleSubmit = () => {
-    post(route('yard.quiz.store'), {
-      data: answers,
-    });
+      router.post(route('yard.quiz.store'), answers, {
+          onStart: () => setSubmitting(true),
+          onFinish: () => setSubmitting(false),
+      });
   };
 
   return (
@@ -282,11 +282,11 @@ export default function Questionnaire({ zip_code, square_feet }) {
           <div className="mt-8 w-full max-w-2xl">
             <button
               onClick={handleSubmit}
-              disabled={processing}
+              disabled={submitting}
               className="w-full bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white font-bold py-4 rounded-xl shadow-lg transition-all text-lg flex items-center justify-center gap-2"
-            >
-              {processing ? 'Building your plan...' : 'Get my lawn plan'}
-            </button>
+          >
+              {submitting ? 'Building your plan...' : 'Get my lawn plan'}
+          </button>
           </div>
         )}
 

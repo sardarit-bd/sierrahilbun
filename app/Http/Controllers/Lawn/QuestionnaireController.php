@@ -12,7 +12,7 @@ use Inertia\Response;
 class QuestionnaireController extends Controller
 {
     public function __construct(
-        private SessionFlowService $sessionFlow,
+        private SessionFlowService  $sessionFlow,
         private TierResolverService $tierResolver,
     ) {}
 
@@ -39,16 +39,22 @@ class QuestionnaireController extends Controller
             'preference' => ['required', 'in:liquid,granular'],
         ]);
 
-        $answers = $request->only([
+        $answers    = $request->only([
             'goals', 'pets', 'knowledge', 'grass',
             'patches', 'weeds', 'care', 'preference',
         ]);
 
-        $tier = $this->tierResolver->resolve($answers);
+        $assessment = $this->sessionFlow->getAssessmentOrFail();
+
+        // Resolve tier independently per selected service
+        $tiers = $this->tierResolver->resolve(
+            $answers,
+            $assessment->selected_services ?? ['lawn']
+        );
 
         $this->sessionFlow->updateAssessment([
             'quiz_answers'  => $answers,
-            'resolved_tier' => $tier,
+            'resolved_tier' => $tiers['lawn'] ?? 'bronze',
             'current_step'  => 5,
         ]);
 

@@ -2,15 +2,12 @@
 
 namespace App\Services\Lawn;
 
+use Illuminate\Support\Facades\DB;
+
 class LawnPlanCalculatorService
 {
-    // -------------------------------------------------------
-    // Constants
-    // -------------------------------------------------------
-
-    private const OZ_PER_GAL   = 128;
-    private const ACRE_SQFT    = 43560;
-    private const SQFT_PER_GAL = 10.7639;
+    private const OZ_PER_GAL  = 128;
+    private const ACRE_SQFT   = 43560;
 
     private const PACKAGE_SIZES = [5.0, 2.5, 1.0, 0.5, 0.25];
 
@@ -23,28 +20,22 @@ class LawnPlanCalculatorService
         [32001, 43560, 4.0],
     ];
 
-    private const TIER_BASE_PRICES = [
-        'bronze' => 179.00,
-        'silver' => 249.00,
-        'gold'   => 289.00,
-    ];
-
     private const ADDON_PRICE_PER_GAL = [
-        'PATCHPRO'       => 42.00,
+        'PATCHPRO'        => 42.00,
         'PET_SPOT_REPAIR' => 38.00,
-        'AERATE'         => 35.00,
-        'HEATGUARD'      => 35.00,
+        'AERATE'          => 35.00,
+        'HEATGUARD'       => 35.00,
     ];
 
     private const PRODUCTS = [
-        'NEUTRALYZE'      => ['name' => 'Neutralyze',       'oz_per_1000' => 60],
-        'KICKSTART'       => ['name' => 'KickStart+',       'oz_per_1000' => 75],
-        'TURFFUEL_N'      => ['name' => 'TurfFuel N',       'oz_per_1000' => 75],
-        'MICROBE_BOOST'   => ['name' => 'Microbe-Boost',    'oz_per_1000' => 10],
-        'PATCHPRO'        => ['name' => 'PatchPro+',        'oz_per_1000' => 55],
-        'PET_SPOT_REPAIR' => ['name' => 'Pet Spot Repair',  'oz_per_1000' => 40],
-        'AERATE'          => ['name' => 'Aerate',           'oz_per_1000' => 64],
-        'HEATGUARD'       => ['name' => 'HeatGuard',        'oz_per_1000' => 40],
+        'NEUTRALYZE'      => ['name' => 'Neutralyze',      'oz_per_1000' => 60],
+        'KICKSTART'       => ['name' => 'KickStart+',      'oz_per_1000' => 75],
+        'TURFFUEL_N'      => ['name' => 'TurfFuel N',      'oz_per_1000' => 75],
+        'MICROBE_BOOST'   => ['name' => 'Microbe-Boost',   'oz_per_1000' => 10],
+        'PATCHPRO'        => ['name' => 'PatchPro+',       'oz_per_1000' => 55],
+        'PET_SPOT_REPAIR' => ['name' => 'Pet Spot Repair', 'oz_per_1000' => 40],
+        'AERATE'          => ['name' => 'Aerate',          'oz_per_1000' => 64],
+        'HEATGUARD'       => ['name' => 'HeatGuard',       'oz_per_1000' => 40],
     ];
 
     private const TIER_FIXED_PRODUCTS = [
@@ -53,8 +44,6 @@ class LawnPlanCalculatorService
         'gold'   => ['NEUTRALYZE', 'KICKSTART', 'TURFFUEL_N', 'MICROBE_BOOST'],
     ];
 
-    // pH-only Neutralyze schedule (gal/acre)
-    // [ph_min, ph_max, gal_per_acre]
     private const NEUTRALYZE_SCHEDULE = [
         [6.5, 7.0, 0.0],
         [6.0, 6.4, 1.5],
@@ -71,21 +60,41 @@ class LawnPlanCalculatorService
     {
         $tier        = strtolower($tier);
         $sizeMulti   = $this->getSizeMultiplier($squareFeet);
+        $basePrice   = $this->resolveBasePrice($tier, $sizeMulti);
         $soilMulti   = $this->getSoilMultipliers($soilSnapshot);
         $triggers    = $this->evaluateTriggers($quizAnswers, $soilSnapshot);
-        $basePrice   = $this->resolveBasePrice($tier, $sizeMulti);
         $products    = $this->resolveProducts($tier, $squareFeet, $soilSnapshot, $quizAnswers, $soilMulti, $triggers);
         $addonsTotal = $this->sumAddons($products);
 
         return [
-            'tier'              => $tier,
-            'square_feet'       => $squareFeet,
-            'size_multiplier'   => $sizeMulti,
-            'base_price'        => round($basePrice, 2),
-            'addons_total'      => round($addonsTotal, 2),
-            'total_price'       => round($basePrice + $addonsTotal, 2),
-            'products'          => $products,
+            'tier'            => $tier,
+            'square_feet'     => $squareFeet,
+            'size_multiplier' => $sizeMulti,
+            'base_price'      => round($basePrice, 2),
+            'addons_total'    => round($addonsTotal, 2),
+            'total_price'     => round($basePrice + $addonsTotal, 2),
+            'products'        => $products,
         ];
+    }
+
+    // -------------------------------------------------------
+    // Base Price — read from DB, apply size multiplier
+    // Falls back to hardcoded values if plan not found
+    // -------------------------------------------------------
+
+    private function resolveBasePrice(string $tier, float $sizeMulti): float
+    {
+        $planSlug = "lawn-{$tier}";
+
+        $price = DB::table('plans')
+            ->where('slug', $planSlug)
+            ->value('base_price_yearly');
+
+        // Fallback if DB not seeded yet
+        $fallback = ['bronze' => 179.00, 'silver' => 249.00, 'gold' => 289.00];
+        $base     = $price ?? ($fallback[$tier] ?? 179.00);
+
+        return (float) $base * $sizeMulti;
     }
 
     // -------------------------------------------------------
@@ -104,25 +113,14 @@ class LawnPlanCalculatorService
     }
 
     // -------------------------------------------------------
-    // Base Price
-    // -------------------------------------------------------
-
-    private function resolveBasePrice(string $tier, float $sizeMulti): float
-    {
-        $base = self::TIER_BASE_PRICES[$tier] ?? self::TIER_BASE_PRICES['bronze'];
-
-        return $base * $sizeMulti;
-    }
-
-    // -------------------------------------------------------
-    // Soil-Driven Rate Multipliers
+    // Soil Multipliers
     // -------------------------------------------------------
 
     private function getSoilMultipliers(array $soil): array
     {
-        $drought    = strtolower($soil['drought_stress_risk'] ?? 'low');
-        $compaction = strtolower($soil['compaction_risk'] ?? 'low');
-        $leaching   = strtolower($soil['n_leaching_risk'] ?? 'low');
+        $drought    = strtolower($soil['risks']['drought_stress_risk'] ?? $soil['drought_stress_risk'] ?? 'low');
+        $compaction = strtolower($soil['risks']['compaction_risk'] ?? $soil['compaction_risk'] ?? 'low');
+        $leaching   = strtolower($soil['risks']['n_leaching_risk'] ?? $soil['n_leaching_risk'] ?? 'low');
 
         $droughtMap    = ['low' => 1.00, 'med' => 1.10, 'high' => 1.20];
         $compactionMap = ['low' => 1.00, 'med' => 1.15, 'high' => 1.30];
@@ -132,12 +130,11 @@ class LawnPlanCalculatorService
             ($droughtMap[$drought] ?? 1.0) * ($compactionMap[$compaction] ?? 1.0),
             1.50
         );
-
         $turffuelMult = min($leachingMap[$leaching] ?? 1.0, 1.25);
 
         return [
-            'AERATE'    => $aerateMult,
-            'TURFFUEL_N'=> $turffuelMult,
+            'AERATE'     => $aerateMult,
+            'TURFFUEL_N' => $turffuelMult,
         ];
     }
 
@@ -147,11 +144,11 @@ class LawnPlanCalculatorService
 
     private function evaluateTriggers(array $answers, array $soil): array
     {
-        $pets    = strtolower($answers['pets'] ?? '');
-        $patches = strtolower($answers['patches'] ?? 'none');
-        $climate = strtolower($soil['climate_zone'] ?? '');
-        $drought = strtolower($soil['drought_stress_risk'] ?? 'low');
-        $compact = strtolower($soil['compaction_risk'] ?? 'low');
+        $pets     = strtolower($answers['pets'] ?? '');
+        $patches  = strtolower($answers['patches'] ?? 'none');
+        $climate  = strtolower($soil['climate']['climate_zone'] ?? $soil['climate_zone'] ?? '');
+        $drought  = strtolower($soil['risks']['drought_stress_risk'] ?? $soil['drought_stress_risk'] ?? 'low');
+        $compact  = strtolower($soil['risks']['compaction_risk'] ?? $soil['compaction_risk'] ?? 'low');
 
         return [
             'pet_trigger'        => $pets === 'lot',
@@ -175,27 +172,25 @@ class LawnPlanCalculatorService
     ): array {
         $products = [];
 
-        // Fixed tier products
+        $avgPh    = (float) ($soil['soil']['avg_ph'] ?? $soil['avg_ph'] ?? 7.0);
+        $leaching = strtolower($soil['risks']['n_leaching_risk'] ?? $soil['n_leaching_risk'] ?? 'low');
+
         foreach (self::TIER_FIXED_PRODUCTS[$tier] as $pid) {
-            $rateMulti    = $soilMulti[$pid] ?? 1.0;
-            $ozOverride   = null;
-            $note         = '';
+            $rateMulti  = $soilMulti[$pid] ?? 1.0;
+            $ozOverride = null;
+            $note       = '';
 
             if ($pid === 'NEUTRALYZE') {
-                [$ozOverride, $note] = $this->neutralyzeRate($soil['avg_ph'] ?? 7.0);
+                [$ozOverride, $note] = $this->neutralyzeRate($avgPh);
             }
 
             if ($pid === 'TURFFUEL_N') {
-                $leaching = strtolower($soil['n_leaching_risk'] ?? 'low');
-                $note     = "N leaching risk = " . strtoupper($leaching) . " → rate x{$rateMulti}";
+                $note = "N leaching risk = " . strtoupper($leaching) . " → rate x{$rateMulti}";
             }
 
-            $products[] = $this->buildLineItem(
-                $pid, $sqft, $rateMulti, 'INCLUDED', $note, $ozOverride
-            );
+            $products[] = $this->buildLineItem($pid, $sqft, $rateMulti, 'INCLUDED', $note, $ozOverride);
         }
 
-        // PatchPro+
         if ($triggers['bare_patch_trigger']) {
             $pricingType = $tier === 'bronze' ? 'ADD-ON' : 'INCLUDED';
             $patches     = strtoupper($answers['patches'] ?? '');
@@ -205,7 +200,6 @@ class LawnPlanCalculatorService
             );
         }
 
-        // Pet Spot Repair
         if ($triggers['pet_trigger']) {
             $products[] = $this->buildLineItem(
                 'PET_SPOT_REPAIR', $sqft, 1.0, 'ADD-ON',
@@ -213,19 +207,17 @@ class LawnPlanCalculatorService
             );
         }
 
-        // Aerate
         if ($triggers['aerate_trigger']) {
             $pricingType = $tier === 'bronze' ? 'ADD-ON' : 'INCLUDED';
             $rateMulti   = $soilMulti['AERATE'] ?? 1.0;
-            $drought     = strtoupper($soil['drought_stress_risk'] ?? 'low');
-            $compact     = strtoupper($soil['compaction_risk'] ?? 'low');
+            $drought     = strtoupper($soil['risks']['drought_stress_risk'] ?? $soil['drought_stress_risk'] ?? 'low');
+            $compact     = strtoupper($soil['risks']['compaction_risk'] ?? $soil['compaction_risk'] ?? 'low');
             $products[]  = $this->buildLineItem(
                 'AERATE', $sqft, $rateMulti, $pricingType,
                 "Aerate triggered (drought={$drought}, compaction={$compact}) → rate x{$rateMulti} ({$pricingType})"
             );
         }
 
-        // HeatGuard
         if ($triggers['heatguard_trigger']) {
             $products[] = $this->buildLineItem(
                 'HEATGUARD', $sqft, 1.0, 'ADD-ON',
@@ -237,7 +229,7 @@ class LawnPlanCalculatorService
     }
 
     // -------------------------------------------------------
-    // Build Single Line Item
+    // Build Line Item
     // -------------------------------------------------------
 
     private function buildLineItem(
@@ -248,15 +240,13 @@ class LawnPlanCalculatorService
         string $note = '',
         ?float $ozPer1000Override = null
     ): array {
-        $product    = self::PRODUCTS[$productId];
-        $baseRate   = $ozPer1000Override ?? $product['oz_per_1000'];
+        $product      = self::PRODUCTS[$productId];
+        $baseRate     = $ozPer1000Override ?? $product['oz_per_1000'];
         $adjustedRate = $baseRate * $rateMultiplier;
-
-        $sqftFactor = $sqft / 1000.0;
-        $ozNeeded   = $adjustedRate * $sqftFactor;
-        $galNeeded  = $ozNeeded / self::OZ_PER_GAL;
-
-        $packaging  = $this->optimizePackaging($galNeeded);
+        $sqftFactor   = $sqft / 1000.0;
+        $ozNeeded     = $adjustedRate * $sqftFactor;
+        $galNeeded    = $ozNeeded / self::OZ_PER_GAL;
+        $packaging    = $this->optimizePackaging($galNeeded);
 
         $unitPrice  = 0.0;
         $totalPrice = 0.0;
@@ -267,17 +257,17 @@ class LawnPlanCalculatorService
         }
 
         return [
-            'id'               => $productId,
-            'name'             => $product['name'],
-            'oz_needed'        => round($ozNeeded, 2),
-            'gallons_needed'   => round($galNeeded, 4),
-            'pricing_type'     => $pricingType,
-            'unit_price'       => $unitPrice,
-            'total_price'      => $totalPrice,
-            'packages'         => $packaging['packages'],
-            'delivered_gallons'=> $packaging['delivered_gallons'],
-            'overage_gallons'  => $packaging['overage_gallons'],
-            'note'             => $note,
+            'id'                => $productId,
+            'name'              => $product['name'],
+            'oz_needed'         => round($ozNeeded, 2),
+            'gallons_needed'    => round($galNeeded, 4),
+            'pricing_type'      => $pricingType,
+            'unit_price'        => $unitPrice,
+            'total_price'       => $totalPrice,
+            'packages'          => $packaging['packages'],
+            'delivered_gallons' => $packaging['delivered_gallons'],
+            'overage_gallons'   => $packaging['overage_gallons'],
+            'note'              => $note,
         ];
     }
 
@@ -303,7 +293,6 @@ class LawnPlanCalculatorService
             }
         }
 
-        // Fallback for pH outside all ranges
         return [
             self::PRODUCTS['NEUTRALYZE']['oz_per_1000'],
             'pH outside schedule range → fallback rate used',
@@ -327,7 +316,6 @@ class LawnPlanCalculatorService
             }
         }
 
-        // Round up with the smallest sufficient package
         if ($remaining > 0.001) {
             foreach (array_reverse(self::PACKAGE_SIZES) as $size) {
                 if ($size >= $remaining) {
@@ -344,9 +332,9 @@ class LawnPlanCalculatorService
         ));
 
         return [
-            'packages'         => $packages,
-            'delivered_gallons'=> round($delivered, 2),
-            'overage_gallons'  => round($delivered - $gallonsNeeded, 2),
+            'packages'          => $packages,
+            'delivered_gallons' => round($delivered, 2),
+            'overage_gallons'   => round($delivered - $gallonsNeeded, 2),
         ];
     }
 

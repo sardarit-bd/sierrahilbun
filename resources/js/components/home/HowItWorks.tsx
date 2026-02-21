@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   MapPin, MonitorCheck, PackageOpen, Droplets, Star, ArrowRight, Sparkles, CheckCircle2, TrendingUp
 } from 'lucide-react';
-import { Link } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 
 const StepItem = ({ icon: Icon, title, description, stepNumber, delay }) => (
   <div 
@@ -40,10 +40,17 @@ const StepItem = ({ icon: Icon, title, description, stepNumber, delay }) => (
   </div>
 );
 
-
 export default function HowItWorks() {
-  const [address, setAddress] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+
+  const { data, setData, post, processing, errors } = useForm({
+    zip_code: '',
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    post(route('yard.start.store'));
+  };
 
   const steps = [
     {
@@ -68,7 +75,8 @@ export default function HowItWorks() {
 
   return (
     <div className="w-full bg-gray-50 font-sans text-gray-900">
-      
+      <Head title="How It Works" />
+
       {/* 1. How It Works Section */}
       <section className="py-24 md:py-32 px-6 relative overflow-hidden bg-gradient-to-b from-gray-50 via-emerald-50/20 to-gray-50">
         {/* Enhanced Background Elements */}
@@ -156,60 +164,69 @@ export default function HowItWorks() {
           </h2>
           
           <p className="text-lg text-gray-600 mb-12 max-w-xl mx-auto">
-            Enter your address to get a custom lawn care plan designed specifically for your yard
+            Enter your zip code to get a custom lawn care plan designed specifically for your yard
           </p>
           
-          {/* Enhanced Input Section */}
-          <div 
-            className={`bg-white p-4 rounded-3xl shadow-2xl border-2 ${
-              isFocused ? 'border-emerald-400 shadow-emerald-500/20' : 'border-gray-200'
-            } flex flex-col md:flex-row items-center gap-4 max-w-3xl mx-auto transform transition-all duration-500 hover:shadow-3xl ${
-              isFocused ? 'scale-105' : 'hover:scale-102'
-            }`}
-          >
-            <div className="flex-1 w-full relative">
-              <div className={`absolute left-6 top-1/2 transform -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
-                isFocused ? 'bg-emerald-100' : 'bg-gray-50'
-              }`}>
-                <MapPin className={`w-5 h-5 transition-colors duration-300 ${
-                  isFocused ? 'text-emerald-600' : 'text-gray-400'
-                }`} />
-              </div>
-              <div className={`absolute top-3 left-20 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${
-                isFocused ? 'text-emerald-600' : 'text-gray-400'
-              }`}>
-                Where do you live?
-              </div>
-              <input 
-                type="text" 
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                placeholder="Enter your street address..." 
-                className="w-full pl-20 pr-6 pt-8 pb-3 rounded-2xl outline-none text-gray-900 placeholder-gray-400 font-semibold bg-transparent text-lg transition-all duration-300"
-              />
-            </div>
-            <button className="w-full md:w-auto bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600 hover:from-emerald-700 hover:via-teal-700 hover:to-green-700 text-white font-bold py-5 px-12 rounded-2xl shadow-xl shadow-emerald-900/30 hover:shadow-2xl hover:shadow-emerald-900/40 transition-all duration-500 flex items-center justify-center gap-3 group whitespace-nowrap active:scale-95 relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-              <span className="relative z-10"> <Link href="lawn-size">Get My Plan</Link></span>
-              <ArrowRight className="w-6 h-6 transition-transform group-hover:translate-x-2 relative z-10" />
-            </button>
-          </div>
+          {/* Enhanced Input Section – now using form + useForm */}
+          <form onSubmit={handleSubmit}>
+            <div 
+              className={`bg-white p-4 rounded-3xl shadow-2xl border-2 transition-all duration-500 max-w-3xl mx-auto transform
+                ${isFocused ? 'border-emerald-400 shadow-emerald-500/30 ring-4 ring-emerald-400/20 scale-105' : 'border-gray-200 hover:scale-102'}`}
+            >
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                <div className="flex-1 w-full relative">
+                  <div className={`absolute left-6 top-1/2 transform -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
+                    isFocused ? 'bg-emerald-100' : 'bg-gray-50'
+                  }`}>
+                    <MapPin className={`w-5 h-5 transition-colors duration-300 ${
+                      isFocused ? 'text-emerald-600' : 'text-gray-400'
+                    }`} />
+                  </div>
 
-          {/* <StarRating /> */}
-          
-          {/* Trust indicators */}
-          {/* <div className="mt-16 flex flex-wrap justify-center gap-8 items-center opacity-60">
-            <div className="text-sm font-semibold text-gray-500">AS SEEN ON</div>
-            <div className="h-8 w-px bg-gray-300"></div>
-            <div className="text-sm font-bold text-gray-400">GOOD MORNING AMERICA</div>
-            <div className="text-sm font-bold text-gray-400">FORBES</div>
-            <div className="text-sm font-bold text-gray-400">THE TODAY SHOW</div>
-          </div> */}
+                  <div className={`absolute top-3 left-20 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${
+                    isFocused ? 'text-emerald-600' : 'text-gray-400'
+                  }`}>
+                    Where do you live?
+                  </div>
+
+                  <input 
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={5}
+                    value={data.zip_code}
+                    onChange={(e) => setData('zip_code', e.target.value.replace(/\D/g, ''))}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    placeholder="Enter zip code..."
+                    className="w-full pl-20 pr-6 pt-8 pb-3 rounded-2xl outline-none text-gray-900 placeholder-gray-400 font-semibold bg-transparent text-lg transition-all duration-300"
+                  />
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={processing || data.zip_code.length !== 5}
+                  className={`w-full md:w-auto bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600 text-white font-bold py-5 px-12 rounded-2xl shadow-xl shadow-emerald-900/30 transition-all duration-500 flex items-center justify-center gap-3 group whitespace-nowrap active:scale-95 relative overflow-hidden
+                    ${processing || data.zip_code.length !== 5 
+                      ? 'opacity-60 cursor-not-allowed' 
+                      : 'hover:from-emerald-700 hover:via-teal-700 hover:to-green-700 hover:shadow-2xl hover:shadow-emerald-900/40'}`}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                  <span className="relative z-10">
+                    {processing ? 'Checking...' : 'Get My Plan'}
+                  </span>
+                  <ArrowRight className="w-6 h-6 transition-transform group-hover:translate-x-2 relative z-10" />
+                </button>
+              </div>
+
+              {errors.zip_code && (
+                <p className="text-red-600 text-sm mt-4 text-left md:text-center font-medium">
+                  {errors.zip_code}
+                </p>
+              )}
+            </div>
+          </form>
         </div>
       </section>
-
     </div>
   );
 }
