@@ -13,10 +13,11 @@ import {
   X,
   AlertCircle,
 } from 'lucide-react';
-import { router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useCart } from '../context/CartContext';
 
 export default function CartContent() {
+  const { auth } = usePage().props;
   const {
     cart,
     isLoaded,
@@ -34,6 +35,7 @@ export default function CartContent() {
   const [promoSuccess, setPromoSuccess] = useState('');
   const [checking,     setChecking]     = useState(false); 
   const [checkoutError, setCheckoutError] = useState('');
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   // Show loading state while cart loads from localStorage
   if (!isLoaded) {
@@ -92,6 +94,12 @@ export default function CartContent() {
   // ── Secure Checkout Handler ──────────────────────────────────────
   const handleCheckout = async () => {
     setCheckoutError('');
+    setShowLoginPrompt(false);
+
+    if (!auth?.user) {
+      setShowLoginPrompt(true);
+      return;
+    }
     setChecking(true);
 
     try {
@@ -341,12 +349,37 @@ export default function CartContent() {
               </div>
 
               {/* Checkout error */}
-              {checkoutError && (
-                <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-100 flex items-start gap-2">
-                  <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-red-600 text-xs">{checkoutError}</p>
-                </div>
-              )}
+              {/* Login prompt */}
+{showLoginPrompt && (
+  <div className="mt-4 p-4 rounded-xl bg-blue-50 border border-blue-100">
+    <p className="text-sm font-bold text-blue-900 mb-1">Sign in to continue</p>
+    <p className="text-xs text-blue-700 mb-3">
+      You need to be logged in to proceed to checkout. Your cart will be saved.
+    </p>
+    <div className="flex gap-2">
+      <Link
+        href={route('login')}
+        className="flex-1 bg-[#2E7D32] text-white text-xs font-bold py-2 rounded-lg text-center hover:bg-[#1B5E20] transition-colors"
+      >
+        Log in
+      </Link>
+      <Link
+        href={route('register')}
+        className="flex-1 bg-white border border-blue-200 text-blue-800 text-xs font-bold py-2 rounded-lg text-center hover:bg-blue-50 transition-colors"
+      >
+        Create account
+      </Link>
+    </div>
+  </div>
+)}
+
+{/* Checkout error */}
+{checkoutError && (
+  <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-100 flex items-start gap-2">
+    <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+    <p className="text-red-600 text-xs">{checkoutError}</p>
+  </div>
+)}
 
               {/* Checkout Button */}
               <button
