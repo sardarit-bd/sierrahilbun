@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Question;
+use App\Models\QuestionOption;
+use App\Observers\QuestionObserver;
+use App\Observers\QuestionOptionObserver;
 use App\Repositories\BlogRepository;
 use App\Repositories\Contracts\BlogRepositoryInterface;
 use App\Services\Checkout\CheckoutService;
@@ -39,6 +43,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        
+        Question::observe(QuestionObserver::class);
+        QuestionOption::observe(QuestionOptionObserver::class);
     }
 
     protected function configureDefaults(): void

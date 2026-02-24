@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Lawn;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\QuestionResource;
+use App\Repositories\QuestionRepository;
 use App\Services\Lawn\SessionFlowService;
 use App\Services\Lawn\TierResolverService;
 use Illuminate\Http\Request;
@@ -12,8 +14,9 @@ use Inertia\Response;
 class QuestionnaireController extends Controller
 {
     public function __construct(
-        private SessionFlowService  $sessionFlow,
-        private TierResolverService $tierResolver,
+        private SessionFlowService   $sessionFlow,
+        private TierResolverService  $tierResolver,
+        private QuestionRepository   $questions,
     ) {}
 
     public function show(): Response
@@ -23,37 +26,34 @@ class QuestionnaireController extends Controller
         return Inertia::render('lawns/questions/post', [
             'zip_code'    => $assessment->zip_code,
             'square_feet' => $assessment->square_feet,
+            'questions'   => QuestionResource::collection(
+                                 $this->questions->getAllActive()
+                             )->resolve(),
         ]);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'goals'      => ['required', 'in:looks,health,safety,all'],
-            'pets'       => ['required', 'in:lot,not_much'],
-            'knowledge'  => ['required', 'in:expert,hobbyist,amateur,rookie'],
-            'grass'      => ['required', 'string'],
-            'patches'    => ['required', 'in:none,few,moderate,lots'],
-            'weeds'      => ['required', 'in:none,leafy,stubborn,everywhere,pre'],
-            'care'       => ['required', 'in:service,fert_high,fert_low,mow'],
-            'preference' => ['required', 'in:liquid,granular'],
-        ]);
+        // Build validation rules dynamically from DB (cached)
+        $validationMap = $this->questions->getValidationMap();
 
-        $answers    = $request->only([
-            'goals', 'pets', 'knowledge', 'grass',
-            'patches', 'weeds', 'care', 'preference',
-        ]);
+        $rules = collect($validationMap)->mapWithKeys(
+            fn (array $slugs, string $questionSlug) => [
+                $questionSlug => ['required', 'string', 'in:' . implode(',', $slugs)],
+            ]
+        )->all();
+
+        $validated = $request->validate($rules);
 
         $assessment = $this->sessionFlow->getAssessmentOrFail();
 
-        // Resolve tier independently per selected service
         $tiers = $this->tierResolver->resolve(
-            $answers,
+            $validated,
             $assessment->selected_services ?? ['lawn']
         );
 
         $this->sessionFlow->updateAssessment([
-            'quiz_answers'  => $answers,
+            'quiz_answers'  => $validated,
             'resolved_tier' => $tiers['lawn'] ?? 'bronze',
             'current_step'  => 5,
         ]);
