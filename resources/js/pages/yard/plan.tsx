@@ -134,7 +134,13 @@ const mapFeatureToAsset = (feature, index) => {
   ];
   const asset            = assets[index % assets.length];
   const iconUrl          = feature.icon_url  ? resolveUrl(feature.icon_url)  : asset.img;
-  const expandedImageUrl = feature.image_url ? resolveUrl(feature.image_url) : null;
+  const images = Array.isArray(feature.image_url)
+  ? feature.image_url
+  : typeof feature.image_url === 'string'
+    ? JSON.parse(feature.image_url)
+    : [];
+
+  const expandedImageUrl = images.length ? resolveUrl(images[0]) : null;
   return { ...feature, tag: feature.tag || asset.defaultTag, tagColor: asset.color, displayIcon: iconUrl, displayImage: expandedImageUrl };
 };
 

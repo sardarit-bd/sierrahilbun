@@ -18,6 +18,7 @@ class PlanFeature extends Model
 
     protected $casts = [
         'sort_order' => 'integer',
+        'image_url' => 'array',
     ];
 
     public $timestamps = false;

@@ -1,20 +1,20 @@
 <?php
 
-namespace App\Filament\Resources\PlanFeatures\Schemas;
+namespace App\Filament\Resources\Features\Schemas;
 
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
-class PlanFeatureForm
+class FeatureForm
 {
     public static function configure(Schema $schema): Schema
     {
         return $schema
             ->components([
-                Select::make('plan_id')
-                    ->relationship('plan', 'name')
+                Select::make('service_id')
+                    ->relationship('service', 'name')
                     ->required(),
                 TextInput::make('title')
                     ->required(),
@@ -22,9 +22,9 @@ class PlanFeatureForm
                 TextInput::make('icon_url')
                     ->url(),
                 FileUpload::make('image_url')
-                    ->directory('plan-features')
+                    ->multiple()
                     ->disk('public')
-                    ->visibility('public')
+                    ->directory('features')
                     ->image(),
                 TextInput::make('sort_order')
                     ->required()

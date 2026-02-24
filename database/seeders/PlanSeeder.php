@@ -9,10 +9,11 @@ class PlanSeeder extends Seeder
 {
     public function run(): void
     {
-        $lawnId = DB::table('services')->where('slug', 'lawn')->value('id');
-        $pestId = DB::table('services')->where('slug', 'pest')->value('id');
+        $lawnId  = DB::table('services')->where('slug', 'lawn')->value('id');
+        $weedsId = DB::table('services')->where('slug', 'weeds')->value('id');
 
         DB::table('plans')->insertOrIgnore([
+
             // -------------------------------------------------------
             // Lawn Plans
             // -------------------------------------------------------
@@ -54,13 +55,13 @@ class PlanSeeder extends Seeder
             ],
 
             // -------------------------------------------------------
-            // Pest Plans
+            // Weeds Plans
             // -------------------------------------------------------
             [
-                'service_id'           => $pestId,
+                'service_id'           => $weedsId,
                 'name'                 => 'Base Plan',
-                'slug'                 => 'pest-bronze',
-                'description'          => 'Create a bug-free zone with home barrier treatment.',
+                'slug'                 => 'weeds-bronze',
+                'description'          => 'Create a weed-free zone with home barrier treatment.',
                 'base_price_yearly'    => 115.00,
                 'current_price_yearly' => 115.00,
                 'is_recommended'       => false,
@@ -69,14 +70,26 @@ class PlanSeeder extends Seeder
                 'updated_at'           => now(),
             ],
             [
-                'service_id'           => $pestId,
+                'service_id'           => $weedsId,
                 'name'                 => 'Custom Plan',
-                'slug'                 => 'pest-silver',
-                'description'          => 'Full barrier treatment plus yard pest control.',
+                'slug'                 => 'weeds-silver',
+                'description'          => 'Full barrier treatment plus yard weed control.',
                 'base_price_yearly'    => 169.00,
                 'current_price_yearly' => 169.00,
                 'is_recommended'       => true,
                 'target_audience'      => 'silver',
+                'created_at'           => now(),
+                'updated_at'           => now(),
+            ],
+            [
+                'service_id'           => $weedsId,
+                'name'                 => 'Premium Plan',
+                'slug'                 => 'weeds-gold',
+                'description'          => 'Complete weed elimination with full yard and barrier treatment.',
+                'base_price_yearly'    => 219.00,
+                'current_price_yearly' => 219.00,
+                'is_recommended'       => false,
+                'target_audience'      => 'gold',
                 'created_at'           => now(),
                 'updated_at'           => now(),
             ],

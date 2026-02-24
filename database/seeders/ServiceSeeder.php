@@ -17,8 +17,8 @@ class ServiceSeeder extends Seeder
                 'created_at' => now(),
             ],
             [
-                'name'       => 'Pest',
-                'slug'       => 'pest',
+                'name'       => 'Weeds',
+                'slug'       => 'weeds',
                 'is_active'  => true,
                 'created_at' => now(),
             ],

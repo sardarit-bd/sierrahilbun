@@ -77,41 +77,6 @@ class PlanController extends Controller
         $allPlans = $this->planRecommendation->allPlansForServices($selectedServices);
         $recommended = $this->planRecommendation->recommend($tiers);
 
-        // -------------------------------------------------------
-        // DEBUG — remove once weeds plan is confirmed working
-        // Check /storage/logs/laravel.log after loading the page
-        // -------------------------------------------------------
-        Log::debug('PlanController@renderPlan', [
-            // 1. What services does the assessment record actually have?
-            'selected_services' => $selectedServices,
-
-            // 2. What did TierResolverService return?
-            'tiers' => $tiers,
-
-            // 3. What keys did allPlansForServices return?
-            'all_plans_keys' => array_keys($allPlans),
-
-            // 4. What's inside the weeds key specifically?
-            'weeds_plans' => $allPlans['weeds'] ?? 'KEY MISSING — not in all_plans',
-
-            // 5. Raw DB check — are there any plans with service slug = weeds?
-            'db_weeds_plans' => DB::table('plans')
-                ->join('services', 'plans.service_id', '=', 'services.id')
-                ->where('services.slug', 'weeds')
-                ->select('plans.id', 'plans.slug', 'plans.name', 'services.slug as service_slug')
-                ->get()
-                ->toArray(),
-
-            // 6. Raw DB check — does the weeds service row exist at all?
-            'db_weeds_service' => DB::table('services')
-                ->where('slug', 'weeds')
-                ->first(),
-
-            // 7. What quiz answers came in?
-            'quiz_answers' => $quizAnswers,
-        ]);
-        // -------------------------------------------------------
-
         return Inertia::render('yard/plan', [
             'assessment' => [
                 'id'                   => $assessment->id,

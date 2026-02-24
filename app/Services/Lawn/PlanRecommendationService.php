@@ -2,11 +2,11 @@
 
 namespace App\Services\Lawn;
 
+use App\Models\Plan;
 use Illuminate\Support\Facades\DB;
 
 class PlanRecommendationService
 {
-    // Maps service slug + tier → plan slug
     private const PLAN_SLUG_MAP = [
         'lawn' => [
             'bronze' => 'lawn-bronze',
@@ -41,15 +41,6 @@ class PlanRecommendationService
         return $result;
     }
 
-    // -------------------------------------------------------
-    // Fetch all tiers for a given service
-    // Used to display all plan options on the result page
-    // with the recommended one highlighted.
-    //
-    // Input:  ['lawn', 'weeds']
-    // Output: ['lawn' => [bronze => [...], silver => [...], gold => [...]], ...]
-    // -------------------------------------------------------
-
     public function allPlansForServices(array $services): array
     {
         $result = [];
@@ -59,36 +50,19 @@ class PlanRecommendationService
                 continue;
             }
 
-            $slugs = array_unique(array_values(self::PLAN_SLUG_MAP[$service]));
+            $slugs = array_values(self::PLAN_SLUG_MAP[$service]);
 
-            $plans = DB::table('plans')
-                ->join('services', 'plans.service_id', '=', 'services.id')
-                ->whereIn('plans.slug', $slugs)
-                ->where('services.slug', $service)
-                ->select(
-                    'plans.id',
-                    'plans.name',
-                    'plans.slug',
-                    'plans.description',
-                    'plans.base_price_yearly',
-                    'plans.current_price_yearly',
-                    'plans.is_recommended',
-                    'plans.target_audience',
-                )
-                ->get();
+            $plans = Plan::with(['features' => function ($query) {
+                            $query->orderBy('plan_feature.sort_order');
+                        }])
+                        ->whereIn('slug', $slugs)
+                        ->whereHas('service', fn($q) => $q->where('slug', $service))
+                        ->get();
 
-            $plansWithFeatures = $plans->map(function ($plan) {
-                $plan->features = DB::table('plan_features')
-                    ->where('plan_id', $plan->id)
-                    ->orderBy('sort_order')
-                    ->select('title', 'subtitle', 'icon_url')
-                    ->get()
-                    ->toArray();
-
-                return $plan;
-            });
-
-            $result[$service] = $plansWithFeatures->keyBy('target_audience')->toArray();
+            $result[$service] = $plans
+                ->map(fn($plan) => $this->formatPlan($plan))
+                ->keyBy('target_audience')
+                ->toArray();
         }
 
         return $result;
@@ -115,37 +89,50 @@ class PlanRecommendationService
         return $ids;
     }
 
-    // -------------------------------------------------------
-    // Private: fetch single plan with features
-    // -------------------------------------------------------
-
-    private function fetchPlan(string $slug): ?object
+    private function fetchPlan(string $slug): ?array
     {
-        $plan = DB::table('plans')
-            ->where('slug', $slug)
-            ->select(
-                'id',
-                'name',
-                'slug',
-                'description',
-                'base_price_yearly',
-                'current_price_yearly',
-                'is_recommended',
-                'target_audience',
-            )
-            ->first();
+        $plan = Plan::with(['features' => function ($query) {
+                        $query->orderBy('plan_feature.sort_order');
+                    }])
+                    ->where('slug', $slug)
+                    ->first();
 
-        if (!$plan) {
-            return null;
+        return $plan ? $this->formatPlan($plan) : null;
+    }
+
+    private function formatPlan(Plan $plan): array
+    {
+        return [
+            'id'                   => $plan->id,
+            'name'                 => $plan->name,
+            'slug'                 => $plan->slug,
+            'description'          => $plan->description,
+            'base_price_yearly'    => $plan->base_price_yearly,
+            'current_price_yearly' => $plan->current_price_yearly,
+            'is_recommended'       => $plan->is_recommended,
+            'target_audience'      => $plan->target_audience,
+            'features'             => $plan->features->map(fn($f) => [
+                'title'     => $f->title,
+                'subtitle'  => $f->subtitle,
+                'icon_url'  => $this->resolveStorageUrl($f->icon_url),
+                'image_url' => array_map(
+                    fn($path) => $this->resolveStorageUrl($path),
+                    $f->image_url ?? []
+                ),
+            ])->values()->toArray(),
+        ];
+    }
+
+    private function resolveStorageUrl(?string $path): ?string
+    {
+        if (!$path) return null;
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
         }
 
-        $plan->features = DB::table('plan_features')
-            ->where('plan_id', $plan->id)
-            ->orderBy('sort_order')
-            ->select('title', 'subtitle', 'icon_url')
-            ->get()
-            ->toArray();
+        $normalized = preg_replace('#^/?storage/#', '', $path);
 
-        return $plan;
+        return asset('storage/' . $normalized);
     }
 }
