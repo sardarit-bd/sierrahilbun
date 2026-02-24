@@ -30,19 +30,12 @@ export default defineConfig({
     },
     build: {
         rollupOptions: {
+            external: ['leaflet'],
             output: {
-                manualChunks(id) {
-                    if (id.includes('leaflet')) {
-                        return 'leaflet-bundle';
-                    }
+                globals: {
+                    leaflet: 'L',
                 },
             },
-        },
-    },
-    optimizeDeps: {
-        include: ['leaflet', 'leaflet-draw'],
-        esbuildOptions: {
-            keepNames: true,
         },
     },
 });
