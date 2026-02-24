@@ -13,13 +13,12 @@ class PlanRecommendationService
             'silver' => 'lawn-silver',
             'gold'   => 'lawn-gold',
         ],
-        'pest' => [
-            'bronze' => 'pest-bronze',
-            'silver' => 'pest-silver',
-            'gold'   => 'pest-silver',
+        'weeds' => [
+            'bronze' => 'weeds-bronze',
+            'silver' => 'weeds-silver',
+            'gold'   => 'weeds-gold',
         ],
     ];
-
 
     public function recommend(array $tiers): array
     {
@@ -47,7 +46,7 @@ class PlanRecommendationService
     // Used to display all plan options on the result page
     // with the recommended one highlighted.
     //
-    // Input:  ['lawn', 'pest']
+    // Input:  ['lawn', 'weeds']
     // Output: ['lawn' => [bronze => [...], silver => [...], gold => [...]], ...]
     // -------------------------------------------------------
 
@@ -94,7 +93,6 @@ class PlanRecommendationService
 
         return $result;
     }
-
 
     public function resolveIds(array $tiers): array
     {

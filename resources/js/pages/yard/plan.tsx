@@ -10,14 +10,14 @@ import {
   ShoppingCart,
   ShieldCheck,
   HelpCircle,
-  Award
+  Award,
+  Leaf
 } from 'lucide-react';
 import AppHeaderLayout from '@/layouts/app/app-header-layout';
 import AddToCartButton from '@/components/AddToCartButton';
 
 /**
  * --- Premium Select Component ---
- * A high-fidelity, custom dropdown designed for a premium feel.
  */
 const PremiumPlanDropdown = ({ options, value, onChange, recommendedTier, label = "Select Plan" }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,7 +34,6 @@ const PremiumPlanDropdown = ({ options, value, onChange, recommendedTier, label 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-  
 
   return (
     <div className="relative w-full sm:max-w-xs" ref={dropdownRef}>
@@ -71,21 +70,17 @@ const PremiumPlanDropdown = ({ options, value, onChange, recommendedTier, label 
         />
       </button>
 
-      {/* Dropdown Menu */}
       {isOpen && (
         <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="p-1 max-h-72 overflow-y-auto">
             {options.map((plan) => {
-              const isSelected = plan.id === Number(value);
+              const isSelected    = plan.id === Number(value);
               const isRecommended = plan.target_audience === recommendedTier;
               
               return (
                 <button
                   key={plan.id}
-                  onClick={() => {
-                    onChange(plan.id);
-                    setIsOpen(false);
-                  }}
+                  onClick={() => { onChange(plan.id); setIsOpen(false); }}
                   className={`
                     flex flex-col w-full px-4 py-3 text-left transition-colors rounded-lg mb-0.5 last:mb-0
                     ${isSelected ? 'bg-green-50' : 'hover:bg-gray-50'}
@@ -122,25 +117,25 @@ const PremiumPlanDropdown = ({ options, value, onChange, recommendedTier, label 
 // --- Helpers ---
 
 const resolveUrl = (path) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    if (!path.includes('/')) return `/storage/plan-features/${path}`;
-    if (!path.startsWith('/storage') && !path.startsWith('storage')) return `/storage/${path}`;
-    return path.startsWith('/') ? path : `/${path}`;
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  if (!path.includes('/')) return `/storage/plan-features/${path}`;
+  if (!path.startsWith('/storage') && !path.startsWith('storage')) return `/storage/${path}`;
+  return path.startsWith('/') ? path : `/${path}`;
 };
 
 const mapFeatureToAsset = (feature, index) => {
-    const assets = [
-        { color: 'bg-green-100 text-green-800',   img: 'https://images.unsplash.com/photo-1605117882932-f9e32b03fea9?q=80&w=1019&auto=format&fit=crop', defaultTag: 'Essential' },
-        { color: 'bg-green-100 text-green-800',   img: 'https://images.unsplash.com/photo-1621778029697-e648b727ddc7?q=80&w=828&auto=format&fit=crop',  defaultTag: 'Control'   },
-        { color: 'bg-green-100 text-green-800',   img: 'https://images.unsplash.com/photo-1590682680695-43b964a3ae17?auto=format&fit=crop&q=80&w=200',   defaultTag: 'Growth'    },
-        { color: 'bg-[#2A9D8F] text-white',       img: 'https://plus.unsplash.com/premium_photo-1729087867520-6b9a869ed39a?q=80&w=735&auto=format&fit=crop', defaultTag: 'Analysis' },
-        { color: 'bg-orange-100 text-orange-800', img: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&q=80&w=200',     defaultTag: 'Bonus'     },
-    ];
-    const asset          = assets[index % assets.length];
-    const iconUrl        = feature.icon_url ? resolveUrl(feature.icon_url) : asset.img;
-    const expandedImageUrl = feature.image_url ? resolveUrl(feature.image_url) : null;
-    return { ...feature, tag: feature.tag || asset.defaultTag, tagColor: asset.color, displayIcon: iconUrl, displayImage: expandedImageUrl };
+  const assets = [
+    { color: 'bg-green-100 text-green-800',   img: 'https://images.unsplash.com/photo-1605117882932-f9e32b03fea9?q=80&w=1019&auto=format&fit=crop', defaultTag: 'Essential' },
+    { color: 'bg-green-100 text-green-800',   img: 'https://images.unsplash.com/photo-1621778029697-e648b727ddc7?q=80&w=828&auto=format&fit=crop',  defaultTag: 'Control'   },
+    { color: 'bg-green-100 text-green-800',   img: 'https://images.unsplash.com/photo-1590682680695-43b964a3ae17?auto=format&fit=crop&q=80&w=200',   defaultTag: 'Growth'    },
+    { color: 'bg-[#2A9D8F] text-white',       img: 'https://plus.unsplash.com/premium_photo-1729087867520-6b9a869ed39a?q=80&w=735&auto=format&fit=crop', defaultTag: 'Analysis' },
+    { color: 'bg-orange-100 text-orange-800', img: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&q=80&w=200',     defaultTag: 'Bonus'     },
+  ];
+  const asset            = assets[index % assets.length];
+  const iconUrl          = feature.icon_url  ? resolveUrl(feature.icon_url)  : asset.img;
+  const expandedImageUrl = feature.image_url ? resolveUrl(feature.image_url) : null;
+  return { ...feature, tag: feature.tag || asset.defaultTag, tagColor: asset.color, displayIcon: iconUrl, displayImage: expandedImageUrl };
 };
 
 // --- Sub-Components ---
@@ -168,8 +163,12 @@ const ProductCard = ({ feature, index }) => {
               <img src={visualFeature.displayImage} alt={feature.title} className="w-32 h-32 rounded-lg shadow-sm border border-gray-100 object-cover mt-2" />
             )}
           </div>
-          <button onClick={() => setIsExpanded(!isExpanded)} className="mt-2 text-xs font-bold text-gray-400 flex items-center gap-1 hover:text-green-700 transition-colors">
-            {isExpanded ? 'See less' : 'See more'} <ChevronDown size={14} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="mt-2 text-xs font-bold text-gray-400 flex items-center gap-1 hover:text-green-700 transition-colors"
+          >
+            {isExpanded ? 'See less' : 'See more'}{' '}
+            <ChevronDown size={14} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
           </button>
         </div>
       </div>
@@ -178,7 +177,10 @@ const ProductCard = ({ feature, index }) => {
 };
 
 const ToggleSwitch = ({ enabled, onToggle }) => (
-  <button onClick={onToggle} className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none ${enabled ? 'bg-green-700' : 'bg-gray-300'}`}>
+  <button
+    onClick={onToggle}
+    className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none ${enabled ? 'bg-green-700' : 'bg-gray-300'}`}
+  >
     <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition duration-300 ease-in-out shadow-sm ${enabled ? 'translate-x-7' : 'translate-x-1'}`} />
   </button>
 );
@@ -186,39 +188,47 @@ const ToggleSwitch = ({ enabled, onToggle }) => (
 // --- Main Page Component ---
 
 export default function App({ assessment, recommended_plans, all_plans, tiers }) {
-  const [isLoading, setIsLoading]       = useState(true);
-  const [pestPlanEnabled, setPestPlanEnabled] = useState(true);
+  const [isLoading, setIsLoading]             = useState(true);
+  const [weedsPlanEnabled, setWeedsPlanEnabled] = useState(true);
 
-  // Derive lawn plans list
-  const lawnPlansMap    = all_plans?.lawn ?? {};
-  const lawnPlansList   = Object.values(lawnPlansMap);
+  // Lawn plans
+  const lawnPlansMap        = all_plans?.lawn ?? {};
+  const lawnPlansList       = Object.values(lawnPlansMap);
   const recommendedLawnTier = tiers?.lawn ?? 'bronze';
-  const defaultLawnPlan = lawnPlansMap[recommendedLawnTier] ?? lawnPlansList[0];
+  const defaultLawnPlan     = lawnPlansMap[recommendedLawnTier] ?? lawnPlansList[0];
   const [selectedLawnPlanId, setSelectedLawnPlanId] = useState(defaultLawnPlan?.id);
   const selectedLawnPlan = lawnPlansList.find(p => p.id === Number(selectedLawnPlanId)) ?? defaultLawnPlan;
 
-  // Pest plan
-  const pestPlansMap        = all_plans?.pest ?? {};
-  const pestPlansList       = Object.values(pestPlansMap);
-  const recommendedPestTier = tiers?.pest ?? 'bronze';
-  const defaultPestPlan     = pestPlansMap[recommendedPestTier] ?? pestPlansList[0];
-  const [selectedPestPlanId, setSelectedPestPlanId] = useState(defaultPestPlan?.id);
-  const selectedPestPlan = pestPlansList.find(p => p.id === Number(selectedPestPlanId)) ?? defaultPestPlan;
+  // Weeds plans
+  const weedsPlansMap        = all_plans?.weeds ?? {};
+  const weedsPlansList       = Object.values(weedsPlansMap);
+  const recommendedWeedsTier = tiers?.weeds ?? 'bronze';
+  const defaultWeedsPlan     = weedsPlansMap[recommendedWeedsTier] ?? weedsPlansList[0];
+  const [selectedWeedsPlanId, setSelectedWeedsPlanId] = useState(defaultWeedsPlan?.id);
+  const selectedWeedsPlan = weedsPlansList.find(p => p.id === Number(selectedWeedsPlanId)) ?? defaultWeedsPlan;
 
-  const hasPest   = assessment?.selected_services?.includes('pest')   ?? false;
-  const hasGarden = assessment?.selected_services?.includes('garden') ?? false;
+  // Service flags — only show a section if the service was selected AND plans exist
+  const hasWeeds  = (assessment?.selected_services?.includes('weeds')  ?? false) && weedsPlansList.length > 0;
+  const hasGarden = (assessment?.selected_services?.includes('garden') ?? false);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000);
     return () => clearTimeout(timer);
   }, []);
 
-  const lawnYearly  = parseFloat(selectedLawnPlan?.current_price_yearly ?? selectedLawnPlan?.base_price_yearly ?? 0);
-  const pestYearly  = parseFloat(selectedPestPlan?.current_price_yearly ?? selectedPestPlan?.base_price_yearly ?? 0);
-  const lawnToday   = lawnYearly / 12;
-  const pestToday   = pestYearly / 12;
-  const totalYearly = lawnYearly + (pestPlanEnabled && hasPest ? pestYearly : 0);
-  const totalToday  = lawnToday  + (pestPlanEnabled && hasPest ? pestToday  : 0);
+  // Pricing
+  const lawnYearly  = parseFloat(selectedLawnPlan?.current_price_yearly  ?? selectedLawnPlan?.base_price_yearly  ?? 0);
+  const weedsYearly = parseFloat(selectedWeedsPlan?.current_price_yearly ?? selectedWeedsPlan?.base_price_yearly ?? 0);
+  const lawnToday   = lawnYearly  / 12;
+  const weedsToday  = weedsYearly / 12;
+  const totalYearly = lawnYearly  + (weedsPlanEnabled && hasWeeds ? weedsYearly : 0);
+  const totalToday  = lawnToday   + (weedsPlanEnabled && hasWeeds ? weedsToday  : 0);
+
+  // Section numbering — dynamic so garden is always last regardless of weeds
+  let sectionIndex = 1;
+  const lawnIndex  = sectionIndex++;
+  const weedsIndex = hasWeeds  ? sectionIndex++ : null;
+  const gardenIndex = hasGarden ? sectionIndex++ : null;
 
   if (isLoading) {
     return (
@@ -234,24 +244,25 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
   }
 
   const cartProduct = {
-    id: `bundle-${selectedLawnPlanId}${pestPlanEnabled && hasPest ? `-${selectedPestPlanId}` : ''}`,
-    name: pestPlanEnabled && hasPest
-      ? `${selectedLawnPlan?.name} + ${selectedPestPlan?.name}`
+    id: `bundle-${selectedLawnPlanId}${weedsPlanEnabled && hasWeeds ? `-${selectedWeedsPlanId}` : ''}`,
+    name: weedsPlanEnabled && hasWeeds
+      ? `${selectedLawnPlan?.name} + ${selectedWeedsPlan?.name}`
       : selectedLawnPlan?.name,
     title: selectedLawnPlan?.name,
     image: 'https://images.unsplash.com/photo-1605117882932-f9e32b03fea9?q=80&w=300&auto=format&fit=crop',
-    price: totalToday,
+    price:        totalToday,
     price_yearly: totalYearly,
     plans: {
       lawn: selectedLawnPlan,
-      ...(pestPlanEnabled && hasPest ? { pest: selectedPestPlan } : {}),
+      ...(weedsPlanEnabled && hasWeeds ? { weeds: selectedWeedsPlan } : {}),
     },
   };
+
   return (
     <AppHeaderLayout>
       <div className="min-h-screen bg-gray-50 selection:bg-green-100">
         <div className="container mx-auto px-4 py-8 lg:px-8 max-w-7xl">
-          
+
           {/* Page Header */}
           <div className="mb-8">
             <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2">Custom yard plan ready!</h1>
@@ -267,10 +278,10 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
           </div>
 
           <div className="flex flex-col lg:flex-row gap-8 relative">
-            
+
             {/* LEFT COLUMN */}
             <div className="w-full lg:w-2/3 space-y-10">
-              
+
               {/* 1. LAWN PLAN */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
@@ -278,7 +289,7 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                     <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-700">
                       <Sprout size={24} />
                     </div>
-                    <h2 className="text-xl font-bold text-gray-900">1. Your lawn plan</h2>
+                    <h2 className="text-xl font-bold text-gray-900">{lawnIndex}. Your lawn plan</h2>
                   </div>
                   <div className="bg-green-600 text-white rounded-full p-1">
                     <Check size={16} strokeWidth={3} />
@@ -286,15 +297,13 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                 </div>
 
                 <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 overflow-visible">
-                  {/* Premium Dropdown */}
-                  <PremiumPlanDropdown 
+                  <PremiumPlanDropdown
                     options={lawnPlansList}
                     value={selectedLawnPlanId}
                     onChange={setSelectedLawnPlanId}
                     recommendedTier={recommendedLawnTier}
                     label="Selected Tier"
                   />
-
                   <div className="text-right">
                     <div className="text-lg font-bold text-gray-900">
                       ${lawnToday.toFixed(2)} <span className="text-sm font-normal text-gray-500">today</span>{' '}
@@ -315,38 +324,38 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                 </div>
               </div>
 
-              {/* 2. PEST PLAN */}
-              {hasPest && (
+              {/* 2. WEEDS PLAN — only rendered when service was selected AND plans exist */}
+              {hasWeeds && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                   <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700">
-                        <Bug size={24} />
+                      <div className="w-10 h-10 bg-lime-100 rounded-full flex items-center justify-center text-lime-700">
+                        <Leaf size={24} />
                       </div>
-                      <h2 className="text-xl font-bold text-gray-900">2. Your pest plan</h2>
+                      <h2 className="text-xl font-bold text-gray-900">{weedsIndex}. Your weed control plan</h2>
                     </div>
-                    <ToggleSwitch enabled={pestPlanEnabled} onToggle={() => setPestPlanEnabled(!pestPlanEnabled)} />
+                    <ToggleSwitch enabled={weedsPlanEnabled} onToggle={() => setWeedsPlanEnabled(!weedsPlanEnabled)} />
                   </div>
 
-                  <div className={`transition-all duration-300 ${pestPlanEnabled ? 'opacity-100' : 'opacity-50 grayscale'}`}>
+                  <div className={`transition-all duration-300 ${weedsPlanEnabled ? 'opacity-100' : 'opacity-50 grayscale'}`}>
                     <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 overflow-visible">
-                      <PremiumPlanDropdown 
-                        options={pestPlansList}
-                        value={selectedPestPlanId}
-                        onChange={setSelectedPestPlanId}
-                        recommendedTier={recommendedPestTier}
-                        label="Pest Level"
+                      <PremiumPlanDropdown
+                        options={weedsPlansList}
+                        value={selectedWeedsPlanId}
+                        onChange={setSelectedWeedsPlanId}
+                        recommendedTier={recommendedWeedsTier}
+                        label="Weed Control Level"
                       />
                       <div className="text-right">
                         <div className="text-lg font-bold text-gray-900">
-                          ${pestToday.toFixed(2)} <span className="text-sm font-normal text-gray-500">today</span>{' '}
+                          ${weedsToday.toFixed(2)} <span className="text-sm font-normal text-gray-500">today</span>{' '}
                           <Info size={12} className="inline text-gray-400" />
                         </div>
-                        <div className="text-xs text-gray-500">${pestYearly.toFixed(2)} total for the year</div>
+                        <div className="text-xs text-gray-500">${weedsYearly.toFixed(2)} total for the year</div>
                       </div>
                     </div>
                     <div className="p-6 space-y-4 bg-gray-50/30">
-                      {(selectedPestPlan?.features ?? []).map((feature, index) => (
+                      {(selectedWeedsPlan?.features ?? []).map((feature, index) => (
                         <ProductCard key={index} feature={feature} index={index + 2} />
                       ))}
                     </div>
@@ -354,16 +363,18 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                 </div>
               )}
 
-              {/* 3. GARDEN UPSELL */}
+              {/* GARDEN UPSELL */}
               {hasGarden && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center justify-between hover:border-green-200 transition-colors cursor-pointer group">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-700 group-hover:scale-110 transition-transform">
                       <Flower size={24} />
                     </div>
-                    <h2 className="text-xl font-bold text-gray-900">3. Add garden care</h2>
+                    <h2 className="text-xl font-bold text-gray-900">{gardenIndex}. Add garden care</h2>
                   </div>
-                  <button className="bg-green-700 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-800 transition-colors shadow-sm">Start</button>
+                  <button className="bg-green-700 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-800 transition-colors shadow-sm">
+                    Start
+                  </button>
                 </div>
               )}
 
@@ -377,6 +388,7 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                   See all FAQs
                 </button>
               </div>
+
             </div>
 
             {/* RIGHT COLUMN: Sidebar */}
@@ -384,10 +396,12 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
               <div className="lg:sticky lg:top-8 space-y-4">
                 <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
                   <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between">
-                    <h3 className="font-bold text-gray-800 flex items-center gap-2"><ShoppingCart size={18} /> Review plan</h3>
+                    <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                      <ShoppingCart size={18} /> Review plan
+                    </h3>
                     <div className="flex gap-1">
                       <Sprout size={16} className="text-green-600" />
-                      {pestPlanEnabled && hasPest && <Bug size={16} className="text-blue-600" />}
+                      {weedsPlanEnabled && hasWeeds && <Leaf size={16} className="text-lime-600" />}
                     </div>
                   </div>
                   <div className="p-6">
@@ -398,9 +412,6 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                     <div className="text-right text-xs text-gray-500 mb-6">
                       ${totalYearly.toFixed(2)} total for the year <Info size={10} className="inline" />
                     </div>
-                    {/* <button className="w-full bg-[#2E7D32] text-gray-50 font-extrabold text-lg py-3 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.98] mb-4 cursor-pointer">
-                      Add to cart
-                    </button> */}
                     <AddToCartButton
                       product={cartProduct}
                       quantity={1}

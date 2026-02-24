@@ -31,6 +31,7 @@ class CategoryController extends Controller
 
     public function store(Request $request)
     {
+        // Always derived from DB — never hardcoded
         $activeSlugs = Service::active()->pluck('slug')->toArray();
 
         $request->validate([
@@ -40,6 +41,7 @@ class CategoryController extends Controller
 
         $services = $request->input('selected_services');
 
+        // Lawn is always required
         if (!in_array('lawn', $services)) {
             $services = array_merge(['lawn'], $services);
         }
