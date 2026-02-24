@@ -8,10 +8,11 @@ export default defineConfig({
     plugins: [
         laravel({
             input: [
-                'resources/css/app.css', 
-                'resources/js/app.tsx', 
-                'resources/css/filament/admin/theme.css'],
-            ssr: 'resources/js/ssr.tsx',
+                'resources/css/app.css',
+                'resources/js/app.tsx',
+                'resources/css/filament/admin/theme.css',
+            ],
+            ssr    : 'resources/js/ssr.tsx',
             refresh: true,
         }),
         react({
@@ -26,5 +27,22 @@ export default defineConfig({
     ],
     esbuild: {
         jsx: 'automatic',
+    },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (id.includes('leaflet')) {
+                        return 'leaflet-bundle';
+                    }
+                },
+            },
+        },
+    },
+    optimizeDeps: {
+        include: ['leaflet', 'leaflet-draw'],
+        esbuildOptions: {
+            keepNames: true,
+        },
     },
 });
