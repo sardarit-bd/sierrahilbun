@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Lawn;
 
 use App\Http\Controllers\Controller;
+use App\Models\Service;
 use App\Services\Lawn\SessionFlowService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -18,21 +19,27 @@ class CategoryController extends Controller
     {
         $assessment = $this->sessionFlow->getAssessmentOrFail();
 
+        $services = Service::active()
+            ->orderByRaw("slug = 'lawn' DESC")
+            ->get(['name', 'slug']);
+
         return Inertia::render('yard-issue', [
             'zip_code' => $assessment->zip_code,
+            'services' => $services,
         ]);
     }
 
     public function store(Request $request)
     {
+        $activeSlugs = Service::active()->pluck('slug')->toArray();
+
         $request->validate([
             'selected_services'   => ['required', 'array', 'min:1'],
-            'selected_services.*' => ['required', 'string', 'in:lawn,pest,garden'],
+            'selected_services.*' => ['required', 'string', 'in:' . implode(',', $activeSlugs)],
         ]);
 
         $services = $request->input('selected_services');
 
-        // Lawn is always required
         if (!in_array('lawn', $services)) {
             $services = array_merge(['lawn'], $services);
         }

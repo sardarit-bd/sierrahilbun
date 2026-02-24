@@ -3,32 +3,30 @@ import { ArrowRight, Check } from 'lucide-react';
 import AppHeaderLayout from '@/layouts/app/app-header-layout';
 import { Head, useForm } from '@inertiajs/react';
 
-const ASSETS = {
-  lawnProduct:   "https://images.unsplash.com/photo-1558904541-efa843a96f01?q=80&w=1632&auto=format&fit=crop",
-  pestProduct:   "https://images.unsplash.com/photo-1581578017093-cd30fce4eeb7?q=80&w=1170&auto=format&fit=crop",
-  gardenProduct: "https://images.unsplash.com/photo-1594498653385-d5172c532c00?q=80&w=1074&auto=format&fit=crop",
-  mainHero:      "https://images.unsplash.com/photo-1534361960057-19889db9621e?auto=format&fit=crop&q=80&w=1600",
+// Image map — add new entries here as you add services
+const SERVICE_IMAGES = {
+  lawn:   "https://images.unsplash.com/photo-1558904541-efa843a96f01?q=80&w=1632&auto=format&fit=crop",
+  pest:   "https://images.unsplash.com/photo-1488920233920-d0a545a56b1d?q=80&w=1170&auto=format&fit=crop",
+  garden: "https://images.unsplash.com/photo-1594498653385-d5172c532c00?q=80&w=1074&auto=format&fit=crop",
 };
 
-const OPTIONS = [
-  { id: 'lawn',   label: 'Lawn',   image: ASSETS.lawnProduct,   locked: true },
-  { id: 'pest',   label: 'Pest',   image: ASSETS.pestProduct,   locked: false },
-  { id: 'garden', label: 'Garden', image: ASSETS.gardenProduct, locked: false },
-];
+const MAIN_HERO = "https://images.unsplash.com/photo-1534361960057-19889db9621e?auto=format&fit=crop&q=80&w=1600";
 
-export default function YardIssue({ zip_code }) {
-  const [selectedIds, setSelectedIds] = useState(['lawn']);
+export default function YardIssue({ zip_code, services }) {
+  const LOCKED_SLUG = 'lawn';
+
+  const [selectedIds, setSelectedIds] = useState([LOCKED_SLUG]);
 
   const { data, setData, post, processing } = useForm({
-    selected_services: ['lawn'],
+    selected_services: [LOCKED_SLUG],
   });
 
-  const toggleSelection = (id) => {
-    if (id === 'lawn') return;
+  const toggleSelection = (slug) => {
+    if (slug === LOCKED_SLUG) return;
 
-    const updated = selectedIds.includes(id)
-      ? selectedIds.filter((item) => item !== id)
-      : [...selectedIds, id];
+    const updated = selectedIds.includes(slug)
+      ? selectedIds.filter((item) => item !== slug)
+      : [...selectedIds, slug];
 
     setSelectedIds(updated);
     setData('selected_services', updated);
@@ -57,23 +55,24 @@ export default function YardIssue({ zip_code }) {
           </div>
 
           <div className="grid grid-cols-3 gap-3 md:gap-4 mb-10">
-            {OPTIONS.map((option) => {
-              const isSelected = selectedIds.includes(option.id);
+            {services.map((service) => {
+              const isSelected = selectedIds.includes(service.slug);
+              const isLocked   = service.slug === LOCKED_SLUG;
 
               return (
                 <div
-                  key={option.id}
-                  onClick={() => toggleSelection(option.id)}
+                  key={service.slug}
+                  onClick={() => toggleSelection(service.slug)}
                   className={`
                     group relative flex flex-col rounded-xl overflow-hidden border-2 transition-all duration-200 ease-in-out
                     ${isSelected
                       ? 'border-[#2E7D32] shadow-lg scale-[1.02]'
                       : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
                     }
-                    ${option.locked ? 'cursor-default' : 'cursor-pointer'}
+                    ${isLocked ? 'cursor-default' : 'cursor-pointer'}
                   `}
                 >
-                  {option.locked && (
+                  {isLocked && (
                     <div className="absolute top-2 right-2 z-10 bg-green-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
                       Required
                     </div>
@@ -89,8 +88,8 @@ export default function YardIssue({ zip_code }) {
 
                   <div className="h-24 sm:h-32 w-full bg-gray-100 relative">
                     <img
-                      src={option.image}
-                      alt={option.label}
+                      src={SERVICE_IMAGES[service.slug] ?? SERVICE_IMAGES.lawn}
+                      alt={service.name}
                       className="w-full h-full object-cover"
                     />
                     {!isSelected && (
@@ -100,7 +99,7 @@ export default function YardIssue({ zip_code }) {
 
                   <div className="p-3 bg-white flex items-center justify-center gap-1 sm:gap-2">
                     <span className={`text-sm sm:text-base font-bold ${isSelected ? 'text-gray-900' : 'text-gray-600'}`}>
-                      {option.label}
+                      {service.name}
                     </span>
                     <ArrowRight
                       size={16}
@@ -124,11 +123,7 @@ export default function YardIssue({ zip_code }) {
         {/* Right Panel */}
         <div className="w-full lg:w-1/2 xl:w-7/12 relative min-h-[300px] order-1 lg:order-2">
           <div className="absolute inset-0 bg-gray-200">
-            <img
-              src={ASSETS.mainHero}
-              alt="Beautiful green lawn"
-              className="w-full h-full object-cover"
-            />
+            <img src={MAIN_HERO} alt="Beautiful green lawn" className="w-full h-full object-cover" />
           </div>
         </div>
 
