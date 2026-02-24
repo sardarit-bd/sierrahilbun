@@ -13,12 +13,17 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class PlanResource extends Resource
 {
     protected static ?string $model = Plan::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-credit-card';
+
+    protected static string | UnitEnum | null $navigationGroup = 'Plan Management';
+
+    protected static ?int $navigationSort = 2;
 
     public static function form(Schema $schema): Schema
     {
