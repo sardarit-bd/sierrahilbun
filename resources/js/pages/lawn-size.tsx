@@ -13,6 +13,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import DrawableMap from '@/components/lawn/drawable-map';
 
 // Fix Leaflet default marker icon (known issue with bundlers)
 delete L.Icon.Default.prototype._getIconUrl;
@@ -291,110 +292,260 @@ const LawnSizeView = ({ onManualContinue, onAddressCalculated, zipCode }) => {
 
 // ─── View 2: Confirm Area ─────────────────────────────────────────────────────
 
-const ConfirmAreaView = ({ squareFeet, estimated, matchedAddress, lat, lon, onConfirm, onBack }) => {
-  const [editedSqft, setEditedSqft] = useState(squareFeet);
+// const ConfirmAreaView = ({ squareFeet, estimated, matchedAddress, lat, lon, onConfirm, onBack }) => {
+//   const [editedSqft, setEditedSqft] = useState(squareFeet);
 
-  const { data, setData, post, processing } = useForm({
-        square_feet: squareFeet, 
+//   const { data, setData, post, processing } = useForm({
+//         square_feet: squareFeet, 
+//     });
+
+//   const handleConfirm = () => {
+//         post(route('yard.size.confirm'), {
+//             onSuccess: () => onConfirm(),
+//         });
+//     };
+
+//   return (
+//     <div className="relative h-[100dvh] w-full flex flex-col md:flex-row overflow-hidden bg-gray-100 font-sans">
+
+//       {/* Left: Panel (Bottom on mobile) */}
+//       <div className="relative z-20 w-full md:w-[480px] lg:w-[500px] flex-shrink-0 bg-white h-[60dvh] md:h-full shadow-2xl flex flex-col overflow-y-auto order-2 md:order-1">
+//         <div className="p-8 md:p-12 flex flex-col md:justify-center md:h-full">
+//           <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-6 leading-tight">
+//             Confirm the area you want treated
+//           </h1>
+
+//           {/* Amber banner when estimate is used */}
+//           {estimated && (
+//             <div className="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
+//               <span className="text-amber-500 mt-0.5 flex-shrink-0">
+//                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+//                   <path
+//                     fillRule="evenodd"
+//                     d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+//                     clipRule="evenodd"
+//                   />
+//                 </svg>
+//               </span>
+//               <div>
+//                 <p className="text-sm font-semibold text-amber-800">
+//                   We couldn't find exact boundary data for your address
+//                 </p>
+//                 {matchedAddress && (
+//                   <p className="text-sm text-amber-700 mt-1">
+//                     Nearest match: <span className="font-semibold">{matchedAddress}</span>
+//                   </p>
+//                 )}
+//                 <p className="text-sm text-amber-700 mt-1">
+//                   No worries — we've used a typical estimate for your area. Adjust the square footage below if you know a better number, then continue.
+//                 </p>
+//               </div>
+//             </div>
+//           )}
+
+//           <div className="mb-6">
+//             <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">
+//               Estimated yard size
+//             </p>
+//             <div className="text-5xl font-extrabold text-gray-900 tracking-tight">
+//               {Number(squareFeet).toLocaleString()}
+//               <span className="text-2xl text-gray-500 font-bold ml-1">sq. ft</span>
+//             </div>
+//           </div>
+
+//           <div className="mb-8">
+//             <label className="block text-xs font-semibold text-gray-500 mb-2">
+//               Edit the area of lawn you want treated (in sq. ft)
+//             </label>
+//             <input
+//               type="number"
+//               value={data.square_feet}                          
+//               onChange={(e) => setData('square_feet', e.target.value)}
+//               className="w-full border border-gray-300 rounded-md px-4 py-3 text-lg font-semibold text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+//           />
+//           </div>
+
+//           <div className="space-y-3">
+//             <button
+//               onClick={handleConfirm}
+//               disabled={processing}
+//               className="w-full bg-[#2E7D32] hover:bg-[#256628] text-white font-bold py-4 rounded-lg shadow-lg transition-all text-lg disabled:opacity-50"
+//             >
+//               {processing ? 'Saving...' : 'Continue'}
+//             </button>
+//             <button
+//               onClick={onBack}
+//               className="w-full bg-white border-2 border-gray-200 text-gray-700 font-bold py-4 rounded-lg hover:bg-gray-50 transition-all text-lg"
+//             >
+//               Something's not right
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* Right: Live satellite map (Top on mobile) */}
+//       <div className="relative w-full h-[40dvh] md:h-auto md:flex-grow z-0 order-1 md:order-2">
+//         <SatelliteMap
+//           lat={lat}
+//           lon={lon}
+//           zoom={19}
+//           markerLabel={matchedAddress || `Est. ${Number(squareFeet).toLocaleString()} sq ft`}
+//         />
+//       </div>
+//     </div>
+//   );
+// };
+
+// ─── Add this import at the top of your lawn-size.jsx ───────────────────────
+// import DrawableMap from '@/components/lawn/drawable-map';
+// (add alongside your other imports)
+
+// ─── View 2: Confirm Area ─────────────────────────────────────────────────────
+
+const ConfirmAreaView = ({ squareFeet, estimated, matchedAddress, lat, lon, onConfirm, onBack }) => {
+    const [drawnSqft, setDrawnSqft] = useState(null);
+
+    // What we show and submit:
+    // - If user has drawn a polygon → use that
+    // - Otherwise fall back to the auto-calculated value from the server
+    const activeSqft = drawnSqft ?? squareFeet;
+    const isDrawn    = drawnSqft !== null;
+
+    const { data, setData, post, processing } = useForm({
+        square_feet: squareFeet,
     });
 
-  const handleConfirm = () => {
+    // Keep the form in sync whenever the active value changes
+    useEffect(() => {
+        setData('square_feet', activeSqft);
+    }, [activeSqft]);
+
+    const handleAreaCalculated = (sqft) => {
+        setDrawnSqft(sqft > 0 ? sqft : null);
+    };
+
+    const handleConfirm = () => {
         post(route('yard.size.confirm'), {
             onSuccess: () => onConfirm(),
         });
     };
 
-  return (
-    <div className="relative h-[100dvh] w-full flex flex-col md:flex-row overflow-hidden bg-gray-100 font-sans">
+    return (
+        <div className="relative h-[100dvh] w-full flex flex-col md:flex-row overflow-hidden bg-gray-100 font-sans">
 
-      {/* Left: Panel (Bottom on mobile) */}
-      <div className="relative z-20 w-full md:w-[480px] lg:w-[500px] flex-shrink-0 bg-white h-[60dvh] md:h-full shadow-2xl flex flex-col overflow-y-auto order-2 md:order-1">
-        <div className="p-8 md:p-12 flex flex-col md:justify-center md:h-full">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-6 leading-tight">
-            Confirm the area you want treated
-          </h1>
+            {/* Left: Panel (Bottom on mobile) */}
+            <div className="relative z-20 w-full md:w-[480px] lg:w-[500px] flex-shrink-0 bg-white h-[60dvh] md:h-full shadow-2xl flex flex-col overflow-y-auto order-2 md:order-1">
+                <div className="p-8 md:p-12 flex flex-col md:justify-center md:h-full">
+                    <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3 leading-tight">
+                        Confirm the area you want treated
+                    </h1>
 
-          {/* Amber banner when estimate is used */}
-          {estimated && (
-            <div className="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <span className="text-amber-500 mt-0.5 flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fillRule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-amber-800">
-                  We couldn't find exact boundary data for your address
-                </p>
-                {matchedAddress && (
-                  <p className="text-sm text-amber-700 mt-1">
-                    Nearest match: <span className="font-semibold">{matchedAddress}</span>
-                  </p>
-                )}
-                <p className="text-sm text-amber-700 mt-1">
-                  No worries — we've used a typical estimate for your area. Adjust the square footage below if you know a better number, then continue.
-                </p>
-              </div>
+                    {/* Drawing instruction banner */}
+                    <div className="mb-5 flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <span className="text-blue-500 mt-0.5 flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                        </span>
+                        <p className="text-sm text-blue-800">
+                            <span className="font-semibold">Draw your lawn on the map.</span> Use the polygon tool (top-right of map) to trace the area you want treated. Your drawing will update the square footage automatically.
+                        </p>
+                    </div>
+
+                    {/* Amber banner when estimate is used */}
+                    {estimated && !isDrawn && (
+                        <div className="mb-5 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                            <span className="text-amber-500 mt-0.5 flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                            </span>
+                            <div>
+                                <p className="text-sm font-semibold text-amber-800">
+                                    We couldn't find exact boundary data for your address
+                                </p>
+                                {matchedAddress && (
+                                    <p className="text-sm text-amber-700 mt-1">
+                                        Nearest match: <span className="font-semibold">{matchedAddress}</span>
+                                    </p>
+                                )}
+                                <p className="text-sm text-amber-700 mt-1">
+                                    Please draw your lawn on the map for an accurate measurement.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Square footage display */}
+                    <div className="mb-2">
+                        <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">
+                            {isDrawn ? 'Drawn lawn size' : 'Estimated yard size'}
+                        </p>
+                        <div className="flex items-end gap-3">
+                            <div className="text-5xl font-extrabold text-gray-900 tracking-tight">
+                                {Number(activeSqft).toLocaleString()}
+                                <span className="text-2xl text-gray-500 font-bold ml-1">sq. ft</span>
+                            </div>
+                            {/* Badge showing source */}
+                            {isDrawn ? (
+                                <span className="mb-2 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+                                    ✓ Drawn
+                                </span>
+                            ) : (
+                                <span className="mb-2 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
+                                    ~ Estimated
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Manual override input */}
+                    <div className="mb-8">
+                        <label className="block text-xs font-semibold text-gray-500 mb-2">
+                            Or type a number manually
+                        </label>
+                        <input
+                            type="number"
+                            value={data.square_feet}
+                            onChange={(e) => {
+                                setDrawnSqft(null); // manual override clears drawn state
+                                setData('square_feet', e.target.value);
+                            }}
+                            className="w-full border border-gray-300 rounded-md px-4 py-3 text-lg font-semibold text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+                        />
+                    </div>
+
+                    <div className="space-y-3">
+                        <button
+                            onClick={handleConfirm}
+                            disabled={processing || !data.square_feet}
+                            className="w-full bg-[#2E7D32] hover:bg-[#256628] text-white font-bold py-4 rounded-lg shadow-lg transition-all text-lg disabled:opacity-50"
+                        >
+                            {processing ? 'Saving...' : 'Continue'}
+                        </button>
+                        <button
+                            onClick={onBack}
+                            className="w-full bg-white border-2 border-gray-200 text-gray-700 font-bold py-4 rounded-lg hover:bg-gray-50 transition-all text-lg"
+                        >
+                            Something's not right
+                        </button>
+                    </div>
+                </div>
             </div>
-          )}
 
-          <div className="mb-6">
-            <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">
-              Estimated yard size
-            </p>
-            <div className="text-5xl font-extrabold text-gray-900 tracking-tight">
-              {Number(squareFeet).toLocaleString()}
-              <span className="text-2xl text-gray-500 font-bold ml-1">sq. ft</span>
+            {/* Right: Drawable satellite map (Top on mobile) */}
+            <div className="relative w-full h-[40dvh] md:h-auto md:flex-grow z-0 order-1 md:order-2">
+                <DrawableMap
+                    lat={lat}
+                    lon={lon}
+                    zoom={19}
+                    markerLabel={matchedAddress || `Est. ${Number(squareFeet).toLocaleString()} sq ft`}
+                    onAreaCalculated={handleAreaCalculated}
+                />
             </div>
-          </div>
-
-          <div className="mb-8">
-            <label className="block text-xs font-semibold text-gray-500 mb-2">
-              Edit the area of lawn you want treated (in sq. ft)
-            </label>
-            <input
-              type="number"
-              value={data.square_feet}                          
-              onChange={(e) => setData('square_feet', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-4 py-3 text-lg font-semibold text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
-          />
-          </div>
-
-          <div className="space-y-3">
-            <button
-              onClick={handleConfirm}
-              disabled={processing}
-              className="w-full bg-[#2E7D32] hover:bg-[#256628] text-white font-bold py-4 rounded-lg shadow-lg transition-all text-lg disabled:opacity-50"
-            >
-              {processing ? 'Saving...' : 'Continue'}
-            </button>
-            <button
-              onClick={onBack}
-              className="w-full bg-white border-2 border-gray-200 text-gray-700 font-bold py-4 rounded-lg hover:bg-gray-50 transition-all text-lg"
-            >
-              Something's not right
-            </button>
-          </div>
         </div>
-      </div>
-
-      {/* Right: Live satellite map (Top on mobile) */}
-      <div className="relative w-full h-[40dvh] md:h-auto md:flex-grow z-0 order-1 md:order-2">
-        <SatelliteMap
-          lat={lat}
-          lon={lon}
-          zoom={19}
-          markerLabel={matchedAddress || `Est. ${Number(squareFeet).toLocaleString()} sq ft`}
-        />
-      </div>
-    </div>
-  );
+    );
 };
-
 // ─── View 3: Loading ──────────────────────────────────────────────────────────
 
 const LoadingView = () => {
