@@ -17,13 +17,13 @@ class TierResolverService
         'gold'   => 3,
     ];
 
-    // Pest has no gold tier — caps at silver
-    private const PEST_MAX_TIER = 'silver';
+    // Weeds has no gold tier — caps at silver
+    private const WEEDS_MAX_TIER = 'silver';
 
     // -------------------------------------------------------
     // Public Entry Point
     // Returns per-service tier map e.g:
-    // ['lawn' => 'gold', 'pest' => 'silver']
+    // ['lawn' => 'gold', 'weeds' => 'silver']
     // Only resolves tiers for selected services.
     // -------------------------------------------------------
 
@@ -35,8 +35,8 @@ class TierResolverService
             $tiers['lawn'] = $this->resolveLawn($answers);
         }
 
-        if (in_array('pest', $selectedServices)) {
-            $tiers['pest'] = $this->resolvePest($answers);
+        if (in_array('weeds', $selectedServices)) {
+            $tiers['weeds'] = $this->resolveWeeds($answers);
         }
 
         return $tiers;
@@ -59,10 +59,10 @@ class TierResolverService
     }
 
     // -------------------------------------------------------
-    // Pest Tier Resolution — same rules, caps at silver
+    // Weeds Tier Resolution — same rules, caps at silver
     // -------------------------------------------------------
 
-    private function resolvePest(array $answers): string
+    private function resolveWeeds(array $answers): string
     {
         $tier = $this->baseFromGoals($answers['goals'] ?? 'looks');
         $tier = $this->applyPetsRule($tier, $answers);
@@ -70,10 +70,7 @@ class TierResolverService
         $tier = $this->applyCareRule($tier, $answers);
         $tier = $this->applyKnowledgeRule($tier, $answers);
 
-        // Pest has no gold — cap at silver
-        return $this->upgrade($tier, self::PEST_MAX_TIER) === 'gold'
-            ? self::PEST_MAX_TIER
-            : $this->capAt($tier, self::PEST_MAX_TIER);
+        return $this->capAt($tier, self::WEEDS_MAX_TIER);
     }
 
     // -------------------------------------------------------
