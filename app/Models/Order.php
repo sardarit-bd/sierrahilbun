@@ -23,6 +23,10 @@ class Order extends Model
         'updated_at' => 'datetime',
     ];
 
+    // -------------------------------------------------------
+    // Relationships
+    // -------------------------------------------------------
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -36,5 +40,19 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    // -------------------------------------------------------
+    // Scopes
+    // -------------------------------------------------------
+
+    public function scopePaid($query)
+    {
+        return $query->where('status', 'paid');
+    }
+
+    public function scopeForUser($query, int $userId)
+    {
+        return $query->where('user_id', $userId);
     }
 }

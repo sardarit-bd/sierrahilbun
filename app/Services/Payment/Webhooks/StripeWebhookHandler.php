@@ -5,6 +5,7 @@ namespace App\Services\Payment\Webhooks;
 use App\Models\CheckoutSession;
 use App\Models\PromoCode;
 use App\Models\Transaction;
+use App\Services\Order\OrderService;
 use App\Services\Payment\Contracts\WebhookHandlerInterface;
 use App\Services\Payment\Factory\PaymentGatewayFactory;
 use App\Services\Payment\Gateways\StripeGateway;
@@ -18,10 +19,12 @@ class StripeWebhookHandler implements WebhookHandlerInterface
 {
     private string $webhookSecret;
 
-    public function __construct(PaymentGatewayFactory $factory)
-    {
+    public function __construct(
+        private readonly PaymentGatewayFactory $factory,
+        private readonly OrderService          $orderService,
+    ) {
         /** @var StripeGateway $gateway */
-        $gateway = $factory->make('stripe');
+        $gateway             = $this->factory->make('stripe');
         $this->webhookSecret = $gateway->getWebhookSecret();
     }
 
@@ -53,51 +56,24 @@ class StripeWebhookHandler implements WebhookHandlerInterface
         );
 
         match($event->type) {
-            'payment_intent.succeeded'              => $this->onPaymentSucceeded($event),
-            'payment_intent.payment_failed'         => $this->onPaymentFailed($event),
-            'charge.refunded'                       => $this->onRefunded($event),
-            default                                 => $this->onUnhandled($event),
+            'payment_intent.succeeded'      => $this->onPaymentSucceeded($event),
+            'payment_intent.payment_failed' => $this->onPaymentFailed($event),
+            'charge.refunded'               => $this->onRefunded($event),
+            default                         => $this->onUnhandled($event),
         };
     }
 
-    // private function onPaymentSucceeded(Event $event): void
-    // {
-    //     $paymentIntent = $event->data->object;
-
-    //     DB::transaction(function () use ($paymentIntent) {
-    //         $transaction = Transaction::where('transaction_id', $paymentIntent->id)
-    //             ->lockForUpdate()
-    //             ->first();
-
-    //         if (!$transaction) {
-    //             Log::warning('Stripe webhook: transaction not found', [
-    //                 'transaction_id' => $paymentIntent->id,
-    //             ]);
-    //             return;
-    //         }
-
-    //         if ($transaction->status === 'succeeded') {
-    //             return;
-    //         }
-
-    //         $transaction->update([
-    //             'status'       => 'succeeded',
-    //             'raw_response' => $paymentIntent->toArray(),
-    //         ]);
-
-    //         // ✅ Complete checkout session when payment succeeds
-    //         if ($transaction->checkout_session_id) {
-    //             \App\Models\CheckoutSession::where('session_id', $transaction->checkout_session_id)
-    //                 ->update(['status' => 'completed']);
-    //         }
-    //     });
-    // }
+    // -------------------------------------------------------
+    // Event Handlers
+    // -------------------------------------------------------
 
     private function onPaymentSucceeded(Event $event): void
     {
         $paymentIntent = $event->data->object;
 
         DB::transaction(function () use ($paymentIntent) {
+
+            // ── Step 1: Find and lock transaction ─────────────────
             $transaction = Transaction::where('transaction_id', $paymentIntent->id)
                 ->lockForUpdate()
                 ->first();
@@ -109,28 +85,47 @@ class StripeWebhookHandler implements WebhookHandlerInterface
                 return;
             }
 
+            // ── Step 2: Idempotency guard ─────────────────────────
             if ($transaction->status === 'succeeded') {
                 return;
             }
 
+            // ── Step 3: Update transaction status ─────────────────
             $transaction->update([
                 'status'       => 'succeeded',
                 'raw_response' => $paymentIntent->toArray(),
             ]);
 
-            if ($transaction->checkout_session_id) {
-                $session = CheckoutSession::where('session_id', $transaction->checkout_session_id)
-                    ->first();
-
-                if ($session) {
-                    $session->update(['status' => 'completed']);
-
-                    if ($session->promo_code) {
-                        PromoCode::where('code', $session->promo_code)
-                            ->increment('usage_count');
-                    }
-                }
+            // ── Step 4: Find checkout session ─────────────────────
+            if (!$transaction->checkout_session_id) {
+                Log::warning('Stripe webhook: no checkout session linked to transaction', [
+                    'transaction_id' => $paymentIntent->id,
+                ]);
+                return;
             }
+
+            $session = CheckoutSession::where('session_id', $transaction->checkout_session_id)
+                ->first();
+
+            if (!$session) {
+                Log::warning('Stripe webhook: checkout session not found', [
+                    'session_id' => $transaction->checkout_session_id,
+                ]);
+                return;
+            }
+
+            // ── Step 5: Complete checkout session ─────────────────
+            $session->update(['status' => 'completed']);
+
+            // ── Step 6: Increment promo code usage ────────────────
+            if ($session->promo_code) {
+                PromoCode::where('code', $session->promo_code)
+                    ->increment('usage_count');
+            }
+
+            // ── Step 7: Create Order + OrderItems ─────────────────
+            // OrderService handles its own idempotency guard internally
+            $this->orderService->createFromCheckoutSession($transaction, $session);
         });
     }
 

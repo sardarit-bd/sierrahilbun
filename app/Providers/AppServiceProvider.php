@@ -19,6 +19,7 @@ use App\Services\Contracts\GeocoderInterface;
 use App\Services\Contracts\LotDetectorInterface;
 use App\Services\Geocoding\MapboxGeocoder;
 use App\Services\Lawn\LawnSizeService;
+use App\Services\Order\OrderService;
 use App\Services\Payment\Contracts\WebhookHandlerInterface;
 use App\Services\Payment\Factory\PaymentGatewayFactory;
 use App\Services\Payment\PaymentService;
@@ -69,6 +70,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(LawnAreaCalculator::class);
 
         $this->app->singleton(LawnSizeService::class);
+
+        $this->app->singleton(OrderService::class);
     }
 
     /**
