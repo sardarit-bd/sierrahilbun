@@ -31,23 +31,23 @@ export default function LocationQueryPage() {
             {/* Left Column */}
             <div className="p-10 md:p-16 flex flex-col justify-center">
 
-              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-1.5 w-fit mb-8 shadow-sm">
+              {/* <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-1.5 w-fit mb-8 shadow-sm">
                 <Sparkles className="w-4 h-4 text-[#81C784]" />
                 <span className="text-white text-xs font-bold tracking-wider uppercase">
                   Limited Offer
                 </span>
-              </div>
+              </div> */}
 
-              <h1 className="text-3xl md:text-5xl font-black text-white leading-[1.1] mb-4 font-serif tracking-tight">
+              <h1 className="text-3xl md:text-5xl font-black text-white leading-[1.1] mb-4 font-serif tracking-tight mb-10">
                 What's the <span className="text-[#A5D6A7] italic">real</span> current location of your home?
               </h1>
 
-              <div className="flex items-center gap-3 mb-10">
+              {/* <div className="flex items-center gap-3 mb-10">
                 <div className="h-px bg-white/30 w-12"></div>
                 <p className="text-white/90 font-medium text-lg">
                   Save <span className="font-bold text-[#FFD54F]">30%</span> on custom yard plans
                 </p>
-              </div>
+              </div> */}
 
               <form onSubmit={handleSubmit} className="max-w-md">
                 <label
