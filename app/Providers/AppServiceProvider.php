@@ -8,7 +8,17 @@ use App\Observers\QuestionObserver;
 use App\Observers\QuestionOptionObserver;
 use App\Repositories\BlogRepository;
 use App\Repositories\Contracts\BlogRepositoryInterface;
+use App\Services\Area\LawnAreaCalculator;
+use App\Services\Area\MapboxBuildingDetector;
+use App\Services\Area\OverpassLotDetector;
 use App\Services\Checkout\CheckoutService;
+use App\Services\Config\DatabaseApiConfig;
+use App\Services\Contracts\ApiConfigInterface;
+use App\Services\Contracts\BuildingDetectorInterface;
+use App\Services\Contracts\GeocoderInterface;
+use App\Services\Contracts\LotDetectorInterface;
+use App\Services\Geocoding\MapboxGeocoder;
+use App\Services\Lawn\LawnSizeService;
 use App\Services\Payment\Contracts\WebhookHandlerInterface;
 use App\Services\Payment\Factory\PaymentGatewayFactory;
 use App\Services\Payment\PaymentService;
@@ -35,6 +45,30 @@ class AppServiceProvider extends ServiceProvider
             BlogRepositoryInterface::class,
             BlogRepository::class
         );
+
+        $this->app->singleton(
+            ApiConfigInterface::class,
+            DatabaseApiConfig::class,
+        );
+
+        $this->app->singleton(
+            GeocoderInterface::class,
+            MapboxGeocoder::class,
+        );
+
+        $this->app->singleton(
+            BuildingDetectorInterface::class,
+            MapboxBuildingDetector::class,
+        );
+
+        $this->app->singleton(
+            LotDetectorInterface::class,
+            OverpassLotDetector::class,
+        );
+
+        $this->app->singleton(LawnAreaCalculator::class);
+
+        $this->app->singleton(LawnSizeService::class);
     }
 
     /**

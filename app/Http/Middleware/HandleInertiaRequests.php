@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\DiscountBanner;
+use App\Services\Contracts\ApiConfigInterface;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -36,18 +37,27 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        /** @var ApiConfigInterface $config */
+        $config  = app(ApiConfigInterface::class);
+        $token   = $config->get('mapbox_token');
+        $styleId = $config->get('mapbox_style_satellite')
+            ?? 'mapbox://styles/mapbox/satellite-streets-v12';
+
         return [
             ...parent::share($request),
             'discountBanner' => fn () => DiscountBanner::getActive(),
-            'name' => config('app.name'),
-            'auth' => [
+            'name'           => config('app.name'),
+            'auth'           => [
                 'user' => $request->user(),
             ],
-            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-
-            'flash' => [
+            'sidebarOpen'    => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'flash'          => [
                 'success' => session('success'),
                 'error'   => session('error'),
+            ],
+            'mapbox'         => [
+                'token'   => $token,
+                'styleId' => $styleId,
             ],
         ];
     }

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Lawn;
 
 use App\Http\Controllers\Controller;
+use App\Services\Lawn\LawnSizeService;
 use App\Services\Lawn\SessionFlowService;
-use App\Services\Lawn\SquareFootageService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -12,9 +12,13 @@ use Inertia\Response;
 class LawnSizeController extends Controller
 {
     public function __construct(
-        private SessionFlowService  $sessionFlow,
-        private SquareFootageService $squareFootage,
+        private readonly SessionFlowService $sessionFlow,
+        private readonly LawnSizeService    $lawnSizeService,
     ) {}
+
+    // -------------------------------------------------------
+    // Show
+    // -------------------------------------------------------
 
     public function show(): Response
     {
@@ -25,7 +29,11 @@ class LawnSizeController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    // -------------------------------------------------------
+    // Store
+    // -------------------------------------------------------
+
+    public function store(Request $request): mixed
     {
         $request->validate([
             'source'      => ['required', 'in:manual,address'],
@@ -33,6 +41,7 @@ class LawnSizeController extends Controller
             'address'     => ['required_if:source,address', 'nullable', 'string', 'max:500'],
         ]);
 
+        // ── Manual path ───────────────────────────────────────────
         if ($request->input('source') === 'manual') {
             $this->sessionFlow->updateAssessment([
                 'square_feet'  => $request->input('square_feet'),
@@ -43,13 +52,11 @@ class LawnSizeController extends Controller
             return redirect()->route('yard.soil');
         }
 
-        // Address path
-        $result = $this->squareFootage->calculate($request->input('address'));
+        // ── Address path ──────────────────────────────────────────
+        $result = $this->lawnSizeService->calculate($request->input('address'));
 
         if (!$result['success']) {
-            return back()->withErrors([
-                'address' => $result['error'],
-            ]);
+            return back()->withErrors(['address' => $result['error']]);
         }
 
         $this->sessionFlow->updateAssessment([
@@ -61,15 +68,31 @@ class LawnSizeController extends Controller
         ]);
 
         return Inertia::render('lawn-size', [
-            'zip_code'    => $this->sessionFlow->getAssessmentOrFail()->zip_code,
-            'square_feet' => $result['square_feet'],
-            'estimated'   => $result['estimated'],
-            'latitude'    => $result['latitude'],
-            'longitude'   => $result['longitude'],
+            'zip_code'         => $this->sessionFlow->getAssessmentOrFail()->zip_code,
+
+            // Coordinates & address
+            'latitude'         => $result['latitude'],
+            'longitude'        => $result['longitude'],
+            'matched_address'  => $result['matched_address'],
+            'confidence'       => $result['confidence'],
+
+            // Area data
+            'square_feet'      => $result['square_feet'],
+            'estimated'        => $result['estimated'],
+            'source'           => $result['source'],
+
+            // Polygons for the map — frontend draws these automatically
+            'lawn_polygon'     => $result['lawn_polygon'],
+            'lot_polygon'      => $result['lot_polygon'],
+            'building_polygon' => $result['building_polygon'],
         ]);
     }
 
-    public function confirm(Request $request)
+    // -------------------------------------------------------
+    // Confirm
+    // -------------------------------------------------------
+
+    public function confirm(Request $request): mixed
     {
         $request->validate([
             'square_feet' => ['required', 'integer', 'min:100', 'max:43560'],
