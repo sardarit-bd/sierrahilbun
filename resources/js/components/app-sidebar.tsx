@@ -23,8 +23,8 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
-        title: 'Soil Test',
-        href: '/soil',
+        title: 'Orders',
+        href: '/orders',
         icon: FlaskRound,
     },
 ];

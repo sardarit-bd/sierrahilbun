@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\Front\OrderController;
 use App\Http\Controllers\Lawn\CategoryController;
 use App\Http\Controllers\Lawn\LawnSizeController;
 use App\Http\Controllers\Lawn\LocationController;
@@ -31,15 +32,13 @@ Route::get('/search/products', [SearchController::class, 'products'])
     ->name('search.products')
     ->middleware('throttle:30,1');
 
-Route::group(['middleware' => ['auth', 'verified']], function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
 
-    Route::get('/soil', function () {
-        return Inertia::render('front/soil');
-    })->name('soil.index');
+// frontend
+Route::group(['middleware' => ['auth', 'verified']], function () {
+    Route::get('/dashboard', fn () => Inertia::render('dashboard'))->name('dashboard');
+    Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
 });
+
 
 // OAuth
 Route::prefix('auth')->name('auth.')->group(function () {
