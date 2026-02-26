@@ -5,9 +5,13 @@ on:
     branches:
       - main
 
+env:
+  PROJECT_DIR: /var/www/sira.sardarit.cloud
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -19,36 +23,37 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Deploy to VPS
+        env:
+          SSH_USER: ${{ secrets.USERNAME }}
+          SSH_HOST: ${{ secrets.HOST }}
         run: |
-          ssh -o StrictHostKeyChecking=no \
+          ssh -p 2222 \
+              -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null \
-              ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
+              -o ConnectTimeout=30 \
+              -o ServerAliveInterval=60 \
+              $SSH_USER@$SSH_HOST bash << EOF
+            set -e
 
-          set -e
+            echo "==> Navigating to project directory..."
+            cd $PROJECT_DIR
 
-          PROJECT_DIR="/var/www/sira.sardarit.cloud"
+            echo "==> Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/main
 
-          echo "Starting deployment..."
+            echo "==> Installing PHP dependencies..."
+            composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
-          cd $PROJECT_DIR
+            echo "==> Installing Node dependencies & building assets..."
+            npm ci
+            npm run build
 
-          echo "Fetching latest code..."
-          git fetch origin
-          git reset --hard origin/main
+            echo "==> Running database migrations..."
+            php artisan migrate --force
 
-          echo "Installing PHP dependencies..."
-          composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+            echo "==> Optimizing Laravel..."
+            php artisan optimize
 
-          echo "Installing Node dependencies..."
-          npm ci
-          npm run build
-
-          echo "Running migrations..."
-          php artisan migrate --force
-
-          echo "Optimizing Laravel..."
-          php artisan optimize
-
-          echo "Deployment completed successfully."
-
+            echo "✓ Deployment completed successfully."
           EOF
