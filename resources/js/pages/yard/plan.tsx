@@ -249,18 +249,6 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
     );
   }
 
-  // const cartProduct = {
-  //   id: `bundle-${selectedLawnPlanId}${weedsPlanEnabled && hasWeeds ? `-${selectedWeedsPlanId}` : ''}`,
-
-  //   name: weedsPlanEnabled && hasWeeds
-  //     ? `Lawn Care (${selectedLawnPlan?.name}) + Weeds Control (${selectedWeedsPlan?.name})`
-  //     : `Lawn Care (${selectedLawnPlan?.name})`,
-
-  //   title: selectedLawnPlan?.name,
-  //   image: 'https://images.unsplash.com/photo-1605117882932-f9e32b03fea9?q=80&w=300&auto=format&fit=crop',
-  //   price: totalToday,
-  //   price_yearly: totalYearly,
-  // };
   const cartProduct = {
       id: `bundle-${selectedLawnPlanId}${weedsPlanEnabled && hasWeeds ? `-${selectedWeedsPlanId}` : ''}`,
 
@@ -291,8 +279,7 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                 {Number(assessment?.square_feet ?? 0).toLocaleString()} sq feet
               </span>,{' '}
               your all-in-one plan combines easy to use products with expert guidance.
-              All delivered for free.{' '}
-              <a href="#" className="underline text-green-700 hover:text-green-800">See FAQs</a>
+              All delivered for free.
             </p>
           </div>
 
@@ -398,7 +385,7 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
               )}
 
               {/* FAQ */}
-              <div className="bg-[#E0F2F1] rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              {/* <div className="bg-[#E0F2F1] rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="bg-[#26A69A] text-white rounded-full p-2"><HelpCircle size={28} /></div>
                   <span className="text-lg font-bold text-gray-900">Still have questions?</span>
@@ -406,7 +393,7 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                 <button className="w-full sm:w-auto bg-white border border-gray-300 text-gray-700 font-bold px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
                   See all FAQs
                 </button>
-              </div>
+              </div> */}
 
             </div>
 
