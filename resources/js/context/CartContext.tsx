@@ -58,16 +58,18 @@ export const CartProvider = ({ children }) => {
       return [
         ...prevCart,
         {
-          id:            product.id,
-          name:          product.name || product.title,
-          price:         product.base_price || product.price,
-          originalPrice: product.original_price ?? null,
-          image:         product.image,
-          variant:       product.variant ?? '',
-          inStock:       product.inStock ?? true,
-          quantity,
+            id:            product.id,
+            name:          product.name || product.title,
+            price:         product.base_price || product.price,
+            originalPrice: product.original_price ?? null,
+            image:         product.image,
+            variant:       product.variant ?? '',
+            inStock:       product.inStock ?? true,
+            quantity,
+            lawn_plan_id:  product.lawn_plan_id ?? null,
+            weed_plan_id:  product.weed_plan_id ?? null,
         },
-      ];
+    ];
     });
   };
 

@@ -104,47 +104,25 @@ export default function CartContent() {
     setChecking(true);
 
     try {
-      // Handle yard plan bundle items (have lawn_plan_id / pest_plan_id)
-      const planItems = cart
-        .filter(item => item.lawn_plan_id || item.pest_plan_id)
-        .flatMap(item => [
-          item.lawn_plan_id && {
-            product_id: parseInt(item.lawn_plan_id, 10),
-            quantity:   item.quantity || 1,
-          },
-          item.pest_plan_id && {
-            product_id: parseInt(item.pest_plan_id, 10),
-            quantity:   item.quantity || 1,
-          },
-        ])
-        .filter(Boolean);
-
-      // Handle regular (non-plan) products
-      const regularItems = cart
-        .filter(item => !item.lawn_plan_id && !item.pest_plan_id)
-        .map(item => ({
-          product_id: parseInt(item.id, 10),
-          quantity:   item.quantity || 1,
-        }));
-
+      // Merge plan and regular items
       const allItems = cart.flatMap(item => {
-  // Yard plan bundle — has explicit plan IDs
-  if (item.lawn_plan_id || item.pest_plan_id) {
-    return [
-      item.lawn_plan_id ? { product_id: parseInt(item.lawn_plan_id, 10), quantity: item.quantity || 1 } : null,
-      item.pest_plan_id ? { product_id: parseInt(item.pest_plan_id, 10), quantity: item.quantity || 1 } : null,
-    ].filter(Boolean);
-  }
+        // Yard plan bundle — has explicit plan IDs
+        if (item.lawn_plan_id || item.weed_plan_id) {
+          return [
+            item.lawn_plan_id ? { type: 'plan', plan_id: parseInt(item.lawn_plan_id, 10), quantity: item.quantity || 1 } : null,
+            item.weed_plan_id ? { type: 'plan', plan_id: parseInt(item.weed_plan_id, 10), quantity: item.quantity || 1 } : null,
+          ].filter(Boolean);
+        }
 
-  // Regular product
-  const id = parseInt(item.id, 10);
-  if (!id || isNaN(id)) {
-    console.warn('Cart item has no valid integer id:', item);
-    return [];
-  }
+        // Regular product
+        const id = parseInt(item.id, 10);
+        if (!id || isNaN(id)) {
+          console.warn('Cart item has no valid integer id:', item);
+          return [];
+        }
 
-  return [{ product_id: id, quantity: item.quantity || 1 }];
-});
+        return [{ type: 'product', product_id: id, quantity: item.quantity || 1 }];
+      });
 
 // Safety check — don't proceed if nothing resolved
 if (allItems.length === 0) {

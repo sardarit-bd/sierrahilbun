@@ -4,6 +4,7 @@ namespace App\Services\Checkout;
 
 use App\Models\CheckoutSession;
 use App\Models\Product;
+use App\Models\Plan;
 use App\Models\PromoCode;
 use App\Services\Checkout\DTO\CheckoutCalculationDTO;
 use Illuminate\Support\Facades\DB;
@@ -63,19 +64,59 @@ class CheckoutService
     ): CheckoutCalculationDTO {
 
         // Step 1: Fetch real prices from DB — never trust frontend prices
-        $productIds = collect($cartItems)->pluck('product_id')->unique()->toArray();
+        $productIds = collect($cartItems)
+            ->where('type', 'product')
+            ->pluck('product_id')
+            ->unique()
+            ->toArray();
 
-        $products = Product::whereIn('id', $productIds)
-            ->where('is_active', true)
-            ->get()
-            ->keyBy('id');
+        $planIds = collect($cartItems)
+            ->where('type', 'plan')
+            ->pluck('plan_id')
+            ->unique()
+            ->toArray();
 
+        $products = !empty($productIds)
+            ? Product::whereIn('id', $productIds)->where('is_active', true)->get()->keyBy('id')
+            : collect();
+
+        $plans = !empty($planIds)
+            ? \App\Models\Plan::whereIn('id', $planIds)->get()->keyBy('id')
+            : collect();
 
         // Step 2: Build verified items with server prices
         $verifiedItems = [];
         $subtotal      = 0.00;
 
         foreach ($cartItems as $item) {
+            $quantity = max(1, (int) $item['quantity']);
+
+            if ($item['type'] === 'plan') {
+                $plan = $plans->get($item['plan_id']);
+
+                if (!$plan) {
+                    throw new \InvalidArgumentException(
+                        "Plan [{$item['plan_id']}] not found or unavailable."
+                    );
+                }
+
+                $yearlyPrice = (float) ($plan->current_price_yearly ?? $plan->base_price_yearly);
+                $unitPrice   = round($yearlyPrice / 12, 2);
+                $lineTotal   = round($unitPrice * $quantity, 2);
+                $subtotal   += $lineTotal;
+
+                $verifiedItems[] = [
+                    'type'       => 'plan',
+                    'plan_id'    => $plan->id,
+                    'name'       => $plan->name,
+                    'unit_price' => $unitPrice,
+                    'quantity'   => $quantity,
+                    'line_total' => $lineTotal,
+                ];
+
+                continue;
+            }
+
             $product = $products->get($item['product_id']);
 
             if (!$product) {
@@ -84,12 +125,12 @@ class CheckoutService
                 );
             }
 
-            $quantity   = max(1, (int) $item['quantity']);
             $unitPrice  = (float) $product->base_price;
             $lineTotal  = round($unitPrice * $quantity, 2);
             $subtotal  += $lineTotal;
 
             $verifiedItems[] = [
+                'type'       => 'product',
                 'product_id' => $product->id,
                 'name'       => $product->name,
                 'unit_price' => $unitPrice,
@@ -97,8 +138,6 @@ class CheckoutService
                 'line_total' => $lineTotal,
             ];
         }
-
-        $subtotal = round($subtotal, 2);
 
         // Step 3: Apply promo code
         $discountAmount = 0.00;

@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('services', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->comment("'Lawn', 'Pest', 'Garden'");
+            $table->string('name')->comment("'Lawn', 'Weed', 'Garden'");
             $table->string('slug')->unique();
             $table->boolean('is_active')->default(true);
             $table->timestamp('created_at')->useCurrent();

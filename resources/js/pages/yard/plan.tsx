@@ -249,17 +249,32 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
     );
   }
 
+  // const cartProduct = {
+  //   id: `bundle-${selectedLawnPlanId}${weedsPlanEnabled && hasWeeds ? `-${selectedWeedsPlanId}` : ''}`,
+
+  //   name: weedsPlanEnabled && hasWeeds
+  //     ? `Lawn Care (${selectedLawnPlan?.name}) + Weeds Control (${selectedWeedsPlan?.name})`
+  //     : `Lawn Care (${selectedLawnPlan?.name})`,
+
+  //   title: selectedLawnPlan?.name,
+  //   image: 'https://images.unsplash.com/photo-1605117882932-f9e32b03fea9?q=80&w=300&auto=format&fit=crop',
+  //   price: totalToday,
+  //   price_yearly: totalYearly,
+  // };
   const cartProduct = {
-    id: `bundle-${selectedLawnPlanId}${weedsPlanEnabled && hasWeeds ? `-${selectedWeedsPlanId}` : ''}`,
+      id: `bundle-${selectedLawnPlanId}${weedsPlanEnabled && hasWeeds ? `-${selectedWeedsPlanId}` : ''}`,
 
-    name: weedsPlanEnabled && hasWeeds
-      ? `Lawn Care (${selectedLawnPlan?.name}) + Weeds Control (${selectedWeedsPlan?.name})`
-      : `Lawn Care (${selectedLawnPlan?.name})`,
+      name: weedsPlanEnabled && hasWeeds
+        ? `Lawn Care (${selectedLawnPlan?.name}) + Weeds Control (${selectedWeedsPlan?.name})`
+        : `Lawn Care (${selectedLawnPlan?.name})`,
 
-    title: selectedLawnPlan?.name,
-    image: 'https://images.unsplash.com/photo-1605117882932-f9e32b03fea9?q=80&w=300&auto=format&fit=crop',
-    price: totalToday,
-    price_yearly: totalYearly,
+      title: selectedLawnPlan?.name,
+      image: 'https://images.unsplash.com/photo-1605117882932-f9e32b03fea9?q=80&w=300&auto=format&fit=crop',
+      price: totalToday,
+      price_yearly: totalYearly,
+
+      lawn_plan_id: selectedLawnPlanId,
+      weed_plan_id: weedsPlanEnabled && hasWeeds ? selectedWeedsPlanId : null,
   };
 
   return (
