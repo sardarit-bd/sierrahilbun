@@ -24,7 +24,7 @@ jobs:
           echo ""
           echo "Full verbose SSH attempt:"
           ssh -vvv -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${{ secrets.USERNAME }}@${{ secrets.HOST }} whoami || true
-          
+
       - name: Setup SSH Agent
         uses: webfactory/ssh-agent@v0.8.0
         with:
@@ -32,9 +32,11 @@ jobs:
 
       - name: Deploy to VPS
         run: |
-          ssh -o StrictHostKeyChecking=no \
-              -o UserKnownHostsFile=/dev/null \
-              ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
+          ssh -T \
+            -p 2222 \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            $$   {{ secrets.USERNAME }}@   $${{ secrets.HOST }} << 'EOF'
 
           set -e
 
