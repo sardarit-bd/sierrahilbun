@@ -10,50 +10,33 @@ env:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 10
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup SSH Agent
-        uses: webfactory/ssh-agent@v0.8.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Install PHP dependencies
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
-      - name: Deploy to VPS
-        env:
-          SSH_USER: ${{ secrets.USERNAME }}
-          SSH_HOST: ${{ secrets.HOST }}
+      - name: Install Node dependencies & build assets
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
-          ssh -p 2222 \
-              -o StrictHostKeyChecking=no \
-              -o UserKnownHostsFile=/dev/null \
-              -o ConnectTimeout=30 \
-              -o ServerAliveInterval=60 \
-              $SSH_USER@$SSH_HOST bash << EOF
-            set -e
+          npm ci
+          npm run build
 
-            echo "==> Navigating to project directory..."
-            cd $PROJECT_DIR
+      - name: Pull latest code
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          git fetch origin
+          git reset --hard origin/main
 
-            echo "==> Pulling latest code..."
-            git fetch origin
-            git reset --hard origin/main
+      - name: Run database migrations
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: php artisan migrate --force
 
-            echo "==> Installing PHP dependencies..."
-            composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
-
-            echo "==> Installing Node dependencies & building assets..."
-            npm ci
-            npm run build
-
-            echo "==> Running database migrations..."
-            php artisan migrate --force
-
-            echo "==> Optimizing Laravel..."
-            php artisan optimize
-
-            echo "✓ Deployment completed successfully."
-          EOF
+      - name: Optimize Laravel
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: php artisan optimize
