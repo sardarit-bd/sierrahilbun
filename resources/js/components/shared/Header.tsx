@@ -145,29 +145,43 @@ const Header = () => {
 
               {/* ─── Auth Button (changes based on login state) ─── */}
               {authUser ? (
-                <Link 
-                  href="/logout" 
-                  method="post" 
-                  as="button"
-                  className="hidden lg:flex items-center gap-2 text-slate-700 hover:text-red-600 font-bold text-sm group transition-colors"
-                >
-                  <LogOut size={20} className="text-slate-900 group-hover:text-red-600 transition-colors" />
-                  <span className="group-hover:underline decoration-red-600 decoration-2 underline-offset-4">
-                    Logout
-                  </span>
-                </Link>
-              ) : (
-                <Link 
-                  href="/login" 
-                  className="hidden lg:flex items-center gap-2 text-slate-700 hover:text-[#2E7D32] font-bold text-sm group transition-colors"
-                >
-                  <User size={20} className="text-slate-900 group-hover:text-[#2E7D32] transition-colors" />
-                  <span className="group-hover:underline decoration-[#2E7D32] decoration-2 underline-offset-4">
-                    Sign in
-                  </span>
-                </Link>
-              )}
-              
+  <>
+    {/* ===== Dashboard (NEW) ===== */}
+    <Link 
+      href="/dashboard"
+      className="hidden lg:flex items-center gap-2 text-slate-700 hover:text-[#2E7D32] font-bold text-sm group transition-colors"
+    >
+      <User size={20} className="text-slate-900 group-hover:text-[#2E7D32] transition-colors" />
+      <span className="group-hover:underline decoration-[#2E7D32] decoration-2 underline-offset-4">
+        Dashboard
+      </span>
+    </Link>
+
+    {/* ===== Logout (EXISTING) ===== */}
+    <Link 
+      href="/logout" 
+      method="post" 
+      as="button"
+      className="hidden lg:flex items-center gap-2 text-slate-700 hover:text-red-600 font-bold text-sm group transition-colors"
+    >
+      <LogOut size={20} className="text-slate-900 group-hover:text-red-600 transition-colors" />
+      <span className="group-hover:underline decoration-red-600 decoration-2 underline-offset-4">
+        Logout
+      </span>
+    </Link>
+  </>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="hidden lg:flex items-center gap-2 text-slate-700 hover:text-[#2E7D32] font-bold text-sm group transition-colors"
+                  >
+                    <User size={20} className="text-slate-900 group-hover:text-[#2E7D32]" />
+                    <span className="group-hover:underline decoration-[#2E7D32] decoration-2 underline-offset-4">
+                      Sign In
+                    </span>
+                  </Link>
+                )}
+                              
               <Link 
                 href="/cart" 
                 id="cart-icon"
@@ -203,9 +217,9 @@ const Header = () => {
                 ))}
               </nav>
               <div className="flex-shrink-0 pl-4">
-                <button className="bg-[#2E7D32] hover:scale-105 text-white font-extrabold py-2 px-6 rounded-full transition-colors text-sm shadow-sm hover:shadow-md cursor-pointer">
+                <Link href="/custom-lawn" className="bg-[#2E7D32] hover:scale-105 text-white font-extrabold py-2 px-6 rounded-full transition-colors text-sm shadow-sm hover:shadow-md cursor-pointer">
                   Get your plan
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -266,21 +280,31 @@ const Header = () => {
             <div className="mt-4 px-7 text-xs font-bold text-gray-400 uppercase tracking-wider">Account</div>
             
             {authUser ? (
-              <Link 
-                href="/logout" 
-                method="post" 
-                as="button"
-                className="flex items-center gap-3 px-6 py-2 text-[15px] font-bold text-red-600 hover:bg-gray-50 transition-colors"
-              >
-                <LogOut size={20} />
-                Logout
-              </Link>
+  <>
+    <Link 
+      href="/dashboard"
+      className="flex items-center gap-3 px-6 py-2 text-[15px] font-bold text-slate-800 hover:bg-gray-50 transition-colors"
+    >
+      <User size={20} className="text-slate-500" />
+      Dashboard
+    </Link>
+
+    <Link 
+      href="/logout" 
+      method="post" 
+      as="button"
+      className="flex items-center gap-3 px-6 py-2 text-[15px] font-bold text-red-600 hover:bg-gray-50 transition-colors"
+    >
+      <LogOut size={20} />
+      Logout
+    </Link>
+  </>
             ) : (
               <Link 
-                href="/login" 
+                href="/login"
                 className="flex items-center gap-3 px-6 py-2 text-[15px] font-bold text-slate-800 hover:bg-gray-50 transition-colors"
               >
-                <User size={20} className="text-slate-400" />
+                <User size={20} className="text-slate-500" />
                 Sign In
               </Link>
             )}
@@ -289,10 +313,13 @@ const Header = () => {
 
         {/* Drawer Footer (CTA) */}
         <div className="p-4 border-t border-gray-100 bg-gray-50">
-          <button className="w-full bg-[#4C8C4A] text-gray-50 font-extrabold text-lg py-4 rounded-xl shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+          <Link
+            href="/custom-lawn"
+            className="w-full bg-[#4C8C4A] text-gray-50 font-extrabold text-lg py-4 rounded-xl shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
             Get your plan
             <ArrowRight size={20} className="text-gray-50" />
-          </button>
+          </Link>
         </div>
       </div>
 
