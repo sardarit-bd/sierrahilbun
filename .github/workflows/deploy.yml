@@ -13,7 +13,18 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+        
+      - name: Debug connectivity
+        run: |
+          echo "Testing basic reachability..."
+          ping -c 4 ${{ secrets.HOST }} || echo "Ping failed (normal if ICMP blocked)"
+          echo ""
+          echo "Testing TCP port 22..."
+          timeout 10 bash -c "</dev/tcp/${{ secrets.HOST }}/22" && echo "Port 22 reachable" || echo "Port 22 TIMEOUT / unreachable"
+          echo ""
+          echo "Full verbose SSH attempt:"
+          ssh -vvv -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${{ secrets.USERNAME }}@${{ secrets.HOST }} whoami || true
+          
       - name: Setup SSH Agent
         uses: webfactory/ssh-agent@v0.8.0
         with:
