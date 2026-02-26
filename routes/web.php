@@ -3,16 +3,17 @@
 use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\Lawn\CategoryController;
+use App\Http\Controllers\Lawn\LawnSizeController;
+use App\Http\Controllers\Lawn\LocationController;
+use App\Http\Controllers\Lawn\PlanController;
+use App\Http\Controllers\Lawn\QuestionnaireController;
+use App\Http\Controllers\Lawn\SoilProfileController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PromoCodeController;
 use App\Http\Controllers\ReviewController;
-use App\Http\Controllers\Lawn\LocationController;
-use App\Http\Controllers\Lawn\CategoryController;
-use App\Http\Controllers\Lawn\LawnSizeController;
-use App\Http\Controllers\Lawn\SoilProfileController;
-use App\Http\Controllers\Lawn\QuestionnaireController;
-use App\Http\Controllers\Lawn\PlanController;
+use App\Http\Controllers\SearchController;
 use App\Services\ProductService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -24,6 +25,11 @@ Route::get('/', function (ProductService $service) {
         'featuredProducts' => $service->getFeaturedProducts(),
     ]);
 })->name('home');
+
+// search
+Route::get('/search/products', [SearchController::class, 'products'])
+    ->name('search.products')
+    ->middleware('throttle:30,1');
 
 Route::group(['middleware' => ['auth', 'verified']], function () {
     Route::get('/dashboard', function () {

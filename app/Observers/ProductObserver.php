@@ -3,21 +3,21 @@
 namespace App\Observers;
 
 use App\Models\Product;
-use Illuminate\Support\Facades\Cache;
+use App\Services\CacheService;
 
 class ProductObserver
 {
-    /**
-     * Clear all product-related cache when any product is updated, 
-     * deleted, or created.
-     */
+    public function __construct(
+        protected CacheService $cache
+    ) {}
+
     public function saved(Product $product): void
     {
-        Cache::tags('products')->flush();
+        $this->cache->flush(['products']);
     }
 
     public function deleted(Product $product): void
     {
-        Cache::tags('products')->flush();
+        $this->cache->flush(['products']);
     }
 }
