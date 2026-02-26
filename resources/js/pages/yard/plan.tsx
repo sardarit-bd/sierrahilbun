@@ -251,17 +251,15 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
 
   const cartProduct = {
     id: `bundle-${selectedLawnPlanId}${weedsPlanEnabled && hasWeeds ? `-${selectedWeedsPlanId}` : ''}`,
+
     name: weedsPlanEnabled && hasWeeds
-      ? `${selectedLawnPlan?.name} + ${selectedWeedsPlan?.name}`
-      : selectedLawnPlan?.name,
+      ? `Lawn Care (${selectedLawnPlan?.name}) + Weeds Control (${selectedWeedsPlan?.name})`
+      : `Lawn Care (${selectedLawnPlan?.name})`,
+
     title: selectedLawnPlan?.name,
     image: 'https://images.unsplash.com/photo-1605117882932-f9e32b03fea9?q=80&w=300&auto=format&fit=crop',
-    price:        totalToday,
+    price: totalToday,
     price_yearly: totalYearly,
-    plans: {
-      lawn: selectedLawnPlan,
-      ...(weedsPlanEnabled && hasWeeds ? { weeds: selectedWeedsPlan } : {}),
-    },
   };
 
   return (
@@ -308,14 +306,14 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                     value={selectedLawnPlanId}
                     onChange={setSelectedLawnPlanId}
                     recommendedTier={recommendedLawnTier}
-                    label="Selected Tier"
+                    label="Lawn Plan"
                   />
                   <div className="text-right">
                     <div className="text-lg font-bold text-gray-900">
-                      ${lawnToday.toFixed(2)} <span className="text-sm font-normal text-gray-500">today</span>{' '}
-                      <Info size={12} className="inline text-gray-400" />
+                      ${lawnToday.toFixed(2)} {' '}
+                      {/* <Info size={12} className="inline text-gray-400" /> */}
                     </div>
-                    <div className="text-xs text-gray-500">${lawnYearly.toFixed(2)} total for the year</div>
+                    {/* <div className="text-xs text-gray-500">${lawnYearly.toFixed(2)} total for the year</div> */}
                   </div>
                 </div>
 
@@ -350,14 +348,14 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                         value={selectedWeedsPlanId}
                         onChange={setSelectedWeedsPlanId}
                         recommendedTier={recommendedWeedsTier}
-                        label="Weed Control Level"
+                        label="Weed Control Plan"
                       />
                       <div className="text-right">
                         <div className="text-lg font-bold text-gray-900">
-                          ${weedsToday.toFixed(2)} <span className="text-sm font-normal text-gray-500">today</span>{' '}
-                          <Info size={12} className="inline text-gray-400" />
+                          ${weedsToday.toFixed(2)} {' '}
+                          {/* <Info size={12} className="inline text-gray-400" /> */}
                         </div>
-                        <div className="text-xs text-gray-500">${weedsYearly.toFixed(2)} total for the year</div>
+                        {/* <div className="text-xs text-gray-500">${weedsYearly.toFixed(2)} total for the year</div> */}
                       </div>
                     </div>
                     <div className="p-6 space-y-4 bg-gray-50/30">
@@ -412,11 +410,11 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                   </div>
                   <div className="p-6">
                     <div className="flex justify-between items-baseline mb-1">
-                      <span className="text-gray-600 font-medium">Total due today</span>
+                      <span className="text-gray-600 font-medium">Total Price</span>
                       <span className="text-3xl font-extrabold text-gray-900">${totalToday.toFixed(2)}</span>
                     </div>
                     <div className="text-right text-xs text-gray-500 mb-6">
-                      ${totalYearly.toFixed(2)} total for the year <Info size={10} className="inline" />
+                      {/* ${totalYearly.toFixed(2)} total for the year <Info size={10} className="inline" /> */}
                     </div>
                     <AddToCartButton
                       product={cartProduct}
