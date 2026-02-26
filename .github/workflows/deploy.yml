@@ -19,13 +19,37 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Test SSH connectivity
-        run: |
-          nc -zv ${{ secrets.HOST }} 22 || echo "Port 22 not reachable from runner"
-
-      - name: Trigger deployment on VPS
+      - name: Deploy to VPS
         run: |
           ssh -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null \
-              ${{ secrets.USERNAME }}@${{ secrets.HOST }} \
-              "bash /var/www/deploy.sh"
+              ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
+
+          set -e
+
+          PROJECT_DIR="/var/www/sira.sardarit.cloud"
+
+          echo "Starting deployment..."
+
+          cd $PROJECT_DIR
+
+          echo "Fetching latest code..."
+          git fetch origin
+          git reset --hard origin/main
+
+          echo "Installing PHP dependencies..."
+          composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+
+          echo "Installing Node dependencies..."
+          npm ci
+          npm run build
+
+          echo "Running migrations..."
+          php artisan migrate --force
+
+          echo "Optimizing Laravel..."
+          php artisan optimize
+
+          echo "Deployment completed successfully."
+
+          EOF
