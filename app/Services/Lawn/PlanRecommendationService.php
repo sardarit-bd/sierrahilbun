@@ -18,6 +18,9 @@ class PlanRecommendationService
             'silver' => 'weeds-silver',
             'gold'   => 'weeds-gold',
         ],
+        'garden' => [
+            'standard' => 'garden-standard',
+        ],
     ];
 
     public function recommend(array $tiers): array

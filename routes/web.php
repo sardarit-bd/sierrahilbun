@@ -5,6 +5,7 @@ use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\Front\OrderController;
 use App\Http\Controllers\Lawn\CategoryController;
+use App\Http\Controllers\Lawn\GardenQuizController;
 use App\Http\Controllers\Lawn\LawnSizeController;
 use App\Http\Controllers\Lawn\LocationController;
 use App\Http\Controllers\Lawn\PlanController;
@@ -83,6 +84,7 @@ Route::post('/lawns/questions', [QuestionnaireController::class, 'store'])->name
 
 // Generated Plan
 Route::get('/yard/plan', [PlanController::class, 'show'])->name('yard.plan');
+Route::post('/yard/garden-quiz', [GardenQuizController::class, 'store'])->name('yard.garden-quiz');
 
 
 

@@ -1,28 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Check, 
-  ChevronDown, 
-  Info, 
-  Star, 
-  Bug, 
-  Sprout, 
-  Flower, 
+import { router } from '@inertiajs/react';
+import {
+  Check,
+  ChevronDown,
+  Sprout,
+  Flower,
   ShoppingCart,
   ShieldCheck,
-  HelpCircle,
   Award,
-  Leaf
+  Leaf,
+  X,
+  Pencil,
 } from 'lucide-react';
 import AppHeaderLayout from '@/layouts/app/app-header-layout';
 import AddToCartButton from '@/components/AddToCartButton';
 
-/**
- * --- Premium Select Component ---
- */
+// -------------------------------------------------------
+// Premium Select Component
+// -------------------------------------------------------
+
 const PremiumPlanDropdown = ({ options, value, onChange, recommendedTier, label = "Select Plan" }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
-  
+
   const selectedOption = options.find(opt => opt.id === Number(value)) || options[0];
 
   useEffect(() => {
@@ -41,10 +41,10 @@ const PremiumPlanDropdown = ({ options, value, onChange, recommendedTier, label 
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`
-          group flex items-center justify-between w-full px-4 py-2.5 bg-white 
+          group flex items-center justify-between w-full px-4 py-2.5 bg-white
           border transition-all duration-300 rounded-lg text-left
-          ${isOpen 
-            ? 'border-green-600 ring-4 ring-green-50 shadow-sm' 
+          ${isOpen
+            ? 'border-green-600 ring-4 ring-green-50 shadow-sm'
             : 'border-gray-300 hover:border-gray-400 shadow-sm'
           }
         `}
@@ -64,9 +64,9 @@ const PremiumPlanDropdown = ({ options, value, onChange, recommendedTier, label 
             )}
           </div>
         </div>
-        <ChevronDown 
-          size={18} 
-          className={`text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-green-600' : ''}`} 
+        <ChevronDown
+          size={18}
+          className={`text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-green-600' : ''}`}
         />
       </button>
 
@@ -76,7 +76,7 @@ const PremiumPlanDropdown = ({ options, value, onChange, recommendedTier, label 
             {options.map((plan) => {
               const isSelected    = plan.id === Number(value);
               const isRecommended = plan.target_audience === recommendedTier;
-              
+
               return (
                 <button
                   key={plan.id}
@@ -114,7 +114,9 @@ const PremiumPlanDropdown = ({ options, value, onChange, recommendedTier, label 
   );
 };
 
-// --- Helpers ---
+// -------------------------------------------------------
+// Helpers
+// -------------------------------------------------------
 
 const resolveUrl = (path) => {
   if (!path) return null;
@@ -133,18 +135,19 @@ const mapFeatureToAsset = (feature, index) => {
     { color: 'bg-orange-100 text-orange-800', img: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&q=80&w=200',     defaultTag: 'Bonus'     },
   ];
   const asset            = assets[index % assets.length];
-  const iconUrl          = feature.icon_url  ? resolveUrl(feature.icon_url)  : asset.img;
+  const iconUrl          = feature.icon_url ? resolveUrl(feature.icon_url) : asset.img;
   const images = Array.isArray(feature.image_url)
-  ? feature.image_url
-  : typeof feature.image_url === 'string'
-    ? JSON.parse(feature.image_url)
-    : [];
-
+    ? feature.image_url
+    : typeof feature.image_url === 'string'
+      ? JSON.parse(feature.image_url)
+      : [];
   const expandedImageUrl = images.length ? resolveUrl(images[0]) : null;
   return { ...feature, tag: feature.tag || asset.defaultTag, tagColor: asset.color, displayIcon: iconUrl, displayImage: expandedImageUrl };
 };
 
-// --- Sub-Components ---
+// -------------------------------------------------------
+// Sub-Components
+// -------------------------------------------------------
 
 const ProductCard = ({ feature, index }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -182,6 +185,27 @@ const ProductCard = ({ feature, index }) => {
   );
 };
 
+// -------------------------------------------------------
+// Garden Product Card
+// Merges DB-backed feature (title, subtitle, icon_url) with
+// calculated quantities from garden_products.items.
+// Matched by index — order guaranteed by plan_feature.sort_order
+// matching the order of GardenQuizCalculatorService::PRODUCTS.
+// -------------------------------------------------------
+
+const GardenProductCard = ({ feature, item, index }) => {
+  const quartsLabel = item
+    ? `${item.quarts} quart${item.quarts !== 1 ? 's' : ''} · $${item.price_per_quart}/quart · $${item.total.toFixed(2)} total`
+    : null;
+
+  const mergedFeature = {
+    ...feature,
+    subtitle: quartsLabel ?? feature.subtitle,
+  };
+
+  return <ProductCard feature={mergedFeature} index={index} />;
+};
+
 const ToggleSwitch = ({ enabled, onToggle }) => (
   <button
     onClick={onToggle}
@@ -191,11 +215,226 @@ const ToggleSwitch = ({ enabled, onToggle }) => (
   </button>
 );
 
-// --- Main Page Component ---
+// -------------------------------------------------------
+// Garden Quiz Modal
+// -------------------------------------------------------
+
+const GARDEN_TYPES = [
+  { value: 'flowers',      label: 'Flowers'       },
+  { value: 'vegetables',   label: 'Vegetables'     },
+  { value: 'trees_shrubs', label: 'Trees & Shrubs' },
+];
+
+const GARDEN_SIZES = [
+  { value: 'xs', label: 'XS',  description: 'Less than 500 sq ft' },
+  { value: 'sm', label: 'S-M', description: '500–1,000 sq ft'     },
+  { value: 'l',  label: 'L',   description: '1,000+ sq ft'        },
+];
+
+const GardenQuizModal = ({ isOpen, onClose }) => {
+  const [step, setStep]                 = useState(1);
+  const [gardenTypes, setGardenTypes]   = useState([]);
+  const [gardenSize, setGardenSize]     = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors]             = useState({});
+
+  useEffect(() => {
+    if (isOpen) {
+      setStep(1);
+      setGardenTypes([]);
+      setGardenSize(null);
+      setErrors({});
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const toggleType = (value) => {
+    setGardenTypes(prev =>
+      prev.includes(value) ? prev.filter(t => t !== value) : [...prev, value]
+    );
+    setErrors(prev => ({ ...prev, garden_types: null }));
+  };
+
+  const handleNext = () => {
+    if (gardenTypes.length === 0) {
+      setErrors({ garden_types: 'Please select at least one garden type.' });
+      return;
+    }
+    setStep(2);
+  };
+
+  const handleSubmit = () => {
+    if (!gardenSize) {
+      setErrors({ garden_size: 'Please select a garden size.' });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    router.post(
+      route('yard.garden-quiz'),
+      { garden_types: gardenTypes, garden_size: gardenSize },
+      {
+        preserveScroll: true,
+        onSuccess: () => { onClose(); },
+        onError:   (errs) => { setErrors(errs); setIsSubmitting(false); },
+        onFinish:  () => { setIsSubmitting(false); },
+      }
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center text-orange-700">
+              <Flower size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 text-base leading-none">Garden Care</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Step {step} of 2</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Step indicator */}
+        <div className="flex gap-1 px-6 pt-4">
+          <div className="h-1 flex-1 rounded-full bg-green-600" />
+          <div className={`h-1 flex-1 rounded-full transition-colors duration-300 ${step === 2 ? 'bg-green-600' : 'bg-gray-200'}`} />
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5">
+          {step === 1 && (
+            <div>
+              <h4 className="font-bold text-gray-900 text-base mb-1">What do you grow?</h4>
+              <p className="text-sm text-gray-500 mb-4">Select all that apply.</p>
+              <div className="space-y-2">
+                {GARDEN_TYPES.map((type) => {
+                  const isSelected = gardenTypes.includes(type.value);
+                  return (
+                    <button
+                      key={type.value}
+                      onClick={() => toggleType(type.value)}
+                      className={`
+                        w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all duration-150 text-left
+                        ${isSelected
+                          ? 'border-green-600 bg-green-50 text-green-900'
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        }
+                      `}
+                    >
+                      <span className="font-semibold text-sm">{type.label}</span>
+                      {isSelected && <Check size={16} className="text-green-600" strokeWidth={3} />}
+                    </button>
+                  );
+                })}
+              </div>
+              {errors.garden_types && (
+                <p className="text-xs text-red-600 mt-2">{errors.garden_types}</p>
+              )}
+            </div>
+          )}
+
+          {step === 2 && (
+            <div>
+              <h4 className="font-bold text-gray-900 text-base mb-1">How large is your garden?</h4>
+              <p className="text-sm text-gray-500 mb-4">We'll use this to calculate your product quantities.</p>
+              <div className="space-y-2">
+                {GARDEN_SIZES.map((size) => {
+                  const isSelected = gardenSize === size.value;
+                  return (
+                    <button
+                      key={size.value}
+                      onClick={() => {
+                        setGardenSize(size.value);
+                        setErrors(prev => ({ ...prev, garden_size: null }));
+                      }}
+                      className={`
+                        w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all duration-150 text-left
+                        ${isSelected
+                          ? 'border-green-600 bg-green-50 text-green-900'
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        }
+                      `}
+                    >
+                      <div>
+                        <span className="font-bold text-sm">{size.label}</span>
+                        <span className="text-xs text-gray-500 ml-2">{size.description}</span>
+                      </div>
+                      {isSelected && <Check size={16} className="text-green-600" strokeWidth={3} />}
+                    </button>
+                  );
+                })}
+              </div>
+              {errors.garden_size && (
+                <p className="text-xs text-red-600 mt-2">{errors.garden_size}</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 pb-6 flex items-center justify-between gap-3">
+          {step === 2 ? (
+            <button
+              onClick={() => setStep(1)}
+              className="text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Back
+            </button>
+          ) : (
+            <div />
+          )}
+          {step === 1 && (
+            <button
+              onClick={handleNext}
+              className="ml-auto bg-green-700 text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-green-800 transition-colors shadow-sm"
+            >
+              Next
+            </button>
+          )}
+          {step === 2 && (
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="ml-auto bg-green-700 text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-green-800 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Saving…' : 'Add to plan'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// -------------------------------------------------------
+// Main Page Component
+// -------------------------------------------------------
 
 export default function App({ assessment, recommended_plans, all_plans, tiers }) {
-  const [isLoading, setIsLoading]             = useState(true);
-  const [weedsPlanEnabled, setWeedsPlanEnabled] = useState(true);
+  const [isLoading, setIsLoading]               = useState(true);
+  const [weedsPlanEnabled, setWeedsPlanEnabled]  = useState(true);
+  const [gardenEnabled, setGardenEnabled]        = useState(true);
+  const [gardenModalOpen, setGardenModalOpen]    = useState(false);
 
   // Lawn plans
   const lawnPlansMap        = all_plans?.lawn ?? {};
@@ -213,9 +452,19 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
   const [selectedWeedsPlanId, setSelectedWeedsPlanId] = useState(defaultWeedsPlan?.id);
   const selectedWeedsPlan = weedsPlansList.find(p => p.id === Number(selectedWeedsPlanId)) ?? defaultWeedsPlan;
 
-  // Service flags — only show a section if the service was selected AND plans exist
-  const hasWeeds  = (assessment?.selected_services?.includes('weeds')  ?? false) && weedsPlansList.length > 0;
-  const hasGarden = (assessment?.selected_services?.includes('garden') ?? false);
+  // Garden — DB-backed features + calculated items
+  const gardenPlan     = all_plans?.garden?.standard ?? null;
+  const gardenFeatures = gardenPlan?.features ?? [];
+  const gardenItems    = assessment?.garden_products?.items ?? [];
+
+  // Service flags
+  const hasWeeds      = (assessment?.selected_services?.includes('weeds')  ?? false) && weedsPlansList.length > 0;
+  const hasGarden     = (assessment?.selected_services?.includes('garden') ?? false);
+  const hasGardenPlan = hasGarden && gardenItems.length > 0;
+
+  useEffect(() => {
+    setGardenEnabled(hasGardenPlan);
+  }, [hasGardenPlan]);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000);
@@ -223,17 +472,26 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
   }, []);
 
   // Pricing
-  const lawnYearly  = parseFloat(selectedLawnPlan?.current_price_yearly  ?? selectedLawnPlan?.base_price_yearly  ?? 0);
-  const weedsYearly = parseFloat(selectedWeedsPlan?.current_price_yearly ?? selectedWeedsPlan?.base_price_yearly ?? 0);
-  const lawnToday   = lawnYearly  / 12;
-  const weedsToday  = weedsYearly / 12;
-  const totalYearly = lawnYearly  + (weedsPlanEnabled && hasWeeds ? weedsYearly : 0);
-  const totalToday  = lawnToday   + (weedsPlanEnabled && hasWeeds ? weedsToday  : 0);
+  const lawnYearly   = parseFloat(selectedLawnPlan?.current_price_yearly  ?? selectedLawnPlan?.base_price_yearly  ?? 0);
+  const weedsYearly  = parseFloat(selectedWeedsPlan?.current_price_yearly ?? selectedWeedsPlan?.base_price_yearly ?? 0);
+  const gardenToday  = parseFloat(assessment?.garden_products?.total_price ?? 0);
+  const gardenYearly = gardenToday * 12;
 
-  // Section numbering — dynamic so garden is always last regardless of weeds
-  let sectionIndex = 1;
-  const lawnIndex  = sectionIndex++;
-  const weedsIndex = hasWeeds  ? sectionIndex++ : null;
+  const lawnToday  = lawnYearly  / 12;
+  const weedsToday = weedsYearly / 12;
+
+  const totalYearly = lawnYearly
+    + (weedsPlanEnabled && hasWeeds      ? weedsYearly  : 0)
+    + (gardenEnabled    && hasGardenPlan ? gardenYearly : 0);
+
+  const totalToday = lawnToday
+    + (weedsPlanEnabled && hasWeeds      ? weedsToday  : 0)
+    + (gardenEnabled    && hasGardenPlan ? gardenToday : 0);
+
+  // Section numbering — dynamic
+  let sectionIndex  = 1;
+  const lawnIndex   = sectionIndex++;
+  const weedsIndex  = hasWeeds  ? sectionIndex++ : null;
   const gardenIndex = hasGarden ? sectionIndex++ : null;
 
   if (isLoading) {
@@ -250,19 +508,27 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
   }
 
   const cartProduct = {
-      id: `bundle-${selectedLawnPlanId}${weedsPlanEnabled && hasWeeds ? `-${selectedWeedsPlanId}` : ''}`,
+    id: [
+      'bundle',
+      selectedLawnPlanId,
+      weedsPlanEnabled && hasWeeds      ? selectedWeedsPlanId                                  : null,
+      gardenEnabled    && hasGardenPlan ? `garden-${assessment?.garden_products?.garden_size}` : null,
+    ].filter(Boolean).join('-'),
 
-      name: weedsPlanEnabled && hasWeeds
-        ? `Lawn Care (${selectedLawnPlan?.name}) + Weeds Control (${selectedWeedsPlan?.name})`
-        : `Lawn Care (${selectedLawnPlan?.name})`,
+    name: [
+      `Lawn Care (${selectedLawnPlan?.name})`,
+      weedsPlanEnabled && hasWeeds      ? `Weeds Control (${selectedWeedsPlan?.name})` : null,
+      gardenEnabled    && hasGardenPlan ? `Garden Care`                                : null,
+    ].filter(Boolean).join(' + '),
 
-      title: selectedLawnPlan?.name,
-      image: 'https://images.unsplash.com/photo-1605117882932-f9e32b03fea9?q=80&w=300&auto=format&fit=crop',
-      price: totalToday,
-      price_yearly: totalYearly,
+    title:        selectedLawnPlan?.name,
+    image:        'https://images.unsplash.com/photo-1605117882932-f9e32b03fea9?q=80&w=300&auto=format&fit=crop',
+    price:        totalToday,
+    price_yearly: totalYearly,
 
-      lawn_plan_id: selectedLawnPlanId,
-      weed_plan_id: weedsPlanEnabled && hasWeeds ? selectedWeedsPlanId : null,
+    lawn_plan_id:    selectedLawnPlanId,
+    weed_plan_id:    weedsPlanEnabled && hasWeeds      ? selectedWeedsPlanId        : null,
+    garden_products: gardenEnabled    && hasGardenPlan ? assessment?.garden_products : null,
   };
 
   return (
@@ -311,11 +577,7 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                     label="Lawn Plan"
                   />
                   <div className="text-right">
-                    <div className="text-lg font-bold text-gray-900">
-                      ${lawnToday.toFixed(2)} {' '}
-                      {/* <Info size={12} className="inline text-gray-400" /> */}
-                    </div>
-                    {/* <div className="text-xs text-gray-500">${lawnYearly.toFixed(2)} total for the year</div> */}
+                    <div className="text-lg font-bold text-gray-900">${lawnToday.toFixed(2)}</div>
                   </div>
                 </div>
 
@@ -330,7 +592,7 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                 </div>
               </div>
 
-              {/* 2. WEEDS PLAN — only rendered when service was selected AND plans exist */}
+              {/* 2. WEEDS PLAN */}
               {hasWeeds && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                   <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
@@ -353,11 +615,7 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                         label="Weed Control Plan"
                       />
                       <div className="text-right">
-                        <div className="text-lg font-bold text-gray-900">
-                          ${weedsToday.toFixed(2)} {' '}
-                          {/* <Info size={12} className="inline text-gray-400" /> */}
-                        </div>
-                        {/* <div className="text-xs text-gray-500">${weedsYearly.toFixed(2)} total for the year</div> */}
+                        <div className="text-lg font-bold text-gray-900">${weedsToday.toFixed(2)}</div>
                       </div>
                     </div>
                     <div className="p-6 space-y-4 bg-gray-50/30">
@@ -369,31 +627,84 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                 </div>
               )}
 
-              {/* GARDEN UPSELL */}
+              {/* GARDEN SECTION */}
               {hasGarden && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center justify-between hover:border-green-200 transition-colors cursor-pointer group">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-700 group-hover:scale-110 transition-transform">
-                      <Flower size={24} />
+                <>
+                  {/* Not yet configured — Start button */}
+                  {!hasGardenPlan && (
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center justify-between hover:border-green-200 transition-colors group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-700 group-hover:scale-110 transition-transform">
+                          <Flower size={24} />
+                        </div>
+                        <h2 className="text-xl font-bold text-gray-900">{gardenIndex}. Add garden care</h2>
+                      </div>
+                      <button
+                        onClick={() => setGardenModalOpen(true)}
+                        className="bg-green-700 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-800 transition-colors shadow-sm"
+                      >
+                        Start
+                      </button>
                     </div>
-                    <h2 className="text-xl font-bold text-gray-900">{gardenIndex}. Add garden care</h2>
-                  </div>
-                  <button className="bg-green-700 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-800 transition-colors shadow-sm">
-                    Start
-                  </button>
-                </div>
-              )}
+                  )}
 
-              {/* FAQ */}
-              {/* <div className="bg-[#E0F2F1] rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="bg-[#26A69A] text-white rounded-full p-2"><HelpCircle size={28} /></div>
-                  <span className="text-lg font-bold text-gray-900">Still have questions?</span>
-                </div>
-                <button className="w-full sm:w-auto bg-white border border-gray-300 text-gray-700 font-bold px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
-                  See all FAQs
-                </button>
-              </div> */}
+                  {/* Configured — DB-backed features merged with calculated quantities */}
+                  {hasGardenPlan && (
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                      <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-700">
+                            <Flower size={24} />
+                          </div>
+                          <h2 className="text-xl font-bold text-gray-900">{gardenIndex}. Your garden care plan</h2>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => setGardenModalOpen(true)}
+                            className="flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-green-700 transition-colors"
+                          >
+                            <Pencil size={13} /> Edit
+                          </button>
+                          <ToggleSwitch enabled={gardenEnabled} onToggle={() => setGardenEnabled(!gardenEnabled)} />
+                        </div>
+                      </div>
+
+                      <div className={`transition-all duration-300 ${gardenEnabled ? 'opacity-100' : 'opacity-50 grayscale'}`}>
+                        <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex flex-col">
+                            <span className="text-[9px] uppercase tracking-wider font-bold text-gray-400 mb-1">Garden Plan</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {(assessment?.garden_products?.garden_types ?? []).map((type) => (
+                                <span key={type} className="bg-orange-100 text-orange-800 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                                  {type.replace('_', ' ')}
+                                </span>
+                              ))}
+                              <span className="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                                {GARDEN_SIZES.find(s => s.value === assessment?.garden_products?.garden_size)?.label ?? ''}{' '}
+                                {GARDEN_SIZES.find(s => s.value === assessment?.garden_products?.garden_size)?.description ?? ''}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-gray-900">${gardenToday.toFixed(2)}</div>
+                          </div>
+                        </div>
+
+                        <div className="p-6 space-y-4 bg-gray-50/30">
+                          {gardenFeatures.map((feature, index) => (
+                            <GardenProductCard
+                              key={feature.title}
+                              feature={feature}
+                              item={gardenItems[index] ?? null}
+                              index={index}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
 
             </div>
 
@@ -407,17 +718,34 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                     </h3>
                     <div className="flex gap-1">
                       <Sprout size={16} className="text-green-600" />
-                      {weedsPlanEnabled && hasWeeds && <Leaf size={16} className="text-lime-600" />}
+                      {weedsPlanEnabled && hasWeeds      && <Leaf   size={16} className="text-lime-600"   />}
+                      {gardenEnabled    && hasGardenPlan && <Flower size={16} className="text-orange-500" />}
                     </div>
                   </div>
                   <div className="p-6">
-                    <div className="flex justify-between items-baseline mb-1">
-                      <span className="text-gray-600 font-medium">Total Price</span>
-                      <span className="text-3xl font-extrabold text-gray-900">${totalToday.toFixed(2)}</span>
+                    <div className="space-y-2 mb-4">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Lawn Care</span>
+                        <span className="font-semibold text-gray-800">${lawnToday.toFixed(2)}</span>
+                      </div>
+                      {weedsPlanEnabled && hasWeeds && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Weed Control</span>
+                          <span className="font-semibold text-gray-800">${weedsToday.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {gardenEnabled && hasGardenPlan && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Garden Care</span>
+                          <span className="font-semibold text-gray-800">${gardenToday.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="border-t border-gray-100 pt-2 flex justify-between items-baseline">
+                        <span className="text-gray-600 font-medium">Total</span>
+                        <span className="text-3xl font-extrabold text-gray-900">${totalToday.toFixed(2)}</span>
+                      </div>
                     </div>
-                    <div className="text-right text-xs text-gray-500 mb-6">
-                      {/* ${totalYearly.toFixed(2)} total for the year <Info size={10} className="inline" /> */}
-                    </div>
+
                     <AddToCartButton
                       product={cartProduct}
                       quantity={1}
@@ -430,6 +758,7 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
                     </p>
                   </div>
                 </div>
+
                 <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex items-center gap-3">
                   <ShieldCheck className="text-green-600 flex-shrink-0" size={24} />
                   <p className="text-xs text-gray-600 font-medium">
@@ -443,6 +772,11 @@ export default function App({ assessment, recommended_plans, all_plans, tiers })
           </div>
         </div>
       </div>
+
+      <GardenQuizModal
+        isOpen={gardenModalOpen}
+        onClose={() => setGardenModalOpen(false)}
+      />
     </AppHeaderLayout>
   );
 }

@@ -31,6 +31,10 @@ class YardAssessment extends Model
         'current_step',
         'status',
         'completed_at',
+        // Garden
+        'garden_types',
+        'garden_size',
+        'garden_products',
     ];
 
     protected $casts = [
@@ -43,6 +47,9 @@ class YardAssessment extends Model
         'total_price'        => 'decimal:2',
         'current_step'       => 'integer',
         'completed_at'       => 'datetime',
+        // Garden
+        'garden_types'    => 'array',
+        'garden_products' => 'array',
     ];
 
     // -------------------------------------------------------
@@ -119,5 +126,15 @@ class YardAssessment extends Model
     public function hasLawnService(): bool
     {
         return in_array('lawn', $this->selected_services ?? []);
+    }
+
+    public function hasGardenService(): bool
+    {
+        return in_array('garden', $this->selected_services ?? []);
+    }
+
+    public function hasGardenProducts(): bool
+    {
+        return !empty($this->garden_products);
     }
 }

@@ -37,7 +37,6 @@ export default function CartContent() {
   const [checkoutError,   setCheckoutError]   = useState('');
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-  // Show loading state while cart loads from localStorage
   if (!isLoaded) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -48,7 +47,6 @@ export default function CartContent() {
       </div>
     );
   }
-  
 
   // Calculations (display only — real totals come from backend)
   const subtotal          = getCartTotal();
@@ -95,7 +93,6 @@ export default function CartContent() {
     setCheckoutError('');
     setShowLoginPrompt(false);
 
-    // Show login prompt if unauthenticated
     if (!auth?.user) {
       setShowLoginPrompt(true);
       return;
@@ -104,31 +101,58 @@ export default function CartContent() {
     setChecking(true);
 
     try {
-      // Merge plan and regular items
       const allItems = cart.flatMap(item => {
-        // Yard plan bundle — has explicit plan IDs
-        if (item.lawn_plan_id || item.weed_plan_id) {
-          return [
-            item.lawn_plan_id ? { type: 'plan', plan_id: parseInt(item.lawn_plan_id, 10), quantity: item.quantity || 1 } : null,
-            item.weed_plan_id ? { type: 'plan', plan_id: parseInt(item.weed_plan_id, 10), quantity: item.quantity || 1 } : null,
-          ].filter(Boolean);
+        const lineItems = [];
+
+        // Lawn plan
+        if (item.lawn_plan_id) {
+          lineItems.push({
+            type:     'plan',
+            plan_id:  parseInt(item.lawn_plan_id, 10),
+            quantity: item.quantity || 1,
+          });
         }
 
-        // Regular product
-        const id = parseInt(item.id, 10);
-        if (!id || isNaN(id)) {
-          console.warn('Cart item has no valid integer id:', item);
-          return [];
+        // Weed plan
+        if (item.weed_plan_id) {
+          lineItems.push({
+            type:     'plan',
+            plan_id:  parseInt(item.weed_plan_id, 10),
+            quantity: item.quantity || 1,
+          });
         }
 
-        return [{ type: 'product', product_id: id, quantity: item.quantity || 1 }];
+        // Garden — send full garden_products payload for server-side verification
+        // Price is never trusted from frontend; server recomputes from quarts × $30
+        if (item.garden_products?.items?.length) {
+          lineItems.push({
+            type:            'garden',
+            garden_products: item.garden_products,
+            quantity:        item.quantity || 1,
+          });
+        }
+
+        // Regular product (no plan IDs and no garden)
+        if (!item.lawn_plan_id && !item.weed_plan_id && !item.garden_products) {
+          const id = parseInt(item.id, 10);
+          if (!id || isNaN(id)) {
+            console.warn('Cart item has no valid integer id:', item);
+            return [];
+          }
+          lineItems.push({
+            type:       'product',
+            product_id: id,
+            quantity:   item.quantity || 1,
+          });
+        }
+
+        return lineItems;
       });
 
-// Safety check — don't proceed if nothing resolved
-if (allItems.length === 0) {
-  setCheckoutError('Unable to process cart items. Please remove and re-add your plan.');
-  return;
-}
+      if (allItems.length === 0) {
+        setCheckoutError('Unable to process cart items. Please remove and re-add your plan.');
+        return;
+      }
 
       const response = await fetch(route('checkout.create'), {
         method:  'POST',
@@ -156,7 +180,6 @@ if (allItems.length === 0) {
         return;
       }
 
-      // Redirect to server-validated checkout page
       router.visit(route('checkout.show', { sessionId: data.session_id }));
 
     } catch (err) {
@@ -205,22 +228,12 @@ if (allItems.length === 0) {
                           <div className="flex-1">
                             <h3 className="font-bold text-sm text-gray-900 line-clamp-2">
                               {(() => {
-                                // If bundle contains plan data
                                 if (item.plans?.lawn || item.plans?.weeds) {
                                   const titles = [];
-
-                                  if (item.plans.lawn) {
-                                    titles.push(`Lawn Care (${item.plans.lawn.name})`);
-                                  }
-
-                                  if (item.plans.weeds) {
-                                    titles.push(`Weeds Control (${item.plans.weeds.name})`);
-                                  }
-
+                                  if (item.plans.lawn)  titles.push(`Lawn Care (${item.plans.lawn.name})`);
+                                  if (item.plans.weeds) titles.push(`Weeds Control (${item.plans.weeds.name})`);
                                   return titles.join(' + ');
                                 }
-
-                                // Default behavior for normal products
                                 return item.name || item.title || 'Unnamed Product';
                               })()}
                             </h3>
@@ -461,7 +474,6 @@ if (allItems.length === 0) {
 
         </div>
       ) : (
-        // Empty Cart State
         <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-gray-200">
           <div className="w-24 h-24 bg-[#E8F5E9] rounded-full flex items-center justify-center mx-auto mb-6 text-[#2E7D32]">
             <ShoppingCart size={48} />

@@ -11,8 +11,8 @@ export const useCart = () => {
 };
 
 export const CartProvider = ({ children }) => {
-  const [cart, setCart] = useState([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [cart, setCart]             = useState([]);
+  const [isLoaded, setIsLoaded]     = useState(false);
   const [appliedPromo, setAppliedPromo] = useState(null);
 
   useEffect(() => {
@@ -58,18 +58,20 @@ export const CartProvider = ({ children }) => {
       return [
         ...prevCart,
         {
-            id:            product.id,
-            name:          product.name || product.title,
-            price:         product.base_price || product.price,
-            originalPrice: product.original_price ?? null,
-            image:         product.image,
-            variant:       product.variant ?? '',
-            inStock:       product.inStock ?? true,
-            quantity,
-            lawn_plan_id:  product.lawn_plan_id ?? null,
-            weed_plan_id:  product.weed_plan_id ?? null,
+          id:              product.id,
+          name:            product.name || product.title,
+          price:           product.base_price || product.price,
+          originalPrice:   product.original_price ?? null,
+          image:           product.image,
+          variant:         product.variant ?? '',
+          inStock:         product.inStock ?? true,
+          quantity,
+          lawn_plan_id:    product.lawn_plan_id    ?? null,
+          weed_plan_id:    product.weed_plan_id    ?? null,
+          // Garden: store the full calculated payload for server-side verification
+          garden_products: product.garden_products ?? null,
         },
-    ];
+      ];
     });
   };
 
@@ -96,10 +98,6 @@ export const CartProvider = ({ children }) => {
 
   // ── Promo Code ────────────────────────────────────────────────────
 
-  /**
-   * Validates the code against the backend and stores the result.
-   * Returns { success: bool, message: string }
-   */
   const applyPromoCode = async (code) => {
     const subtotal = getCartTotal();
 
@@ -124,7 +122,7 @@ export const CartProvider = ({ children }) => {
         code:     data.promo.code,
         type:     data.promo.type,
         value:    data.promo.value,
-        discount: data.promo.discount, // server-calculated dollar amount
+        discount: data.promo.discount,
       });
 
       return { success: true, message: data.message };
@@ -136,7 +134,6 @@ export const CartProvider = ({ children }) => {
 
   const removePromoCode = () => setAppliedPromo(null);
 
-  // Uses the server-calculated discount amount directly
   const getDiscountAmount = () => appliedPromo?.discount ?? 0;
 
   const value = {
