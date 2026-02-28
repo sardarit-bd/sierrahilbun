@@ -29,7 +29,6 @@ class PlanController extends Controller
     {
         $assessment = $this->sessionFlow->getAssessmentOrFail();
 
-        // Serve already-completed plan directly
         if ($assessment->isCompleted() && $assessment->generated_products) {
             return $this->renderPlan($assessment);
         }
@@ -45,10 +44,7 @@ class PlanController extends Controller
 
             $recommendedPlanIds = $this->planRecommendation->resolveIds($tiers);
 
-            // -------------------------------------------------------
             // Step 1 — Product Recommendation Engine (Part A)
-            // Determines which products and oz/1000 ratios
-            // -------------------------------------------------------
             $engineResult = $this->recommendationService->recommendForAssessment($assessment);
 
             if ($engineResult === null) {
@@ -57,7 +53,6 @@ class PlanController extends Controller
                     'zip_code'      => $assessment->zip_code,
                 ]);
 
-                // Fallback: mark complete without products
                 $assessment->update([
                     'resolved_tier'        => $lawnTier,
                     'recommended_plan_ids' => $recommendedPlanIds,
@@ -69,20 +64,10 @@ class PlanController extends Controller
                 return $assessment->fresh();
             }
 
-            // -------------------------------------------------------
             // Step 2 — Packaging Service (Part B)
-            // Resolves variant combinations + pricing
-            // -------------------------------------------------------
-
-            // Re-fetch fresh assessment so generated_products from Step 1 is available
             $freshAssessment = $assessment->fresh();
-
-            // Resolve base price from plans table
-            $basePrice = $this->resolveBasePrice($lawnTier, $squareFeet);
-
-            // Get the RecommendationResultDTO equivalent from stored result
-            // We need the DTO — re-run engine (it's pure/fast, no DB side effects)
-            $recommendation = $this->recommendationService->getRecommendationDTO($freshAssessment);
+            $basePrice       = $this->resolveBasePrice($lawnTier, $squareFeet);
+            $recommendation  = $this->recommendationService->getRecommendationDTO($freshAssessment);
 
             $packagingResult = $this->packagingService->package(
                 recommendation: $recommendation,
@@ -91,9 +76,7 @@ class PlanController extends Controller
                 basePrice:      $basePrice,
             );
 
-            // -------------------------------------------------------
-            // Step 3 — Persist full result (replaces generated_products)
-            // -------------------------------------------------------
+            // Step 3 — Persist
             $this->packagingRepository->store(
                 $freshAssessment,
                 $recommendation,
@@ -114,6 +97,10 @@ class PlanController extends Controller
         return $this->renderPlan($assessment);
     }
 
+    // -------------------------------------------------------
+    // Render
+    // -------------------------------------------------------
+
     private function renderPlan($assessment): Response
     {
         $selectedServices = $assessment->selected_services ?? ['lawn'];
@@ -122,6 +109,9 @@ class PlanController extends Controller
         $tiers       = $this->tierResolver->resolve($quizAnswers, $selectedServices);
         $allPlans    = $this->planRecommendation->allPlansForServices($selectedServices);
         $recommended = $this->planRecommendation->recommend($tiers);
+
+        // Enrich packaging lines with product details + images
+        $lawnProducts = $this->enrichPackaging($assessment->generated_products);
 
         return Inertia::render('yard/plan', [
             'assessment' => [
@@ -141,16 +131,86 @@ class PlanController extends Controller
                 'garden_types'         => $assessment->garden_types,
                 'garden_size'          => $assessment->garden_size,
             ],
+            'lawn_products'     => $lawnProducts,
             'recommended_plans' => $recommended,
             'all_plans'         => $allPlans,
             'tiers'             => $tiers,
         ]);
     }
 
-    /**
-     * Resolve scaled base price from plans table.
-     * Applies size multiplier based on square footage bands.
-     */
+    // -------------------------------------------------------
+    // Product enrichment
+    // Joins packaging lines with products + product_images.
+    // Two queries total regardless of product count.
+    // -------------------------------------------------------
+
+    private function enrichPackaging(?array $generatedProducts): array
+    {
+        $packaging = $generatedProducts['packaging'] ?? [];
+
+        if (empty($packaging)) {
+            return [];
+        }
+
+        $slugs = array_column($packaging, 'slug');
+
+        // Query 1: product details
+        $products = DB::table('products')
+            ->whereIn('slug', $slugs)
+            ->select('slug', 'name', 'subtitle', 'description', 'benefits', 'usage_instructions')
+            ->get()
+            ->keyBy('slug');
+
+        // Query 2: all images for these products (ordered by sort_order)
+        $images = DB::table('product_images as pi')
+            ->join('products as p', 'p.id', '=', 'pi.product_id')
+            ->whereIn('p.slug', $slugs)
+            ->select('p.slug', 'pi.image_url', 'pi.is_primary', 'pi.sort_order')
+            ->orderBy('p.slug')
+            ->orderBy('pi.sort_order')
+            ->get()
+            ->groupBy('slug');
+
+        // Merge: packaging line + product details + images
+        return array_map(function (array $line) use ($products, $images) {
+            $slug    = $line['slug'];
+            $product = $products->get($slug);
+            $imgs    = $images->get($slug, collect());
+
+            $imageUrls = $imgs->map(fn ($img) => $this->resolveImageUrl($img->image_url))->values()->all();
+
+            $benefits = null;
+            if ($product?->benefits) {
+                $decoded  = json_decode($product->benefits, true);
+                $benefits = is_array($decoded) ? $decoded : null;
+            }
+
+            return array_merge($line, [
+                'subtitle'           => $product?->subtitle,
+                'description'        => $product?->description,
+                'benefits'           => $benefits,
+                'usage_instructions' => $product?->usage_instructions,
+                'images'             => $imageUrls,
+                'primary_image'      => $imgs->firstWhere('is_primary', 1)?->image_url
+                    ? $this->resolveImageUrl($imgs->firstWhere('is_primary', 1)->image_url)
+                    : null,
+            ]);
+        }, $packaging);
+    }
+
+    private function resolveImageUrl(string $path): string
+    {
+        if (str_starts_with($path, 'http')) {
+            return $path;
+        }
+
+        return '/storage/' . ltrim($path, '/');
+    }
+
+    // -------------------------------------------------------
+    // Pricing helpers
+    // -------------------------------------------------------
+
     private function resolveBasePrice(string $tier, int $squareFeet): float
     {
         $planSlug = "lawn-{$tier}";

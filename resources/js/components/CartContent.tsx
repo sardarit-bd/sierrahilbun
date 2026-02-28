@@ -4,17 +4,16 @@ import {
   Plus,
   Minus,
   ArrowRight,
-  Truck,
   ShieldCheck,
   CreditCard,
   ChevronRight,
   Tag,
   ShoppingCart,
-  X,
   AlertCircle,
 } from 'lucide-react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { useCart } from '../context/CartContext';
+import ShippingAddressModal from './checkout/ShippingAddressModal';
 
 export default function CartContent() {
   const { auth } = usePage().props;
@@ -30,12 +29,13 @@ export default function CartContent() {
     getDiscountAmount,
   } = useCart();
 
-  const [promoCode,       setPromoCode]       = useState('');
-  const [promoError,      setPromoError]      = useState('');
-  const [promoSuccess,    setPromoSuccess]    = useState('');
-  const [checking,        setChecking]        = useState(false);
-  const [checkoutError,   setCheckoutError]   = useState('');
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [promoCode,         setPromoCode]         = useState('');
+  const [promoError,        setPromoError]         = useState('');
+  const [promoSuccess,      setPromoSuccess]       = useState('');
+  const [checking,          setChecking]           = useState(false);
+  const [checkoutError,     setCheckoutError]      = useState('');
+  const [showLoginPrompt,   setShowLoginPrompt]    = useState(false);
+  const [shippingModalOpen, setShippingModalOpen]  = useState(false);
 
   if (!isLoaded) {
     return (
@@ -56,8 +56,7 @@ export default function CartContent() {
   const shippingCost      = isFreeShipping ? 0 : 9.99;
   const taxEstimate       = (subtotal - discountAmount) * 0.08;
   const total             = subtotal - discountAmount + shippingCost + taxEstimate;
-
-  const hasItems = cart.length > 0;
+  const hasItems          = cart.length > 0;
 
   // ── Promo Code Handlers ──────────────────────────────────────────
   const handleApplyPromo = async () => {
@@ -88,8 +87,19 @@ export default function CartContent() {
     setPromoSuccess('');
   };
 
-  // ── Secure Checkout Handler ──────────────────────────────────────
-  const handleCheckout = async () => {
+  // ── Checkout Button Click — open shipping modal first ────────────
+  const handleCheckoutClick = () => {
+    if (!auth?.user) { setShowLoginPrompt(true); return; }
+    setShippingModalOpen(true);
+  };
+
+  // ── Called by modal once address is confirmed ────────────────────
+  const handleAddressConfirmed = (address) => {
+    handleCheckout(address);
+  };
+
+  // ── Core Checkout Handler ────────────────────────────────────────
+  const handleCheckout = async (shippingAddress) => {
     setCheckoutError('');
     setShowLoginPrompt(false);
 
@@ -122,8 +132,7 @@ export default function CartContent() {
           });
         }
 
-        // Garden — send full garden_products payload for server-side verification
-        // Price is never trusted from frontend; server recomputes from quarts × $30
+        // Garden — server recomputes price from quarts × rate
         if (item.garden_products?.items?.length) {
           lineItems.push({
             type:            'garden',
@@ -162,9 +171,10 @@ export default function CartContent() {
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
         },
         body: JSON.stringify({
-          items:      allItems,
-          promo_code: appliedPromo?.code ?? null,
-          currency:   'USD',
+          items:               allItems,
+          promo_code:          appliedPromo?.code ?? null,
+          shipping_address_id: shippingAddress?.id ?? null,
+          currency:            'USD',
         }),
       });
 
@@ -215,8 +225,7 @@ export default function CartContent() {
                         alt={item.name || item.title || 'Product'}
                         className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300"
                         onError={(e) =>
-                          (e.currentTarget.src =
-                            'https://placehold.co/400x500/eee/999?text=No+Image')
+                          (e.currentTarget.src = 'https://placehold.co/400x500/eee/999?text=No+Image')
                         }
                       />
                     </div>
@@ -243,13 +252,9 @@ export default function CartContent() {
                               </p>
                             )}
                             {item.inStock !== false ? (
-                              <span className="text-xs font-bold text-[#2E7D32] mt-2 inline-block">
-                                In Stock
-                              </span>
+                              <span className="text-xs font-bold text-[#2E7D32] mt-2 inline-block">In Stock</span>
                             ) : (
-                              <span className="text-xs font-bold text-red-500 mt-2 inline-block">
-                                Out of Stock
-                              </span>
+                              <span className="text-xs font-bold text-red-500 mt-2 inline-block">Out of Stock</span>
                             )}
                           </div>
                           <div className="text-right shrink-0">
@@ -270,9 +275,7 @@ export default function CartContent() {
                         <div className="flex items-center gap-6">
                           <div className="flex items-center border border-gray-200 rounded-lg p-1 bg-white">
                             <button
-                              onClick={() =>
-                                updateQuantity(item.id, Math.max(1, (item.quantity || 1) - 1))
-                              }
+                              onClick={() => updateQuantity(item.id, Math.max(1, (item.quantity || 1) - 1))}
                               className="p-2 text-gray-700 hover:text-black hover:bg-gray-100 rounded-md transition-colors"
                               disabled={(item.quantity || 1) <= 1}
                             >
@@ -282,9 +285,7 @@ export default function CartContent() {
                               {item.quantity || 1}
                             </span>
                             <button
-                              onClick={() =>
-                                updateQuantity(item.id, (item.quantity || 1) + 1)
-                              }
+                              onClick={() => updateQuantity(item.id, (item.quantity || 1) + 1)}
                               className="p-2 text-gray-700 hover:text-black hover:bg-gray-100 rounded-md transition-colors"
                             >
                               <Plus size={16} />
@@ -310,9 +311,7 @@ export default function CartContent() {
           {/* Right Column: Order Summary */}
           <div className="lg:col-span-4">
             <div className="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 p-6 lg:sticky lg:top-24">
-              <h2 className="text-xl font-bold font-serif mb-6 text-gray-900">
-                Order Summary
-              </h2>
+              <h2 className="text-xl font-bold font-serif mb-6 text-gray-900">Order Summary</h2>
 
               <div className="space-y-4 text-sm">
                 <div className="flex justify-between text-gray-600">
@@ -368,13 +367,8 @@ export default function CartContent() {
                           type="text"
                           placeholder="Enter code"
                           value={promoCode}
-                          onChange={(e) => {
-                            setPromoCode(e.target.value);
-                            setPromoError('');
-                          }}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') handleApplyPromo();
-                          }}
+                          onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); }}
+                          onKeyPress={(e) => { if (e.key === 'Enter') handleApplyPromo(); }}
                           className="w-full bg-gray-50 border border-gray-200 rounded-lg py-3 pl-4 pr-24 text-gray-900 text-sm focus:outline-none focus:border-[#2E7D32] focus:ring-1 focus:ring-[#2E7D32] transition-all"
                         />
                         <button
@@ -385,12 +379,8 @@ export default function CartContent() {
                           Apply
                         </button>
                       </div>
-                      {promoError && (
-                        <p className="text-red-500 text-xs mt-2">{promoError}</p>
-                      )}
-                      {promoSuccess && (
-                        <p className="text-[#2E7D32] text-xs mt-2">{promoSuccess}</p>
-                      )}
+                      {promoError   && <p className="text-red-500 text-xs mt-2">{promoError}</p>}
+                      {promoSuccess && <p className="text-[#2E7D32] text-xs mt-2">{promoSuccess}</p>}
                     </>
                   )}
                 </div>
@@ -398,9 +388,7 @@ export default function CartContent() {
                 <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
                   <span className="text-base font-black text-gray-900">Total</span>
                   <div className="text-right">
-                    <span className="text-2xl font-black text-gray-900">
-                      ${total.toFixed(2)}
-                    </span>
+                    <span className="text-2xl font-black text-gray-900">${total.toFixed(2)}</span>
                     <p className="text-[10px] text-gray-400 mt-0.5">Final total confirmed at checkout</p>
                   </div>
                 </div>
@@ -440,7 +428,7 @@ export default function CartContent() {
 
               {/* Checkout Button */}
               <button
-                onClick={handleCheckout}
+                onClick={handleCheckoutClick}
                 disabled={checking || !hasItems}
                 className="w-full bg-[#2E7D32] hover:bg-[#1B5E20] disabled:opacity-60 disabled:cursor-not-allowed text-white font-extrabold py-4 rounded-xl shadow-lg shadow-green-900/20 mt-6 flex items-center justify-center gap-2 group transition-all active:scale-[0.98]"
               >
@@ -478,9 +466,7 @@ export default function CartContent() {
           <div className="w-24 h-24 bg-[#E8F5E9] rounded-full flex items-center justify-center mx-auto mb-6 text-[#2E7D32]">
             <ShoppingCart size={48} />
           </div>
-          <h2 className="text-3xl font-black font-serif text-gray-900 mb-4">
-            Your cart is empty
-          </h2>
+          <h2 className="text-3xl font-black font-serif text-gray-900 mb-4">Your cart is empty</h2>
           <p className="text-gray-500 max-w-md mx-auto mb-8">
             Looks like you haven't added anything yet. Let's find something great for your project!
           </p>
@@ -493,6 +479,12 @@ export default function CartContent() {
           </a>
         </div>
       )}
+
+      <ShippingAddressModal
+        isOpen={shippingModalOpen}
+        onClose={() => setShippingModalOpen(false)}
+        onConfirmed={handleAddressConfirmed}
+      />
     </div>
   );
 }

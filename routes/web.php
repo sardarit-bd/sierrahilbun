@@ -16,6 +16,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PromoCodeController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\ShippingAddressController;
 use App\Services\ProductService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -106,8 +107,10 @@ Route::get('/terms', function () {
     return Inertia::render('terms');
 })->name('terms');
 
-// Payment & Checkout
+
 Route::middleware(['auth'])->group(function () {
+
+    // Payment & Checkout
     Route::get('/payment', [PaymentController::class, 'index'])->name('payment.index');
     Route::post('/payment/charge', [PaymentController::class, 'charge'])->name('payment.charge');
     Route::get('/payment/pending', [PaymentController::class, 'pending'])->name('payment.pending');
@@ -117,6 +120,12 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/checkout', [CheckoutController::class, 'create'])->name('checkout.create');
     Route::get('/checkout/{sessionId}', [CheckoutController::class, 'show'])->name('checkout.show');
+
+
+    // shipping address
+    Route::get('/api/shipping-addresses',           [ShippingAddressController::class, 'index']);
+    Route::post('/api/shipping-addresses',          [ShippingAddressController::class, 'store']);
+    Route::put('/api/shipping-addresses/{address}', [ShippingAddressController::class, 'update']);
 });
 
 require __DIR__.'/settings.php';
