@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Lawn;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\QuestionResource;
 use App\Repositories\QuestionRepository;
+use App\Services\Lawn\ProductRecommendationService;
 use App\Services\Lawn\SessionFlowService;
 use App\Services\Lawn\TierResolverService;
 use Illuminate\Http\Request;
@@ -14,9 +15,10 @@ use Inertia\Response;
 class QuestionnaireController extends Controller
 {
     public function __construct(
-        private SessionFlowService   $sessionFlow,
-        private TierResolverService  $tierResolver,
-        private QuestionRepository   $questions,
+        private SessionFlowService           $sessionFlow,
+        private TierResolverService          $tierResolver,
+        private QuestionRepository           $questions,
+        private ProductRecommendationService $recommendationService,
     ) {}
 
     public function show(): Response
@@ -34,7 +36,6 @@ class QuestionnaireController extends Controller
 
     public function store(Request $request)
     {
-        // Build validation rules dynamically from DB (cached)
         $validationMap = $this->questions->getValidationMap();
 
         $rules = collect($validationMap)->mapWithKeys(
@@ -52,11 +53,20 @@ class QuestionnaireController extends Controller
             $assessment->selected_services ?? ['lawn']
         );
 
+        // Persist quiz answers and tier first so the recommendation
+        // service can read quiz_answers from the assessment.
         $this->sessionFlow->updateAssessment([
             'quiz_answers'  => $validated,
             'resolved_tier' => $tiers['lawn'] ?? 'bronze',
             'current_step'  => 5,
         ]);
+
+        // Run the product recommendation engine.
+        // Reads zip_code + square_feet from assessment, quiz_answers just saved above.
+        // Persists result to generated_products column.
+        $this->recommendationService->recommendForAssessment(
+            $this->sessionFlow->getAssessmentOrFail()
+        );
 
         return redirect()->route('yard.plan');
     }

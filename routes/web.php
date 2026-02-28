@@ -87,7 +87,6 @@ Route::get('/yard/plan', [PlanController::class, 'show'])->name('yard.plan');
 Route::post('/yard/garden-quiz', [GardenQuizController::class, 'store'])->name('yard.garden-quiz');
 
 
-
 // Blog
 Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
 Route::get('/blogs/{slug}', [BlogController::class, 'show'])->name('blogs.show');
