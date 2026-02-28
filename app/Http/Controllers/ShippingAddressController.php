@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 
 class ShippingAddressController extends Controller
 {
-    // GET /api/shipping-addresses
     public function index(): JsonResponse
     {
         return response()->json(
@@ -52,7 +51,6 @@ class ShippingAddressController extends Controller
     // PUT /api/shipping-addresses/{address}
     public function update(Request $request, ShippingAddress $address): JsonResponse
     {
-        $this->authorize('update', $address); // or gate check below
         abort_if($address->user_id !== auth()->id(), 403);
 
         $data = $request->validate([/* same rules */]);
