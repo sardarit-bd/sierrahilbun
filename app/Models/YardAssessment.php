@@ -15,6 +15,9 @@ class YardAssessment extends Model
 
     protected $fillable = [
         'user_id',
+        'quiz_floor_tier',
+        'packaging_by_tier',
+        'recommended_plan_ids',
         'session_id',
         'zip_code',
         'selected_services',
@@ -38,18 +41,20 @@ class YardAssessment extends Model
     ];
 
     protected $casts = [
-        'selected_services'  => 'array',
-        'soil_snapshot'      => 'array',
-        'quiz_answers'       => 'array',
-        'generated_products' => 'array',
-        'total_base_price'   => 'decimal:2',
-        'total_addons_price' => 'decimal:2',
-        'total_price'        => 'decimal:2',
-        'current_step'       => 'integer',
-        'completed_at'       => 'datetime',
+        'selected_services'    => 'array',
+        'soil_snapshot'        => 'array',
+        'quiz_answers'         => 'array',
+        'generated_products'   => 'array',
+        'packaging_by_tier'    => 'array',
+        'recommended_plan_ids' => 'array',
+        'total_base_price'     => 'decimal:2',
+        'total_addons_price'   => 'decimal:2',
+        'total_price'          => 'decimal:2',
+        'current_step'         => 'integer',
+        'completed_at'         => 'datetime',
         // Garden
-        'garden_types'    => 'array',
-        'garden_products' => 'array',
+        'garden_types'         => 'array',
+        'garden_products'      => 'array',
     ];
 
     // -------------------------------------------------------

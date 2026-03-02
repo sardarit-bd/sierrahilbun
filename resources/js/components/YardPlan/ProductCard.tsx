@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { mapFeatureToAsset } from './helpers';
 
-export const ProductCard = ({ feature, index }) => {
+const ProductCard = ({ feature, index }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const visualFeature               = mapFeatureToAsset(feature, index);
 
@@ -22,11 +22,7 @@ export const ProductCard = ({ feature, index }) => {
           <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isExpanded ? 'max-h-[600px] opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
             <p className="text-sm text-gray-600 mb-2">{feature.subtitle || 'No description available.'}</p>
             {visualFeature.displayImage && (
-              <img
-                src={visualFeature.displayImage}
-                alt={feature.title}
-                className="w-32 h-32 rounded-lg shadow-sm border border-gray-100 object-cover mt-2"
-              />
+              <img src={visualFeature.displayImage} alt={feature.title} className="w-32 h-32 rounded-lg shadow-sm border border-gray-100 object-cover mt-2" />
             )}
           </div>
           <button
@@ -42,10 +38,4 @@ export const ProductCard = ({ feature, index }) => {
   );
 };
 
-export const GardenProductCard = ({ feature, item, index }) => {
-  const quartsLabel = item
-    ? `${item.quarts} quart${item.quarts !== 1 ? 's' : ''} · $${item.price_per_quart}/quart · $${item.total.toFixed(2)} total`
-    : null;
-  const mergedFeature = { ...feature, subtitle: quartsLabel ?? feature.subtitle };
-  return <ProductCard feature={mergedFeature} index={index} />;
-};
+export default ProductCard;

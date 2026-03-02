@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Check, ChevronDown, Award } from 'lucide-react';
+import { ChevronDown, Check, Award } from 'lucide-react';
 
 const PremiumPlanDropdown = ({ options, value, onChange, recommendedTier, label = 'Select Plan' }) => {
-  const [isOpen, setIsOpen]    = useState(false);
-  const dropdownRef            = useRef(null);
-  const selectedOption         = options.find(opt => opt.id === Number(value)) || options[0];
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef         = useRef(null);
+  const selectedOption      = options.find(opt => opt.id === Number(value)) || options[0];
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -60,9 +60,7 @@ const PremiumPlanDropdown = ({ options, value, onChange, recommendedTier, label 
                     </div>
                     {isSelected && <Check size={14} className="text-green-600" strokeWidth={3} />}
                   </div>
-                  {plan.description && (
-                    <span className="text-xs text-gray-500 line-clamp-1 italic">{plan.description}</span>
-                  )}
+                  {plan.description && <span className="text-xs text-gray-500 line-clamp-1 italic">{plan.description}</span>}
                 </button>
               );
             })}

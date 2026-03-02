@@ -5,20 +5,18 @@ namespace App\Http\Controllers\Lawn;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\QuestionResource;
 use App\Repositories\QuestionRepository;
-use App\Services\Lawn\ProductRecommendationService;
 use App\Services\Lawn\SessionFlowService;
 use App\Services\Lawn\TierResolverService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class QuestionnaireController extends Controller
+final class QuestionnaireController extends Controller
 {
     public function __construct(
-        private SessionFlowService           $sessionFlow,
-        private TierResolverService          $tierResolver,
-        private QuestionRepository           $questions,
-        private ProductRecommendationService $recommendationService,
+        private readonly SessionFlowService  $sessionFlow,
+        private readonly TierResolverService $tierResolver,
+        private readonly QuestionRepository  $questions,
     ) {}
 
     public function show(): Response
@@ -36,38 +34,33 @@ class QuestionnaireController extends Controller
 
     public function store(Request $request)
     {
-        $validationMap = $this->questions->getValidationMap();
-
-        $rules = collect($validationMap)->mapWithKeys(
-            fn (array $slugs, string $questionSlug) => [
-                $questionSlug => ['required', 'string', 'in:' . implode(',', $slugs)],
-            ]
-        )->all();
-
-        $validated = $request->validate($rules);
+        $validated = $request->validate($this->buildValidationRules());
 
         $assessment = $this->sessionFlow->getAssessmentOrFail();
 
-        $tiers = $this->tierResolver->resolve(
-            $validated,
-            $assessment->selected_services ?? ['lawn']
-        );
+        $floorTier = $this->tierResolver->resolveLawnFloor($validated);
 
-        // Persist quiz answers and tier first so the recommendation
-        // service can read quiz_answers from the assessment.
         $this->sessionFlow->updateAssessment([
-            'quiz_answers'  => $validated,
-            'resolved_tier' => $tiers['lawn'] ?? 'bronze',
-            'current_step'  => 5,
+            'quiz_answers'     => $validated,
+            'quiz_floor_tier'  => $floorTier,
+            'current_step'     => 5,
         ]);
 
-        // Run the product recommendation engine.
-        // Reads zip_code + square_feet from assessment, quiz_answers just saved above.
-        // Persists result to generated_products column.
-        $this->recommendationService->recommendForAssessment(
-            $this->sessionFlow->getAssessmentOrFail()
-        );
-
         return redirect()->route('yard.plan');
+    }
+
+    // -------------------------------------------------------
+    // Internals
+    // -------------------------------------------------------
+
+    private function buildValidationRules(): array
+    {
+        return collect($this->questions->getValidationMap())
+            ->mapWithKeys(
+                fn (array $slugs, string $questionSlug) => [
+                    $questionSlug => ['required', 'string', 'in:' . implode(',', $slugs)],
+                ]
+            )
+            ->all();
     }
 }

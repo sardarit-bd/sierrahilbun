@@ -7,6 +7,7 @@ use App\Services\ProductImageService;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
@@ -94,5 +95,17 @@ class Product extends Model
         return $this->orderItems()
             ->whereHas('order', fn($q) => $q->where('user_id', $userId))
             ->exists();
+    }
+
+    public function features(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Feature::class,
+            'feature_product',
+            'product_sku',
+            'feature_id',
+            'sku',
+            'id'
+        );
     }
 }

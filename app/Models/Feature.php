@@ -34,4 +34,16 @@ class Feature extends Model
         return $this->belongsToMany(Plan::class, 'plan_feature')
                     ->withPivot('sort_order');
     }
+
+    public function products(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Product::class,
+            'feature_product',
+            'feature_id',
+            'product_sku',
+            'id',
+            'sku'
+        );
+    }
 }

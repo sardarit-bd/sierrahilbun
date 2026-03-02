@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Lawn;
 
 use App\Http\Controllers\Controller;
-use App\Repositories\PackagingRepository;
+use App\Services\Lawn\LawnPricingService;
 use App\Services\Lawn\PackagingService;
-use App\Services\Lawn\PlanRecommendationService;
+use App\Services\Lawn\PlanResolverService;
 use App\Services\Lawn\ProductRecommendationService;
 use App\Services\Lawn\SessionFlowService;
 use App\Services\Lawn\TierResolverService;
@@ -14,15 +14,15 @@ use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class PlanController extends Controller
+final class PlanController extends Controller
 {
     public function __construct(
-        private SessionFlowService           $sessionFlow,
-        private PlanRecommendationService    $planRecommendation,
-        private TierResolverService          $tierResolver,
-        private ProductRecommendationService $recommendationService,
-        private PackagingService             $packagingService,
-        private PackagingRepository          $packagingRepository,
+        private readonly SessionFlowService          $sessionFlow,
+        private readonly TierResolverService         $tierResolver,
+        private readonly ProductRecommendationService $recommendationService,
+        private readonly PlanResolverService         $planResolver,
+        private readonly PackagingService            $packagingService,
+        private readonly LawnPricingService $pricingService,
     ) {}
 
     public function show(): Response
@@ -34,64 +34,56 @@ class PlanController extends Controller
         }
 
         $assessment = DB::transaction(function () use ($assessment) {
-
             $quizAnswers      = $assessment->quiz_answers ?? [];
             $selectedServices = $assessment->selected_services ?? ['lawn'];
             $squareFeet       = (int) ($assessment->square_feet ?? 0);
+            $quizFloorTier    = $assessment->quiz_floor_tier ?? 'bronze';
 
-            $tiers    = $this->tierResolver->resolve($quizAnswers, $selectedServices);
-            $lawnTier = $tiers['lawn'] ?? 'bronze';
+            // Step 1 — Run soil engine, get recommended products
+            $recommendationDTO = $this->recommendationService->getRecommendationDTO($assessment);
 
-            $recommendedPlanIds = $this->planRecommendation->resolveIds($tiers);
-
-            // Step 1 — Product Recommendation Engine (Part A)
-            $engineResult = $this->recommendationService->recommendForAssessment($assessment);
-
-            if ($engineResult === null) {
+            if ($recommendationDTO === null) {
                 Log::error('PlanController: recommendation engine returned null', [
                     'assessment_id' => $assessment->id,
                     'zip_code'      => $assessment->zip_code,
                 ]);
 
                 $assessment->update([
-                    'resolved_tier'        => $lawnTier,
-                    'recommended_plan_ids' => $recommendedPlanIds,
-                    'status'               => 'completed',
-                    'current_step'         => 6,
-                    'completed_at'         => now(),
+                    'status'       => 'completed',
+                    'current_step' => 6,
+                    'completed_at' => now(),
                 ]);
 
                 return $assessment->fresh();
             }
 
-            // Step 2 — Packaging Service (Part B)
-            $freshAssessment = $assessment->fresh();
-            $basePrice       = $this->resolveBasePrice($lawnTier, $squareFeet);
-            $recommendation  = $this->recommendationService->getRecommendationDTO($freshAssessment);
+            // Step 2 — Build all 3 plans with product sets + recommended flag
+            $productSlugs = $recommendationDTO->allSlugs();
 
-            $packagingResult = $this->packagingService->package(
-                recommendation: $recommendation,
-                squareFeet:     $squareFeet,
-                tier:           $lawnTier,
-                basePrice:      $basePrice,
+            $planResult = $this->planResolver->buildPlans(
+                quizFloorTier: $quizFloorTier,
+                productSlugs:  $productSlugs,
             );
 
-            // Step 3 — Persist
-            $this->packagingRepository->store(
-                $freshAssessment,
-                $recommendation,
-                $packagingResult,
+            // Step 3 — Build packaging for each plan's product set
+            $packagingByTier = $this->buildPackagingForAllTiers(
+                planResult:  $planResult,
+                dto:         $recommendationDTO,
+                squareFeet:  $squareFeet,
             );
 
-            $freshAssessment->update([
-                'resolved_tier'        => $lawnTier,
-                'recommended_plan_ids' => $recommendedPlanIds,
+            // Step 4 — Persist
+            $assessment->update([
+                'generated_products'   => $recommendationDTO->toArray(),
+                'resolved_tier'        => $planResult['recommended_tier'],
+                'recommended_plan_ids' => $this->extractPlanIds($planResult),
+                'packaging_by_tier'    => $packagingByTier,
                 'status'               => 'completed',
                 'current_step'         => 6,
                 'completed_at'         => now(),
             ]);
 
-            return $freshAssessment->fresh();
+            return $assessment->fresh();
         });
 
         return $this->renderPlan($assessment);
@@ -103,65 +95,179 @@ class PlanController extends Controller
 
     private function renderPlan($assessment): Response
     {
-        $selectedServices = $assessment->selected_services ?? ['lawn'];
         $quizAnswers      = $assessment->quiz_answers ?? [];
+        $selectedServices = $assessment->selected_services ?? ['lawn'];
+        $quizFloorTier    = $assessment->quiz_floor_tier ?? 'bronze';
 
-        $tiers       = $this->tierResolver->resolve($quizAnswers, $selectedServices);
-        $allPlans    = $this->planRecommendation->allPlansForServices($selectedServices);
-        $recommended = $this->planRecommendation->recommend($tiers);
+        // Rebuild plan structure for render (uses cache, no extra DB hits)
+        $recommendationDTO = $this->recommendationService->getRecommendationDTO($assessment);
+        $productSlugs      = $recommendationDTO?->allSlugs() ?? [];
 
-        // Enrich packaging lines with product details + images
-        $lawnProducts = $this->enrichPackaging($assessment->generated_products);
+        $planResult = $this->planResolver->buildPlans(
+            quizFloorTier: $quizFloorTier,
+            productSlugs:  $productSlugs,
+        );
+
+        $enrichedPlans = $this->enrichPlans(
+            planResult:      $planResult,
+            packagingByTier: $assessment->packaging_by_tier ?? [],
+        );
 
         return Inertia::render('yard/plan', [
             'assessment' => [
                 'id'                   => $assessment->id,
                 'zip_code'             => $assessment->zip_code,
                 'square_feet'          => $assessment->square_feet,
+                'quiz_floor_tier'      => $quizFloorTier,
                 'resolved_tier'        => $assessment->resolved_tier,
                 'selected_services'    => $selectedServices,
                 'quiz_answers'         => $quizAnswers,
                 'soil'                 => $assessment->soil_snapshot,
-                'products'             => $assessment->generated_products,
-                'total_base_price'     => $assessment->total_base_price,
-                'total_addons'         => $assessment->total_addons_price,
-                'total_price'          => $assessment->total_price,
                 'recommended_plan_ids' => $assessment->recommended_plan_ids,
                 'garden_products'      => $assessment->garden_products,
                 'garden_types'         => $assessment->garden_types,
                 'garden_size'          => $assessment->garden_size,
             ],
-            'lawn_products'     => $lawnProducts,
-            'recommended_plans' => $recommended,
-            'all_plans'         => $allPlans,
-            'tiers'             => $tiers,
+            'plans'            => $enrichedPlans,
+            'recommended_tier' => $planResult['recommended_tier'],
+            'all_plans'        => $this->planResolver->allPlans(),
         ]);
     }
 
     // -------------------------------------------------------
-    // Product enrichment
-    // Joins packaging lines with products + product_images.
-    // Two queries total regardless of product count.
+    // Packaging builder
+    // Builds packaging lines for each tier's product set.
     // -------------------------------------------------------
 
-    private function enrichPackaging(?array $generatedProducts): array
-    {
-        $packaging = $generatedProducts['packaging'] ?? [];
+    private function buildPackagingForAllTiers(
+        array $planResult,
+        $dto,
+        int $squareFeet,
+    ): array {
+        $packagingByTier = [];
+        $scaledPrices    = $this->pricingService->allScaledPrices($squareFeet);
 
-        if (empty($packaging)) {
+        foreach ($planResult['plans'] as $tier => $planData) {
+            $tierProductSlugs = $planData['products'];
+
+            if (empty($tierProductSlugs)) {
+                $packagingByTier[$tier] = [];
+                continue;
+            }
+
+            $packagingByTier[$tier] = $this->packagingService->package(
+                recommendation: $dto,
+                squareFeet:     $squareFeet,
+                tier:           $tier,
+                basePrice:      $scaledPrices[$tier] ?? 179.00,
+                productSlugs:   $tierProductSlugs,
+            );
+        }
+
+        return $packagingByTier;
+    }
+
+    // -------------------------------------------------------
+    // Plan enrichment
+    // Groups enriched products under their features per tier.
+    // -------------------------------------------------------
+
+    private function enrichPlans(array $planResult, array $packagingByTier): array
+    {
+        $enriched = [];
+
+        foreach ($planResult['plans'] as $tier => $planData) {
+            $packaging = $packagingByTier[$tier]['lines'] ?? [];
+            $slugs     = array_column($packaging, 'slug');
+
+            $enrichedProducts = $this->enrichPackagingLines($packaging, $slugs);
+            $features         = $this->groupProductsByFeature($planData['plan']->id, $enrichedProducts);
+
+            $enriched[$tier] = [
+                'plan'           => array_merge(
+                                        $planData['plan']->toArray(),
+                                        ['is_recommended' => $planData['is_recommended']]
+                                    ),
+                'is_recommended' => $planData['is_recommended'],
+                'features'       => $features,
+            ];
+        }
+
+        return $enriched;
+    }
+
+    /**
+     * Groups enriched products under their feature for a given plan.
+     * Returns features in sort_order, each with their products nested.
+     */
+    private function groupProductsByFeature(int $planId, array $enrichedProducts): array
+    {
+        if (empty($enrichedProducts)) {
             return [];
         }
 
-        $slugs = array_column($packaging, 'slug');
+        $productSlugs = array_column($enrichedProducts, 'slug');
 
-        // Query 1: product details
+        // Load features for this plan in sort order
+        $planFeatures = DB::table('plan_feature as pf')
+            ->join('features as f', 'f.id', '=', 'pf.feature_id')
+            ->where('pf.plan_id', $planId)
+            ->orderBy('pf.sort_order')
+            ->select('f.id', 'f.title', 'f.subtitle', 'f.icon_url', 'pf.sort_order')
+            ->get();
+
+        // Load feature_product rows for the product slugs in this tier
+        $featureProductRows = DB::table('feature_product')
+            ->whereIn('product_sku', $productSlugs)
+            ->get()
+            ->groupBy('feature_id');
+
+        // Index enriched products by slug for fast lookup
+        $productsBySlug = collect($enrichedProducts)->keyBy('slug');
+
+        $features = [];
+
+        foreach ($planFeatures as $feature) {
+            $featureSlugRows = $featureProductRows->get($feature->id, collect());
+            $featureProducts = [];
+
+            foreach ($featureSlugRows as $row) {
+                $product = $productsBySlug->get($row->product_sku);
+
+                if ($product) {
+                    $featureProducts[] = $product;
+                }
+            }
+
+            // Only include features that have at least one product in this tier
+            if (empty($featureProducts)) {
+                continue;
+            }
+
+            $features[] = [
+                'id'       => $feature->id,
+                'title'    => $feature->title,
+                'subtitle' => $feature->subtitle,
+                'icon_url' => $feature->icon_url,
+                'products' => $featureProducts,
+            ];
+        }
+
+        return $features;
+    }
+
+    private function enrichPackagingLines(array $packaging, array $slugs): array
+    {
+        if (empty($slugs)) {
+            return [];
+        }
+
         $products = DB::table('products')
             ->whereIn('slug', $slugs)
             ->select('slug', 'name', 'subtitle', 'description', 'benefits', 'usage_instructions')
             ->get()
             ->keyBy('slug');
 
-        // Query 2: all images for these products (ordered by sort_order)
         $images = DB::table('product_images as pi')
             ->join('products as p', 'p.id', '=', 'pi.product_id')
             ->whereIn('p.slug', $slugs)
@@ -171,13 +277,10 @@ class PlanController extends Controller
             ->get()
             ->groupBy('slug');
 
-        // Merge: packaging line + product details + images
         return array_map(function (array $line) use ($products, $images) {
             $slug    = $line['slug'];
             $product = $products->get($slug);
             $imgs    = $images->get($slug, collect());
-
-            $imageUrls = $imgs->map(fn ($img) => $this->resolveImageUrl($img->image_url))->values()->all();
 
             $benefits = null;
             if ($product?->benefits) {
@@ -190,58 +293,32 @@ class PlanController extends Controller
                 'description'        => $product?->description,
                 'benefits'           => $benefits,
                 'usage_instructions' => $product?->usage_instructions,
-                'images'             => $imageUrls,
+                'images'             => $imgs->map(
+                                            fn ($img) => $this->resolveImageUrl($img->image_url)
+                                        )->values()->all(),
                 'primary_image'      => $imgs->firstWhere('is_primary', 1)?->image_url
-                    ? $this->resolveImageUrl($imgs->firstWhere('is_primary', 1)->image_url)
-                    : null,
+                                            ? $this->resolveImageUrl(
+                                                $imgs->firstWhere('is_primary', 1)->image_url
+                                              )
+                                            : null,
             ]);
         }, $packaging);
     }
 
+    // -------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------
+
+    private function extractPlanIds(array $planResult): array
+    {
+        return collect($planResult['plans'])
+            ->map(fn (array $planData) => $planData['plan']->id)
+            ->values()
+            ->all();
+    }
+
     private function resolveImageUrl(string $path): string
     {
-        if (str_starts_with($path, 'http')) {
-            return $path;
-        }
-
-        return '/storage/' . ltrim($path, '/');
-    }
-
-    // -------------------------------------------------------
-    // Pricing helpers
-    // -------------------------------------------------------
-
-    private function resolveBasePrice(string $tier, int $squareFeet): float
-    {
-        $planSlug = "lawn-{$tier}";
-
-        $base = DB::table('plans')
-            ->where('slug', $planSlug)
-            ->value('base_price_yearly');
-
-        $fallback = ['bronze' => 179.00, 'silver' => 249.00, 'gold' => 289.00];
-        $base     = (float) ($base ?? $fallback[$tier] ?? 179.00);
-
-        return $base * $this->sizeMultiplier($squareFeet);
-    }
-
-    private function sizeMultiplier(int $sqft): float
-    {
-        $bands = [
-            [0,     4000,  1.0],
-            [4001,  8000,  1.4],
-            [8001,  12000, 1.8],
-            [12001, 20000, 2.2],
-            [20001, 32000, 3.0],
-            [32001, 43560, 4.0],
-        ];
-
-        foreach ($bands as [$min, $max, $mult]) {
-            if ($sqft >= $min && $sqft <= $max) {
-                return $mult;
-            }
-        }
-
-        return 4.0;
+        return str_starts_with($path, 'http') ? $path : '/storage/' . ltrim($path, '/');
     }
 }

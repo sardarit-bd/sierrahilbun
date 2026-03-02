@@ -2,7 +2,17 @@
 
 namespace App\Services\Lawn;
 
-class TierResolverService
+/**
+ * Resolves the quiz-based floor tier for each selected service.
+ *
+ * Responsibility: translate quiz answers into a minimum starting tier.
+ * This tier acts as a FLOOR — the final recommended plan can only
+ * go UP from here, never down.
+ *
+ * Plan resolution (product mapping → final plan) is handled
+ * exclusively by PlanResolverService.
+ */
+final class TierResolverService
 {
     private const GOAL_TIER_MAP = [
         'looks'  => 'bronze',
@@ -17,16 +27,25 @@ class TierResolverService
         'gold'   => 3,
     ];
 
-    // Weeds has no gold tier — caps at silver
+    // Weeds service has no gold tier — caps at silver
     private const WEEDS_MAX_TIER = 'silver';
 
     // -------------------------------------------------------
-    // Public Entry Point
-    // Returns per-service tier map e.g:
-    // ['lawn' => 'gold', 'weeds' => 'silver']
-    // Only resolves tiers for selected services.
+    // Public API
     // -------------------------------------------------------
 
+    /**
+     * Resolve the floor tier per selected service.
+     *
+     * Returns a map of service slug → floor tier, e.g:
+     * ['lawn' => 'silver', 'weeds' => 'silver']
+     *
+     * Only resolves tiers for services the customer selected.
+     *
+     * @param  array    $answers          Validated quiz answers
+     * @param  string[] $selectedServices e.g. ['lawn', 'weeds']
+     * @return array<string, string>
+     */
     public function resolve(array $answers, array $selectedServices): array
     {
         $tiers = [];
@@ -42,8 +61,16 @@ class TierResolverService
         return $tiers;
     }
 
+    /**
+     * Convenience method — returns only the lawn floor tier.
+     */
+    public function resolveLawnFloor(array $answers): string
+    {
+        return $this->resolveLawn($answers);
+    }
+
     // -------------------------------------------------------
-    // Lawn Tier Resolution
+    // Per-service floor tier resolution
     // -------------------------------------------------------
 
     private function resolveLawn(array $answers): string
@@ -58,10 +85,6 @@ class TierResolverService
         return $tier;
     }
 
-    // -------------------------------------------------------
-    // Weeds Tier Resolution — same rules, caps at silver
-    // -------------------------------------------------------
-
     private function resolveWeeds(array $answers): string
     {
         $tier = $this->baseFromGoals($answers['goals'] ?? 'looks');
@@ -74,7 +97,7 @@ class TierResolverService
     }
 
     // -------------------------------------------------------
-    // Base Tier from Goals
+    // Base tier from goals answer
     // -------------------------------------------------------
 
     private function baseFromGoals(string $goal): string
@@ -83,7 +106,7 @@ class TierResolverService
     }
 
     // -------------------------------------------------------
-    // Upgrade Rules
+    // Upgrade rules — can only upgrade, never downgrade
     // -------------------------------------------------------
 
     private function applyPetsRule(string $tier, array $answers): string
@@ -91,6 +114,7 @@ class TierResolverService
         if (($answers['pets'] ?? '') === 'lot' && $tier === 'bronze') {
             return 'silver';
         }
+
         return $tier;
     }
 
@@ -129,6 +153,7 @@ class TierResolverService
         if (($answers['patches'] ?? 'none') === 'lots' && $tier === 'bronze') {
             return 'silver';
         }
+
         return $tier;
     }
 
@@ -137,6 +162,7 @@ class TierResolverService
         if (($answers['knowledge'] ?? '') === 'expert' && $tier === 'bronze') {
             return 'silver';
         }
+
         return $tier;
     }
 
@@ -144,21 +170,17 @@ class TierResolverService
     // Helpers
     // -------------------------------------------------------
 
-    // Only upgrades, never downgrades
     private function upgrade(string $current, string $target): string
     {
-        $currentRank = self::TIER_RANK[$current] ?? 1;
-        $targetRank  = self::TIER_RANK[$target] ?? 1;
-
-        return $targetRank > $currentRank ? $target : $current;
+        return (self::TIER_RANK[$target] ?? 1) > (self::TIER_RANK[$current] ?? 1)
+            ? $target
+            : $current;
     }
 
-    // Caps tier at a maximum allowed tier
     private function capAt(string $tier, string $max): string
     {
-        $tierRank = self::TIER_RANK[$tier] ?? 1;
-        $maxRank  = self::TIER_RANK[$max] ?? 1;
-
-        return $tierRank > $maxRank ? $max : $tier;
+        return (self::TIER_RANK[$tier] ?? 1) > (self::TIER_RANK[$max] ?? 1)
+            ? $max
+            : $tier;
     }
 }

@@ -8,11 +8,11 @@ use App\Observers\QuestionObserver;
 use App\Observers\QuestionOptionObserver;
 use App\Repositories\BlogRepository;
 use App\Repositories\Contracts\BlogRepositoryInterface;
-use App\Repositories\PackagingRepository;
 use App\Repositories\RecommendationRepository;
 use App\Services\Area\LawnAreaCalculator;
 use App\Services\Area\MapboxBuildingDetector;
 use App\Services\Area\OverpassLotDetector;
+use App\Services\CacheService;
 use App\Services\Checkout\CheckoutService;
 use App\Services\Config\DatabaseApiConfig;
 use App\Services\Contracts\ApiConfigInterface;
@@ -21,6 +21,7 @@ use App\Services\Contracts\GeocoderInterface;
 use App\Services\Contracts\LotDetectorInterface;
 use App\Services\Geocoding\MapboxGeocoder;
 use App\Services\Lawn\CoreRatioCalculator;
+use App\Services\Lawn\LawnPricingService;
 use App\Services\Lawn\LawnSizeService;
 use App\Services\Lawn\ModifierResolver;
 use App\Services\Lawn\Modifiers\AerateModifierRule;
@@ -33,6 +34,7 @@ use App\Services\Lawn\Modifiers\PatchProModifierRule;
 use App\Services\Lawn\Modifiers\PetSpotRepairModifierRule;
 use App\Services\Lawn\Modifiers\SulfaCoreModifierRule;
 use App\Services\Lawn\PackagingService;
+use App\Services\Lawn\PlanResolverService;
 use App\Services\Lawn\ProductRecommendationEngine;
 use App\Services\Lawn\ProductRecommendationService;
 use App\Services\Lawn\SoilInputHydrator;
@@ -51,9 +53,6 @@ use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         $this->app->singleton(PaymentGatewayFactory::class);
@@ -63,7 +62,7 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(
             BlogRepositoryInterface::class,
-            BlogRepository::class
+            BlogRepository::class,
         );
 
         $this->app->singleton(
@@ -87,10 +86,12 @@ class AppServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton(LawnAreaCalculator::class);
-
         $this->app->singleton(LawnSizeService::class);
-
         $this->app->singleton(OrderService::class);
+
+        // -------------------------------------------------------
+        // Recommendation Engine
+        // -------------------------------------------------------
 
         $this->app->bind(ModifierResolver::class, function () {
             return new ModifierResolver([
@@ -115,11 +116,31 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(ProductRecommendationService::class, function ($app) {
             return new ProductRecommendationService(
-                hydrator:    $app->make(SoilInputHydrator::class),
-                engine:      $app->make(ProductRecommendationEngine::class),
-                repository:  $app->make(RecommendationRepository::class),
+                hydrator:   $app->make(SoilInputHydrator::class),
+                engine:     $app->make(ProductRecommendationEngine::class),
+                repository: $app->make(RecommendationRepository::class),
             );
         });
+
+        // -------------------------------------------------------
+        // Plan Resolution
+        // -------------------------------------------------------
+
+        $this->app->singleton(PlanResolverService::class, function ($app) {
+            return new PlanResolverService(
+                cache: $app->make(CacheService::class),
+            );
+        });
+
+        $this->app->singleton(LawnPricingService::class, function ($app) {
+            return new LawnPricingService(
+                cache: $app->make(CacheService::class),
+            );
+        });
+
+        // -------------------------------------------------------
+        // Packaging
+        // -------------------------------------------------------
 
         $this->app->bind(VariantSelectorService::class, fn () => new VariantSelectorService());
 
@@ -131,17 +152,12 @@ class AppServiceProvider extends ServiceProvider
                 tierInclusionMap: $app->make(TierInclusionMap::class),
             );
         });
-
-        $this->app->bind(PackagingRepository::class, fn () => new PackagingRepository());
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         $this->configureDefaults();
-        
+
         Question::observe(QuestionObserver::class);
         QuestionOption::observe(QuestionOptionObserver::class);
     }

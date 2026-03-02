@@ -35,12 +35,19 @@ const CARD_ASSETS = [
 ];
 
 export const mapFeatureToAsset = (feature, index) => {
-  const asset    = CARD_ASSETS[index % CARD_ASSETS.length];
-  const iconUrl  = feature.icon_url ? resolveUrl(feature.icon_url) : asset.img;
-  const images   = Array.isArray(feature.image_url)
+  const asset   = CARD_ASSETS[index % CARD_ASSETS.length];
+  const iconUrl = feature.icon_url ? resolveUrl(feature.icon_url) : asset.img;
+  const images  = Array.isArray(feature.image_url)
     ? feature.image_url
     : typeof feature.image_url === 'string'
-      ? JSON.parse(feature.image_url)
+      ? (() => {
+          try {
+            const parsed = JSON.parse(feature.image_url);
+            return Array.isArray(parsed) ? parsed : [feature.image_url];
+          } catch {
+            return [feature.image_url];
+          }
+        })()
       : [];
   const expandedImageUrl = images.length ? resolveUrl(images[0]) : null;
   return { ...feature, tag: feature.tag || asset.defaultTag, tagColor: asset.color, displayIcon: iconUrl, displayImage: expandedImageUrl };
