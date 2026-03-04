@@ -3,46 +3,57 @@
 namespace App\Services\Payment\Webhooks;
 
 use App\Models\CheckoutSession;
+use App\Models\PaymentGatewaySetting;
 use App\Models\PromoCode;
 use App\Models\Transaction;
 use App\Services\Order\OrderService;
 use App\Services\Payment\Contracts\WebhookHandlerInterface;
-use App\Services\Payment\Factory\PaymentGatewayFactory;
-use App\Services\Payment\Gateways\StripeGateway;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Stripe\Event;
+use Stripe\Exception\SignatureVerificationException;
 use Stripe\Webhook;
 
 class StripeWebhookHandler implements WebhookHandlerInterface
 {
-    private string $webhookSecret;
-
     public function __construct(
-        private readonly PaymentGatewayFactory $factory,
-        private readonly OrderService          $orderService,
-    ) {
-        /** @var StripeGateway $gateway */
-        $gateway             = $this->factory->make('stripe');
-        $this->webhookSecret = $gateway->getWebhookSecret();
-    }
+        private readonly OrderService $orderService,
+    ) {}
+
+    // -------------------------------------------------------
+    // WebhookHandlerInterface
+    // -------------------------------------------------------
 
     public function verify(Request $request): bool
     {
-        try {
-            Webhook::constructEvent(
-                $request->getContent(),
-                $request->header('Stripe-Signature'),
-                $this->webhookSecret,
-            );
+        $payload   = $request->getContent();
+        $sigHeader = $request->header('Stripe-Signature');
 
+        if (empty($payload)) {
+            Log::warning('Stripe webhook: empty payload');
+            return false;
+        }
+
+        if (!$sigHeader) {
+            Log::warning('Stripe webhook: missing Stripe-Signature header');
+            return false;
+        }
+
+        try {
+            Webhook::constructEvent($payload, $sigHeader, $this->resolveWebhookSecret());
             return true;
-        } catch (\Throwable $e) {
+        } catch (SignatureVerificationException $e) {
             Log::warning('Stripe webhook signature verification failed', [
                 'error' => $e->getMessage(),
             ]);
-
+            return false;
+        } catch (\Throwable $e) {
+            Log::error('Stripe webhook unexpected verify error', [
+                'error' => $e->getMessage(),
+            ]);
             return false;
         }
     }
@@ -52,10 +63,10 @@ class StripeWebhookHandler implements WebhookHandlerInterface
         $event = Webhook::constructEvent(
             $request->getContent(),
             $request->header('Stripe-Signature'),
-            $this->webhookSecret,
+            $this->resolveWebhookSecret(),
         );
 
-        match($event->type) {
+        match ($event->type) {
             'payment_intent.succeeded'      => $this->onPaymentSucceeded($event),
             'payment_intent.payment_failed' => $this->onPaymentFailed($event),
             'charge.refunded'               => $this->onRefunded($event),
@@ -64,7 +75,28 @@ class StripeWebhookHandler implements WebhookHandlerInterface
     }
 
     // -------------------------------------------------------
-    // Event Handlers
+    // Secret resolution — lazy, cached, never in constructor
+    // -------------------------------------------------------
+
+    private function resolveWebhookSecret(): string
+    {
+        // Cache the *encrypted* value only — decrypt fresh each time
+        // so APP_KEY rotation doesn't serve a stale plaintext secret
+        $encryptedSecret = Cache::remember('stripe_webhook_secret_enc', 3600, function () {
+            return PaymentGatewaySetting::where('gateway', 'stripe')
+                ->where('is_active', true)
+                ->value('webhook_secret'); // only fetch the column we need
+        });
+
+        if (!$encryptedSecret) {
+            throw new \RuntimeException('Stripe gateway not configured or inactive.');
+        }
+
+        return Crypt::decryptString($encryptedSecret);
+    }
+
+    // -------------------------------------------------------
+    // Event handlers (unchanged from your implementation)
     // -------------------------------------------------------
 
     private function onPaymentSucceeded(Event $event): void
@@ -72,8 +104,6 @@ class StripeWebhookHandler implements WebhookHandlerInterface
         $paymentIntent = $event->data->object;
 
         DB::transaction(function () use ($paymentIntent) {
-
-            // ── Step 1: Find and lock transaction ─────────────────
             $transaction = Transaction::where('transaction_id', $paymentIntent->id)
                 ->lockForUpdate()
                 ->first();
@@ -85,20 +115,17 @@ class StripeWebhookHandler implements WebhookHandlerInterface
                 return;
             }
 
-            // ── Step 2: Idempotency guard ─────────────────────────
             if ($transaction->status === 'succeeded') {
-                return;
+                return; // idempotency guard
             }
 
-            // ── Step 3: Update transaction status ─────────────────
             $transaction->update([
                 'status'       => 'succeeded',
                 'raw_response' => $paymentIntent->toArray(),
             ]);
 
-            // ── Step 4: Find checkout session ─────────────────────
             if (!$transaction->checkout_session_id) {
-                Log::warning('Stripe webhook: no checkout session linked to transaction', [
+                Log::warning('Stripe webhook: no checkout session linked', [
                     'transaction_id' => $paymentIntent->id,
                 ]);
                 return;
@@ -114,17 +141,12 @@ class StripeWebhookHandler implements WebhookHandlerInterface
                 return;
             }
 
-            // ── Step 5: Complete checkout session ─────────────────
             $session->update(['status' => 'completed']);
 
-            // ── Step 6: Increment promo code usage ────────────────
             if ($session->promo_code) {
-                PromoCode::where('code', $session->promo_code)
-                    ->increment('usage_count');
+                PromoCode::where('code', $session->promo_code)->increment('usage_count');
             }
 
-            // ── Step 7: Create Order + OrderItems ─────────────────
-            // OrderService handles its own idempotency guard internally
             $this->orderService->createFromCheckoutSession($transaction, $session);
         });
     }
@@ -138,14 +160,7 @@ class StripeWebhookHandler implements WebhookHandlerInterface
                 ->lockForUpdate()
                 ->first();
 
-            if (!$transaction) {
-                Log::warning('Stripe webhook: transaction not found for failed payment', [
-                    'transaction_id' => $paymentIntent->id,
-                ]);
-                return;
-            }
-
-            if (in_array($transaction->status, ['succeeded', 'refunded'])) {
+            if (!$transaction || in_array($transaction->status, ['succeeded', 'refunded'])) {
                 return;
             }
 
@@ -166,14 +181,7 @@ class StripeWebhookHandler implements WebhookHandlerInterface
                 ->lockForUpdate()
                 ->first();
 
-            if (!$transaction) {
-                Log::warning('Stripe webhook: transaction not found for refund', [
-                    'payment_intent' => $charge->payment_intent,
-                ]);
-                return;
-            }
-
-            if ($transaction->status === 'refunded') {
+            if (!$transaction || $transaction->status === 'refunded') {
                 return;
             }
 
@@ -186,8 +194,6 @@ class StripeWebhookHandler implements WebhookHandlerInterface
 
     private function onUnhandled(Event $event): void
     {
-        Log::info('Stripe webhook: unhandled event type', [
-            'type' => $event->type,
-        ]);
+        Log::info('Stripe webhook: unhandled event type', ['type' => $event->type]);
     }
 }

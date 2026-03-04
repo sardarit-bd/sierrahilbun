@@ -51,7 +51,13 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(PaymentGatewayFactory::class);
         $this->app->singleton(PaymentService::class);
-        $this->app->bind(WebhookHandlerInterface::class, StripeWebhookHandler::class);
+
+        $this->app->bind(WebhookHandlerInterface::class, function ($app) {
+            return new StripeWebhookHandler(
+                orderService: $app->make(OrderService::class),
+            );
+        });
+        
         $this->app->singleton(CheckoutService::class);
 
         $this->app->bind(
