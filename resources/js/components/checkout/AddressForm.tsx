@@ -70,7 +70,7 @@ export default function AddressForm({ initial = {}, onSubmit, onCancel, submitti
       
       <div className="grid grid-cols-3 gap-3">
         {field('City', 'city', true, { placeholder: 'San Francisco' })}
-        {field('State', 'state', true, { placeholder: 'California' })}
+        {field('State', 'state', true, { placeholder: 'CA' })}
         {field('ZIP', 'zip_code', true, { placeholder: '90210', maxLength: 10 })}
       </div>
 
