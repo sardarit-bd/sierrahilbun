@@ -64,7 +64,8 @@ export default function AddressForm({ initial = {}, onSubmit, onCancel, submitti
       {field('Address line 2 (optional)', 'address_line2', { placeholder: 'Apt, suite, etc.' })}
       <div className="grid grid-cols-3 gap-3">
         {field('City', 'city')}
-        <div>
+        {field('State', 'state', { placeholder: 'California' })}
+        {/* <div>
           <label className="block text-xs font-bold text-gray-600 mb-1">State</label>
           <select
             value={form.state}
@@ -78,7 +79,7 @@ export default function AddressForm({ initial = {}, onSubmit, onCancel, submitti
             ))}
           </select>
           {errors.state && <p className="text-xs text-red-500 mt-1">{errors.state}</p>}
-        </div>
+        </div> */}
         {field('ZIP', 'zip_code', { placeholder: '90210', maxLength: 10 })}
       </div>
       <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
