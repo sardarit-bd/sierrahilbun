@@ -63,7 +63,7 @@ export default function AddressForm({ initial = {}, onSubmit, onCancel, submitti
       {field('Address line 1', 'address_line1', { placeholder: '123 Main St' })}
       {field('Address line 2 (optional)', 'address_line2', { placeholder: 'Apt, suite, etc.' })}
       <div className="grid grid-cols-3 gap-3">
-        {field('City', 'city')}
+        {field('City', 'city', { placeholder: 'San Francisco' })}
         {field('State', 'state', { placeholder: 'California' })}
         {/* <div>
           <label className="block text-xs font-bold text-gray-600 mb-1">State</label>
