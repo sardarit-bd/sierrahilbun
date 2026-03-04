@@ -20,6 +20,20 @@ use Illuminate\Support\Facades\DB;
  */
 final class PlanResolverService
 {
+    private const TIER_INCLUSION = [
+        'bronze' => [
+            'kickstart', 'turf-fuel-n', 'neutralyze',
+        ],
+        'silver' => [
+            'kickstart', 'turf-fuel-n', 'neutralyze',
+            'patchpro', 
+        ],
+        'gold' => [
+            'kickstart', 'turf-fuel-n', 'neutralyze',
+            'patchpro', 'aerate', 'heatguard',
+        ],
+    ];
+
     private const TIER_RANK = [
         'bronze' => 1,
         'silver' => 2,
@@ -76,10 +90,18 @@ final class PlanResolverService
                 continue;
             }
 
+            // Check if this tier is identical to the tier below it
+            $tierIndex   = array_search($tier, self::TIERS);
+            $lowerTier   = $tierIndex > 0 ? self::TIERS[$tierIndex - 1] : null;
+            $isRedundant = $lowerTier !== null
+                && isset($planProductSets[$lowerTier])
+                && $planProductSets[$tier] === $planProductSets[$lowerTier];
+
             $plans[$tier] = [
                 'plan'           => $plan,
                 'products'       => $planProductSets[$tier] ?? [],
                 'is_recommended' => $tier === $recommendedTier,
+                'is_redundant'   => $isRedundant, // true = hide this plan
             ];
         }
 
@@ -126,20 +148,34 @@ final class PlanResolverService
             return array_fill_keys(self::TIERS, []);
         }
 
-        $productTierMap = $this->mapProductsToTiers($productSlugs);
+        $recommended = array_flip($productSlugs);
 
-        $sets = array_fill_keys(self::TIERS, []);
+        $sets = [];
 
-        foreach ($productSlugs as $slug) {
-            $productTier = $productTierMap[$slug] ?? 'gold';
-            $productRank = self::TIER_RANK[$productTier] ?? 3;
+        foreach (self::TIERS as $tier) {
+            $tierProducts = [];
 
-            // Add product to all plans at or above its tier rank
-            foreach (self::TIERS as $tier) {
-                if (self::TIER_RANK[$tier] >= $productRank) {
-                    $sets[$tier][] = $slug;
+            foreach (self::TIER_INCLUSION[$tier] as $slug) {
+                // Core + tier-fixed products always included if they exist in DB
+                // For silver: patchpro is always added regardless of engine
+                $isFixed = $slug === 'patchpro' && $tier === 'silver';
+
+                if ($isFixed || isset($recommended[$slug])) {
+                    $tierProducts[] = $slug;
                 }
             }
+
+            // Gold also gets any engine-recommended products outside the inclusion list
+            if ($tier === 'gold') {
+                $allIncluded = array_flip(self::TIER_INCLUSION['gold']);
+                foreach ($productSlugs as $slug) {
+                    if (! isset($allIncluded[$slug])) {
+                        $tierProducts[] = $slug;
+                    }
+                }
+            }
+
+            $sets[$tier] = $tierProducts;
         }
 
         return $sets;
@@ -156,26 +192,22 @@ final class PlanResolverService
      */
     private function mapProductsToTiers(array $productSlugs): array
     {
-        $rows = DB::table('feature_product')
-            ->whereIn('product_sku', $productSlugs)
-            ->get();
+        $map = [];
 
-        $productTierMap = [];
-
-        foreach ($rows as $row) {
-            $lowestTier = $this->getLowestTierForFeature((int) $row->feature_id);
-
-            $productTierMap[$row->product_sku] = $lowestTier ?? 'gold';
-        }
-
-        // Any product not found in feature_product defaults to gold
         foreach ($productSlugs as $slug) {
-            if (! isset($productTierMap[$slug])) {
-                $productTierMap[$slug] = 'gold';
+            $assignedTier = 'gold'; // default — addon territory
+
+            foreach (self::TIERS as $tier) {
+                if (in_array($slug, self::TIER_INCLUSION[$tier], true)) {
+                    $assignedTier = $tier;
+                    break; // first (lowest) tier that includes this product
+                }
             }
+
+            $map[$slug] = $assignedTier;
         }
 
-        return $productTierMap;
+        return $map;
     }
 
     // -------------------------------------------------------

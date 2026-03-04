@@ -233,7 +233,13 @@ export default function ProductShow({ product, reviews = [] }: Props) {
         ...product,
         variants: product.variants ?? [],
         images:   product.images   ?? [],
-        benefits: product.benefits ?? [],
+        benefits: (() => {
+            if (Array.isArray(product.benefits)) return product.benefits;
+            if (typeof product.benefits === 'string') {
+                try { return JSON.parse(product.benefits); } catch { return []; }
+            }
+            return [];
+        })(),
     };
 
     return <ProductShowInner product={safeProduct} reviews={reviews} />;

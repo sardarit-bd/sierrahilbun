@@ -17,12 +17,12 @@ use Inertia\Response;
 final class PlanController extends Controller
 {
     public function __construct(
-        private readonly SessionFlowService          $sessionFlow,
-        private readonly TierResolverService         $tierResolver,
+        private readonly SessionFlowService           $sessionFlow,
+        private readonly TierResolverService          $tierResolver,
         private readonly ProductRecommendationService $recommendationService,
-        private readonly PlanResolverService         $planResolver,
-        private readonly PackagingService            $packagingService,
-        private readonly LawnPricingService $pricingService,
+        private readonly PlanResolverService          $planResolver,
+        private readonly PackagingService             $packagingService,
+        private readonly LawnPricingService           $pricingService,
     ) {}
 
     public function show(): Response
@@ -34,10 +34,8 @@ final class PlanController extends Controller
         }
 
         $assessment = DB::transaction(function () use ($assessment) {
-            $quizAnswers      = $assessment->quiz_answers ?? [];
-            $selectedServices = $assessment->selected_services ?? ['lawn'];
-            $squareFeet       = (int) ($assessment->square_feet ?? 0);
-            $quizFloorTier    = $assessment->quiz_floor_tier ?? 'bronze';
+            $squareFeet    = (int) ($assessment->square_feet ?? 0);
+            $quizFloorTier = $assessment->quiz_floor_tier ?? 'bronze';
 
             // Step 1 — Run soil engine, get recommended products
             $recommendationDTO = $this->recommendationService->getRecommendationDTO($assessment);
@@ -67,12 +65,14 @@ final class PlanController extends Controller
 
             // Step 3 — Build packaging for each plan's product set
             $packagingByTier = $this->buildPackagingForAllTiers(
-                planResult:  $planResult,
-                dto:         $recommendationDTO,
-                squareFeet:  $squareFeet,
+                planResult: $planResult,
+                dto:        $recommendationDTO,
+                squareFeet: $squareFeet,
             );
 
             // Step 4 — Persist
+            // PackagingResultDTO objects are JSON-serialized via toArray()
+            // which produces { packaging: [...], pricing: { base_price, addons_total, total_price } }
             $assessment->update([
                 'generated_products'   => $recommendationDTO->toArray(),
                 'resolved_tier'        => $planResult['recommended_tier'],
@@ -95,9 +95,8 @@ final class PlanController extends Controller
 
     private function renderPlan($assessment): Response
     {
-        $quizAnswers      = $assessment->quiz_answers ?? [];
-        $selectedServices = $assessment->selected_services ?? ['lawn'];
         $quizFloorTier    = $assessment->quiz_floor_tier ?? 'bronze';
+        $selectedServices = $assessment->selected_services ?? ['lawn'];
 
         // Rebuild plan structure for render (uses cache, no extra DB hits)
         $recommendationDTO = $this->recommendationService->getRecommendationDTO($assessment);
@@ -121,7 +120,7 @@ final class PlanController extends Controller
                 'quiz_floor_tier'      => $quizFloorTier,
                 'resolved_tier'        => $assessment->resolved_tier,
                 'selected_services'    => $selectedServices,
-                'quiz_answers'         => $quizAnswers,
+                'quiz_answers'         => $assessment->quiz_answers ?? [],
                 'soil'                 => $assessment->soil_snapshot,
                 'recommended_plan_ids' => $assessment->recommended_plan_ids,
                 'garden_products'      => $assessment->garden_products,
@@ -136,7 +135,6 @@ final class PlanController extends Controller
 
     // -------------------------------------------------------
     // Packaging builder
-    // Builds packaging lines for each tier's product set.
     // -------------------------------------------------------
 
     private function buildPackagingForAllTiers(
@@ -169,27 +167,51 @@ final class PlanController extends Controller
 
     // -------------------------------------------------------
     // Plan enrichment
-    // Groups enriched products under their features per tier.
     // -------------------------------------------------------
 
+    /**
+     * Builds the enriched plan array for each tier.
+     *
+     * Each tier entry includes:
+     *   - plan:           Plan model data
+     *   - is_recommended: bool
+     *   - is_redundant:   bool
+     *   - features:       grouped product lines under their feature cards
+     *   - pricing:        { base_price, addons_total, total_price } from packaging engine
+     *                     This is the CORRECT price: (base × sqft multiplier) + addon retail
+     *                     Use pricing.total_price for display — do NOT use plan.base_price_yearly
+     */
     private function enrichPlans(array $planResult, array $packagingByTier): array
     {
         $enriched = [];
 
         foreach ($planResult['plans'] as $tier => $planData) {
+            // PackagingResultDTO::toArray() uses camelCase keys (confirmed via dd()):
+            //   lines, basePrice, totalPrice, addonsTotal
             $packaging = $packagingByTier[$tier]['lines'] ?? [];
-            $slugs     = array_column($packaging, 'slug');
+            $pricing   = [
+                'base_price'   => $packagingByTier[$tier]['basePrice']   ?? 0,
+                'addons_total' => $packagingByTier[$tier]['addonsTotal'] ?? 0,
+                'total_price'  => $packagingByTier[$tier]['totalPrice']  ?? 0,
+            ];
+            $slugs = array_column($packaging, 'slug');
 
             $enrichedProducts = $this->enrichPackagingLines($packaging, $slugs);
             $features         = $this->groupProductsByFeature($planData['plan']->id, $enrichedProducts);
 
             $enriched[$tier] = [
                 'plan'           => array_merge(
-                                        $planData['plan']->toArray(),
-                                        ['is_recommended' => $planData['is_recommended']]
-                                    ),
+                    $planData['plan']->toArray(),
+                    ['is_recommended' => $planData['is_recommended']]
+                ),
                 'is_recommended' => $planData['is_recommended'],
+                'is_redundant'   => $planData['is_redundant'] ?? false,
                 'features'       => $features,
+
+                // Correct scaled + addon-adjusted pricing from the engine.
+                // Structure: { base_price: float, addons_total: float, total_price: float }
+                // Frontend should use pricing.total_price for display.
+                'pricing'        => $pricing,
             ];
         }
 
@@ -202,13 +224,6 @@ final class PlanController extends Controller
      */
     private function groupProductsByFeature(int $planId, array $enrichedProducts): array
     {
-        if (empty($enrichedProducts)) {
-            return [];
-        }
-
-        $productSlugs = array_column($enrichedProducts, 'slug');
-
-        // Load features for this plan in sort order
         $planFeatures = DB::table('plan_feature as pf')
             ->join('features as f', 'f.id', '=', 'pf.feature_id')
             ->where('pf.plan_id', $planId)
@@ -216,30 +231,32 @@ final class PlanController extends Controller
             ->select('f.id', 'f.title', 'f.subtitle', 'f.icon_url', 'pf.sort_order')
             ->get();
 
-        // Load feature_product rows for the product slugs in this tier
+        if ($planFeatures->isEmpty()) {
+            return [];
+        }
+
+        $featureIds = $planFeatures->pluck('id')->all();
+
         $featureProductRows = DB::table('feature_product')
-            ->whereIn('product_sku', $productSlugs)
+            ->whereIn('feature_id', $featureIds)
             ->get()
             ->groupBy('feature_id');
 
-        // Index enriched products by slug for fast lookup
         $productsBySlug = collect($enrichedProducts)->keyBy('slug');
 
         $features = [];
 
         foreach ($planFeatures as $feature) {
             $featureSlugRows = $featureProductRows->get($feature->id, collect());
-            $featureProducts = [];
 
+            $featureProducts = [];
             foreach ($featureSlugRows as $row) {
                 $product = $productsBySlug->get($row->product_sku);
-
                 if ($product) {
                     $featureProducts[] = $product;
                 }
             }
 
-            // Only include features that have at least one product in this tier
             if (empty($featureProducts)) {
                 continue;
             }
@@ -294,13 +311,11 @@ final class PlanController extends Controller
                 'benefits'           => $benefits,
                 'usage_instructions' => $product?->usage_instructions,
                 'images'             => $imgs->map(
-                                            fn ($img) => $this->resolveImageUrl($img->image_url)
-                                        )->values()->all(),
+                    fn($img) => $this->resolveImageUrl($img->image_url)
+                )->values()->all(),
                 'primary_image'      => $imgs->firstWhere('is_primary', 1)?->image_url
-                                            ? $this->resolveImageUrl(
-                                                $imgs->firstWhere('is_primary', 1)->image_url
-                                              )
-                                            : null,
+                    ? $this->resolveImageUrl($imgs->firstWhere('is_primary', 1)->image_url)
+                    : null,
             ]);
         }, $packaging);
     }
@@ -312,7 +327,7 @@ final class PlanController extends Controller
     private function extractPlanIds(array $planResult): array
     {
         return collect($planResult['plans'])
-            ->map(fn (array $planData) => $planData['plan']->id)
+            ->map(fn(array $planData) => $planData['plan']->id)
             ->values()
             ->all();
     }

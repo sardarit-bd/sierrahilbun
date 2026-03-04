@@ -25,14 +25,8 @@ use App\Services\Lawn\LawnPricingService;
 use App\Services\Lawn\LawnSizeService;
 use App\Services\Lawn\ModifierResolver;
 use App\Services\Lawn\Modifiers\AerateModifierRule;
-use App\Services\Lawn\Modifiers\FallSupportModifierRule;
-use App\Services\Lawn\Modifiers\GreenGroModifierRule;
 use App\Services\Lawn\Modifiers\HeatGuardModifierRule;
-use App\Services\Lawn\Modifiers\KBoostModifierRule;
-use App\Services\Lawn\Modifiers\MicrobeBoostModifierRule;
 use App\Services\Lawn\Modifiers\PatchProModifierRule;
-use App\Services\Lawn\Modifiers\PetSpotRepairModifierRule;
-use App\Services\Lawn\Modifiers\SulfaCoreModifierRule;
 use App\Services\Lawn\PackagingService;
 use App\Services\Lawn\PlanResolverService;
 use App\Services\Lawn\ProductRecommendationEngine;
@@ -91,6 +85,10 @@ class AppServiceProvider extends ServiceProvider
 
         // -------------------------------------------------------
         // Recommendation Engine
+        // Spec modifiers: PatchPro, Aerate, HeatGuard only.
+        // All other modifier rule classes are retained in the
+        // codebase but must NOT be registered here unless added
+        // to the spec with explicit trigger conditions.
         // -------------------------------------------------------
 
         $this->app->bind(ModifierResolver::class, function () {
@@ -98,12 +96,6 @@ class AppServiceProvider extends ServiceProvider
                 new PatchProModifierRule(),
                 new AerateModifierRule(),
                 new HeatGuardModifierRule(),
-                new MicrobeBoostModifierRule(),
-                new PetSpotRepairModifierRule(),
-                new SulfaCoreModifierRule(),
-                new KBoostModifierRule(),
-                new GreenGroModifierRule(),
-                new FallSupportModifierRule(),
             ]);
         });
 

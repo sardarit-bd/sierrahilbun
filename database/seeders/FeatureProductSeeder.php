@@ -5,63 +5,65 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Seeds feature → product mappings and plan → feature mappings
+ * for lawn plans according to the new spec.
+ *
+ * Feature structure (lawn service only):
+ *   Feature 1 — Custom fertilizers     → core products (kickstart, turf-fuel-n, neutralyze)
+ *   Feature 2 — Soil & Climate Protection → modifiers (aerate, heatguard)
+ *   Feature 3 — Patch repair           → patchpro
+ *
+ * Plan → feature mapping:
+ *   Bronze → Feature 1 (core only)
+ *   Silver → Feature 1 + Feature 3 (core + patch repair)
+ *   Gold   → Feature 1 + Feature 2 + Feature 3 (core + soil/climate + patch repair)
+ *
+ * Plan IDs are resolved dynamically by slug — safe across re-seeds.
+ * Feature IDs are resolved dynamically by title — safe across re-seeds.
+ *
+ * Note: Features 4 (Pet spot repair) and 5 (Advanced soil test) are
+ * intentionally excluded — they are not part of the new recommendation logic.
+ */
 class FeatureProductSeeder extends Seeder
 {
     /**
-     * Feature IDs (lawn service_id = 1)
-     *
-     * 1 = Custom fertilizers   → Bronze (core products)
-     * 2 = Targeted weed control → Gold   (Aerate, HeatGuard)
-     * 3 = Patch repair          → Silver (PatchPro+)
-     * 4 = Pet spot repair       → Gold   (quiz-driven, not soil-driven)
-     * 5 = Advanced soil test    → All plans
-     *
-     * Plan IDs (lawn service_id = 1)
-     * 1 = Bronze, 2 = Silver, 3 = Gold
+     * Feature title → product slugs.
+     * Only lawn engine products are mapped here.
      */
+    private const FEATURE_PRODUCT_MAP = [
+        'Custom fertilizers'        => ['kickstart', 'turf-fuel-n', 'neutralyze'],
+        'Soil & Climate Protection' => ['aerate', 'heatguard'],
+        'Patch repair'              => ['patchpro'],
+    ];
 
-    // -------------------------------------------------------
-    // Feature → Product mappings (soil engine driven)
-    // -------------------------------------------------------
-
-    private const FEATURE_PRODUCTS = [
-        1 => ['kickstart', 'turf-fuel-n', 'neutralyze'], // Custom fertilizers → Bronze
-        3 => ['patchpro'],                                // Patch repair       → Silver
-        2 => ['aerate', 'heatguard'],                    // Targeted weed ctrl → Gold
+    /**
+     * Plan slug → [feature titles in sort order].
+     * Bronze ⊆ Silver ⊆ Gold — each tier is a superset of the one below.
+     */
+    private const PLAN_FEATURE_MAP = [
+        'lawn-bronze' => [
+            'Custom fertilizers',
+        ],
+        'lawn-silver' => [
+            'Custom fertilizers',
+            'Patch repair',
+        ],
+        'lawn-gold' => [
+            'Custom fertilizers',
+            'Soil & Climate Protection',
+            'Patch repair',
+        ],
     ];
 
     // -------------------------------------------------------
-    // Correct plan_feature rows to match Python tier logic:
-    //
-    // Bronze → 1 (Custom fertilizers), 5 (Advanced soil test)
-    // Silver → 1, 3 (Patch repair),    5
-    // Gold   → 1, 2 (Weed control), 3, 4 (Pet spot repair), 5
-    // -------------------------------------------------------
-
-    private const PLAN_FEATURES = [
-        1 => [                          // Bronze
-            ['feature_id' => 1, 'sort_order' => 1],
-            ['feature_id' => 5, 'sort_order' => 2],
-        ],
-        2 => [                          // Silver
-            ['feature_id' => 1, 'sort_order' => 1],
-            ['feature_id' => 3, 'sort_order' => 2],
-            ['feature_id' => 5, 'sort_order' => 3],
-        ],
-        3 => [                          // Gold
-            ['feature_id' => 1, 'sort_order' => 1],
-            ['feature_id' => 2, 'sort_order' => 2],
-            ['feature_id' => 3, 'sort_order' => 3],
-            ['feature_id' => 4, 'sort_order' => 4],
-            ['feature_id' => 5, 'sort_order' => 5],
-        ],
-    ];
 
     public function run(): void
     {
         DB::transaction(function () {
+            $this->updateFeatureTitles();
             $this->seedFeatureProducts();
-            $this->correctPlanFeatures();
+            $this->seedPlanFeatures();
         });
     }
 
@@ -69,42 +71,100 @@ class FeatureProductSeeder extends Seeder
     // Internals
     // -------------------------------------------------------
 
-    private function seedFeatureProducts(): void
+    /**
+     * Rename Feature 2 from old "Targeted weed control" title to
+     * "Soil & Climate Protection" to match the new modifier logic.
+     * All other feature titles remain unchanged.
+     */
+    private function updateFeatureTitles(): void
     {
-        // Wipe and re-seed cleanly (idempotent)
-        DB::table('feature_product')->whereIn('feature_id', array_keys(self::FEATURE_PRODUCTS))->delete();
-
-        $rows = [];
-
-        foreach (self::FEATURE_PRODUCTS as $featureId => $skus) {
-            foreach ($skus as $sku) {
-                $rows[] = [
-                    'feature_id'  => $featureId,
-                    'product_sku' => $sku,
-                ];
-            }
-        }
-
-        DB::table('feature_product')->insert($rows);
+        DB::table('features')
+            ->where('title', 'Targeted weed control')
+            ->update(['title' => 'Soil & Climate Protection']);
     }
 
-    private function correctPlanFeatures(): void
+    /**
+     * Wipe and re-seed feature → product mappings for lawn features only.
+     * Resolves feature IDs dynamically by title.
+     */
+    private function seedFeatureProducts(): void
     {
-        // Only correct lawn plans (IDs 1, 2, 3) — leave weeds/garden untouched
-        DB::table('plan_feature')->whereIn('plan_id', array_keys(self::PLAN_FEATURES))->delete();
+        $featureIds = DB::table('features')
+            ->whereIn('title', array_keys(self::FEATURE_PRODUCT_MAP))
+            ->pluck('id', 'title');
+
+        // Remove existing mappings for these features only
+        DB::table('feature_product')
+            ->whereIn('feature_id', $featureIds->values()->all())
+            ->delete();
 
         $rows = [];
 
-        foreach (self::PLAN_FEATURES as $planId => $features) {
-            foreach ($features as $feature) {
+        foreach (self::FEATURE_PRODUCT_MAP as $featureTitle => $slugs) {
+            $featureId = $featureIds->get($featureTitle);
+
+            if (! $featureId) {
+                continue;
+            }
+
+            foreach ($slugs as $slug) {
                 $rows[] = [
-                    'plan_id'    => $planId,
-                    'feature_id' => $feature['feature_id'],
-                    'sort_order' => $feature['sort_order'],
+                    'feature_id'  => $featureId,
+                    'product_sku' => $slug,
                 ];
             }
         }
 
-        DB::table('plan_feature')->insert($rows);
+        if (! empty($rows)) {
+            DB::table('feature_product')->insert($rows);
+        }
+    }
+
+    /**
+     * Wipe and re-seed plan → feature mappings for lawn plans only.
+     * Resolves plan IDs and feature IDs dynamically — no hardcoded IDs.
+     */
+    private function seedPlanFeatures(): void
+    {
+        $planIds = DB::table('plans')
+            ->whereIn('slug', array_keys(self::PLAN_FEATURE_MAP))
+            ->pluck('id', 'slug');
+
+        $featureIds = DB::table('features')
+            ->whereIn('title', array_unique(array_merge(...array_values(self::PLAN_FEATURE_MAP))))
+            ->pluck('id', 'title');
+
+        // Remove existing plan_feature rows for lawn plans only
+        DB::table('plan_feature')
+            ->whereIn('plan_id', $planIds->values()->all())
+            ->delete();
+
+        $rows = [];
+
+        foreach (self::PLAN_FEATURE_MAP as $planSlug => $featureTitles) {
+            $planId = $planIds->get($planSlug);
+
+            if (! $planId) {
+                continue;
+            }
+
+            foreach ($featureTitles as $sortOrder => $featureTitle) {
+                $featureId = $featureIds->get($featureTitle);
+
+                if (! $featureId) {
+                    continue;
+                }
+
+                $rows[] = [
+                    'plan_id'    => $planId,
+                    'feature_id' => $featureId,
+                    'sort_order' => $sortOrder + 1,
+                ];
+            }
+        }
+
+        if (! empty($rows)) {
+            DB::table('plan_feature')->insert($rows);
+        }
     }
 }

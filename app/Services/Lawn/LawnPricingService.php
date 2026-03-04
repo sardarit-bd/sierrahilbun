@@ -12,6 +12,19 @@ use Illuminate\Support\Facades\DB;
  *
  * Uses current_price_yearly if set (promotional/discounted),
  * otherwise falls back to base_price_yearly.
+ *
+ * Multiplier table (up to 1 acre / 43,560 sq ft):
+ *   0–4,000      × 1.0
+ *   4,001–8,000  × 1.4
+ *   8,001–12,000 × 1.8
+ *   12,001–20,000× 2.2
+ *   20,001–32,000× 3.0
+ *   32,001–43,560× 4.0
+ *
+ * Over 1 acre (> 43,560 sq ft):
+ *   Base multiplier = 4.0
+ *   +1.0 per additional acre (rounded up)
+ *   e.g. 2.2 acres → 4.0 + ceil(1.2) = 4.0 + 2 = 6.0
  */
 final class LawnPricingService
 {
@@ -23,6 +36,10 @@ final class LawnPricingService
         [20001, 32000, 3.0],
         [32001, 43560, 4.0],
     ];
+
+    private const ONE_ACRE_SQFT = 43560;
+
+    private const BASE_MULTIPLIER_AT_ONE_ACRE = 4.0;
 
     private const FALLBACK_PRICES = [
         'bronze' => 179.00,
@@ -102,8 +119,8 @@ final class LawnPricingService
                 $prices = [];
 
                 foreach ($plans as $plan) {
-                    $tier           = last(explode('-', $plan->slug));
-                    $prices[$tier]  = (float) ($plan->current_price_yearly ?? $plan->base_price_yearly);
+                    $tier          = last(explode('-', $plan->slug));
+                    $prices[$tier] = (float) ($plan->current_price_yearly ?? $plan->base_price_yearly);
                 }
 
                 return $prices;
@@ -112,6 +129,18 @@ final class LawnPricingService
         );
     }
 
+    /**
+     * Returns the size multiplier for a given square footage.
+     *
+     * For lawns up to 1 acre (43,560 sq ft): uses the band table.
+     * For lawns over 1 acre: starts at 4.0 and adds +1.0 per
+     * additional acre (rounded up).
+     *
+     * Examples:
+     *   43,560 sq ft (1.0 acre)  → 4.0
+     *   87,120 sq ft (2.0 acres) → 4.0 + 1 = 5.0
+     *   94,090 sq ft (2.16 acres)→ 4.0 + ceil(1.16) = 4.0 + 2 = 6.0
+     */
     private function multiplierForSqft(int $sqft): float
     {
         foreach (self::SQFT_BANDS as [$min, $max, $multiplier]) {
@@ -120,6 +149,9 @@ final class LawnPricingService
             }
         }
 
-        return 4.0; // anything above 43,560 sqft
+        // Over 1 acre: +1.0 per additional acre (rounded up)
+        $additionalAcres = ($sqft - self::ONE_ACRE_SQFT) / self::ONE_ACRE_SQFT;
+
+        return self::BASE_MULTIPLIER_AT_ONE_ACRE + ceil($additionalAcres);
     }
 }

@@ -30,9 +30,12 @@ class ProductService
             'image' => $product->images->first()
                 ? Storage::url($product->images->first()->image_url)
                 : '/images/placeholder.png',
-            'base_price' => (float) $product->base_price,
+            'base_price' => (float) ($product->variants->where('is_default', true)->first()?->price 
+                ?? $product->base_price),
+            'max_price'  => (float) ($product->variants->where('is_default', true)->first()?->compare_at_price 
+                ?? $product->base_price),
             'min_price' => (float) ($product->price_min ?: $product->base_price),
-            'max_price' => (float) ($product->price_max ?: $product->base_price),
+            
             'rating' => (float) $product->rating_avg,
             'reviews_count' => $product->reviews_count,
         ]);
@@ -131,9 +134,11 @@ class ProductService
                 'image'         => $product->images->first()
                     ? Storage::url($product->images->first()->image_url)
                     : '/images/placeholder.png',
-                'base_price'         => (float) $product->base_price,
+                'base_price' => (float) ($product->variants->where('is_default', true)->first()?->price 
+                                ?? $product->base_price),
+                'max_price'  => (float) ($product->variants->where('is_default', true)->first()?->compare_at_price 
+                                ?? $product->base_price),
                 'min_price'     => (float) ($product->price_min ?: $product->base_price),
-                'max_price'     => (float) ($product->price_max ?: $product->base_price),
                 'rating'        => (float) $product->rating_avg,
                 'reviews_count' => (int) $product->reviews_count,
             ])

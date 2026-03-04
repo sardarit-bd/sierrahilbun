@@ -19,7 +19,7 @@ class PlanSeeder extends Seeder
             // -------------------------------------------------------
             [
                 'service_id'           => $lawnId,
-                'name'                 => 'Basic Care',
+                'name'                 => 'Bronze',
                 'slug'                 => 'lawn-bronze',
                 'description'          => 'Essential lawn nutrition to grow a green, lush lawn.',
                 'base_price_yearly'    => 179.00,
@@ -31,7 +31,7 @@ class PlanSeeder extends Seeder
             ],
             [
                 'service_id'           => $lawnId,
-                'name'                 => 'Keep & Protect',
+                'name'                 => 'Silver',
                 'slug'                 => 'lawn-silver',
                 'description'          => 'Nutrition plus targeted weed control to keep your lawn thriving.',
                 'base_price_yearly'    => 249.00,
@@ -43,7 +43,7 @@ class PlanSeeder extends Seeder
             ],
             [
                 'service_id'           => $lawnId,
-                'name'                 => 'Grow & Renew',
+                'name'                 => 'Gold',
                 'slug'                 => 'lawn-gold',
                 'description'          => 'Complete lawn care with patch repair and full weed control.',
                 'base_price_yearly'    => 289.00,

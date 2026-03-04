@@ -10,7 +10,7 @@ const GardenSection = ({
   setGardenEnabled,
   gardenFeatures,
   gardenItems,
-  gardenToday,
+  gardenPrice,
   assessment,
   setGardenModalOpen,
 }) => (
@@ -53,12 +53,12 @@ const GardenSection = ({
               </div>
             </div>
             <div className="text-right">
-              <div className="text-lg font-bold text-gray-900">${gardenToday.toFixed(2)}</div>
+              <div className="text-lg font-bold text-gray-900">${parseFloat(gardenPrice ?? 0).toFixed(2)}</div>
             </div>
           </div>
           <div className="p-6 space-y-4 bg-gray-50/30">
-            {gardenFeatures.map((feature, index) => (
-              <GardenProductCard key={feature.title} feature={feature} item={gardenItems[index] ?? null} index={index} />
+            {gardenItems.map((item, index) => (
+              <GardenProductCard key={item.slug} item={item} index={index} />
             ))}
           </div>
         </div>

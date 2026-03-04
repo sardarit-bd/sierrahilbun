@@ -12,7 +12,10 @@ class GardenQuizCalculatorService
         'l'  => 1500,
     ];
 
-    private const PRODUCTS = [
+    /**
+     * Base products — always included regardless of garden type.
+     */
+    private const BASE_PRODUCTS = [
         [
             'slug' => 'garden-boost',
             'name' => 'Garden Boost',
@@ -23,23 +26,55 @@ class GardenQuizCalculatorService
         ],
     ];
 
+    /**
+     * Conditional products — keyed by the garden_type that triggers them.
+     */
+    private const CONDITIONAL_PRODUCTS = [
+        'vegetables' => [
+            'slug' => 'tomato-fuel',
+            'name' => 'TomatoFuel',
+        ],
+    ];
+
     // -------------------------------------------------------
     // Public Entry Point
     // -------------------------------------------------------
 
     public function calculate(array $gardenTypes, string $gardenSize): array
     {
-        $sqft   = $this->resolveRepresentativeSqft($gardenSize);
-        $quarts = $this->calculateQuarts($sqft);
-        $items  = $this->buildLineItems($quarts);
+        $sqft     = $this->resolveRepresentativeSqft($gardenSize);
+        $quarts   = $this->calculateQuarts($sqft);
+        $products = $this->resolveProducts($gardenTypes);
+        $items    = $this->buildLineItems($products, $quarts);
 
         return [
-            'garden_types'       => $gardenTypes,
-            'garden_size'        => $gardenSize,
+            'garden_types'        => $gardenTypes,
+            'garden_size'         => $gardenSize,
             'representative_sqft' => $sqft,
-            'items'              => $items,
-            'total_price'        => $this->sumTotal($items),
+            'items'               => $items,
+            'total_price'         => $this->sumTotal($items),
         ];
+    }
+
+    // -------------------------------------------------------
+    // Product Resolution
+    // -------------------------------------------------------
+
+    /**
+     * Returns base products + any conditional products triggered
+     * by the selected garden types.
+     */
+    private function resolveProducts(array $gardenTypes): array
+    {
+        $products = self::BASE_PRODUCTS;
+
+        foreach (self::CONDITIONAL_PRODUCTS as $triggerType => $product) {
+            if (in_array($triggerType, $gardenTypes, true)) {
+                $products[] = $product;
+            }
+        }
+
+        return $products;
     }
 
     // -------------------------------------------------------
@@ -65,11 +100,11 @@ class GardenQuizCalculatorService
     // Line Item Builder
     // -------------------------------------------------------
 
-    private function buildLineItems(int $quarts): array
+    private function buildLineItems(array $products, int $quarts): array
     {
         return array_map(
             fn(array $product) => $this->buildLineItem($product, $quarts),
-            self::PRODUCTS
+            $products,
         );
     }
 
