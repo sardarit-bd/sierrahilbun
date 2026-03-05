@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { MapPin, Pencil, Package, CheckCircle2, Clock, Truck, X, ChevronDown, ChevronUp } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 
 const DeliveryStatusBadge = ({ status }: { status: string }) => {
     const map: Record<string, { bg: string; icon: React.ReactNode }> = {
@@ -160,7 +160,7 @@ export default function Orders() {
                         </p>
                         <div className="flex flex-wrap justify-center gap-1.5">
                             {orders.links.map((link: any, i: number) => (
-                                
+                                <Link
                                     key={i}
                                     href={link.url ?? '#'}
                                     dangerouslySetInnerHTML={{ __html: link.label }}
