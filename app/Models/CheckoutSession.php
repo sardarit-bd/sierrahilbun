@@ -19,6 +19,7 @@ class CheckoutSession extends Model
         'promo_code',
         'items',
         'status',
+        'shipping_address_id',
         'expires_at',
     ];
 

@@ -6,6 +6,7 @@ use App\Models\CheckoutSession;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ProductVariant;
+use App\Models\ShippingAddress;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -47,6 +48,7 @@ class OrderService
                 'transaction_id' => $transaction->id,
                 'total_amount'   => $session->total,
                 'status'         => 'paid',
+                'shipping_address_json' => $this->resolveShippingAddress($session),
             ]);
 
             // ── Create Order Items ────────────────────────────────
@@ -139,5 +141,37 @@ class OrderService
             ?? ProductVariant::where('product_id', $productId)
                 ->orderBy('sort_order')
                 ->first();
+    }
+
+
+    private function resolveShippingAddress(CheckoutSession $session): ?array
+    {
+        // Use the address the user selected at checkout — not just their default
+        $addressId = $session->shipping_address_id;
+
+        $address = $addressId
+            ? ShippingAddress::find($addressId)
+            : ShippingAddress::where('user_id', $session->user_id)
+                ->where('is_default', true)
+                ->first();
+
+        if (!$address) {
+            Log::warning('OrderService: no shipping address found', [
+                'user_id'             => $session->user_id,
+                'shipping_address_id' => $addressId,
+            ]);
+            return null;
+        }
+
+        return [
+            'first_name'    => $address->first_name,
+            'last_name'     => $address->last_name,
+            'phone'         => $address->phone,
+            'address_line1' => $address->address_line1,
+            'address_line2' => $address->address_line2,
+            'city'          => $address->city,
+            'state'         => $address->state,
+            'zip_code'      => $address->zip_code,
+        ];
     }
 }
