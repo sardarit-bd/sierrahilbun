@@ -89,6 +89,8 @@ class OrderService
 
         OrderItem::create([
             'order_id'           => $order->id,
+            'item_type'          => 'product',
+            'item_id'            => $variant->id,
             'product_variant_id' => $variant->id,
             'quantity'           => (int) $item['quantity'],
             'price_at_purchase'  => (float) $item['unit_price'],
@@ -97,11 +99,11 @@ class OrderService
 
     private function createPlanOrderItem(Order $order, array $item): void
     {
-        // Store plan as an order item without a variant
         OrderItem::create([
             'order_id'           => $order->id,
-            'product_variant_id' => null,         // no variant for plans
-            'plan_id'            => $item['plan_id'] ?? null,
+            'item_type'          => 'plan',
+            'item_id'            => $item['plan_id'] ?? null,
+            'product_variant_id' => null,
             'quantity'           => (int) $item['quantity'],
             'price_at_purchase'  => (float) $item['unit_price'],
         ]);
@@ -109,10 +111,11 @@ class OrderService
 
     private function createGardenOrderItem(Order $order, array $item): void
     {
-        // Garden is a bundle — store each sub-item separately
         foreach ($item['items'] as $subItem) {
             OrderItem::create([
                 'order_id'           => $order->id,
+                'item_type'          => 'garden',
+                'item_id'            => null,
                 'product_variant_id' => null,
                 'quantity'           => (int) $subItem['quarts'],
                 'price_at_purchase'  => (float) $subItem['price_per_quart'],

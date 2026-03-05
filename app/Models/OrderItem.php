@@ -10,6 +10,8 @@ class OrderItem extends Model
 {
     protected $fillable = [
         'order_id',
+        'item_type',
+        'item_id',
         'product_variant_id',
         'quantity',
         'price_at_purchase',
@@ -20,7 +22,7 @@ class OrderItem extends Model
         'price_at_purchase' => 'decimal:2',
     ];
 
-    public $timestamps = false; // your migration has no timestamps on order_items
+    public $timestamps = false;
 
     public function order(): BelongsTo
     {
