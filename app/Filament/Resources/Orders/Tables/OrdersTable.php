@@ -58,10 +58,10 @@ class OrdersTable
                         default      => 'gray',
                     }),
 
-                TextColumn::make('tracking_number')
-                    ->label('Tracking')
-                    ->copyable()
-                    ->placeholder('—'),
+                // TextColumn::make('tracking_number')
+                //     ->label('Tracking')
+                //     ->copyable()
+                //     ->placeholder('—'),
 
                 TextColumn::make('transaction.transaction_id')
                     ->label('Transaction')

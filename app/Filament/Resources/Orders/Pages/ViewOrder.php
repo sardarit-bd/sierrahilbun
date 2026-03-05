@@ -28,7 +28,7 @@ class ViewOrder extends ViewRecord
             Action::make('updateDelivery')
                 ->label('Update Delivery')
                 ->icon('heroicon-o-truck')
-                ->color('warning')
+
                 ->form([
                     Select::make('delivery_status')
                         ->label('Delivery Status')
