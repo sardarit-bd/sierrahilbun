@@ -10,7 +10,6 @@ use App\Services\Order\OrderService;
 use App\Services\Payment\Contracts\WebhookHandlerInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Stripe\Event;
@@ -80,19 +79,20 @@ class StripeWebhookHandler implements WebhookHandlerInterface
 
     private function resolveWebhookSecret(): string
     {
-        // Cache the *encrypted* value only — decrypt fresh each time
-        // so APP_KEY rotation doesn't serve a stale plaintext secret
-        $encryptedSecret = Cache::remember('stripe_webhook_secret_enc', 3600, function () {
+        $settingId = Cache::remember('stripe_webhook_setting_id', 3600, function () {
             return PaymentGatewaySetting::where('gateway', 'stripe')
                 ->where('is_active', true)
-                ->value('webhook_secret'); // only fetch the column we need
+                ->value('id');
         });
 
-        if (!$encryptedSecret) {
+        if (!$settingId) {
             throw new \RuntimeException('Stripe gateway not configured or inactive.');
         }
 
-        return Crypt::decryptString($encryptedSecret);
+        // Fetch fresh — accessor auto-decrypts, no manual Crypt call needed
+        $setting = PaymentGatewaySetting::find($settingId);
+
+        return $setting->webhook_secret; // accessor returns plaintext
     }
 
     // -------------------------------------------------------
