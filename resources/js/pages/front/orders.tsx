@@ -118,9 +118,9 @@ export default function Orders() {
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {orders.data.map((order: any) => (
-                                        <tr key={order.id} className="hover:bg-slate-50/80 transition-colors">
+                                        <tr key={order.serial} className="hover:bg-slate-50/80 transition-colors">
                                             <td className="whitespace-nowrap px-6 py-4 font-mono font-medium text-slate-900">
-                                                #{order.id}
+                                                #{order.serial}
                                             </td>
                                             <td className="whitespace-nowrap px-6 py-4 text-slate-500">
                                                 {new Date(order.created_at).toLocaleDateString('en-US', {
