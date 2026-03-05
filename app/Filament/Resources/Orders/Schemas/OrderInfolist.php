@@ -176,10 +176,10 @@ class OrderInfolist
                     ]),
 
                 // Invisible spacer (left) — keeps Customer pinned to right column
-                Section::make('')
-                    ->columnSpan(1)
-                    ->extraAttributes(['style' => 'visibility:hidden; box-shadow:none; background:transparent; border:none; padding:0; margin:0;'])
-                    ->schema([]),
+                // Section::make('')
+                //     ->columnSpan(1)
+                //     ->extraAttributes(['style' => 'visibility:hidden; box-shadow:none; background:transparent; border:none; padding:0; margin:0;'])
+                //     ->schema([]),
 
                 // Customer (right — opposite invisible spacer)
                 Section::make('Customer')
