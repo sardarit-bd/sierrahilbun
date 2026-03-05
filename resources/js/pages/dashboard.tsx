@@ -47,11 +47,11 @@ export default function Dashboard() {
                                     Here's what's happening with your lawn today.
                                 </p>
                             </div>
-                            <div className="flex items-center gap-3">
+                            {/* <div className="flex items-center gap-3">
                                 <div className="h-12 w-12 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center shadow-sm">
                                     <User className="w-6 h-6 text-neutral-600 dark:text-neutral-300" />
                                 </div>
-                            </div>
+                            </div> */}
                         </div>
                     </header>
 
