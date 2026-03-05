@@ -38,8 +38,11 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationGroups([
                 NavigationGroup::make('Product Management'),
+                NavigationGroup::make('Plan Management'),
                 NavigationGroup::make('Blog Management'),
                 NavigationGroup::make('Settings'),
+                NavigationGroup::make('Testimonial Management'),
+                NavigationGroup::make('Profile Settings'),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
