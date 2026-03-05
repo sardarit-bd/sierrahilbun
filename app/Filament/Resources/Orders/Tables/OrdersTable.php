@@ -38,14 +38,30 @@ class OrdersTable
                     ->sortable(),
 
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label('Payment')
                     ->badge()
                     ->color(fn ($state) => match ($state) {
-                        'paid'        => 'success',
-                        'processing'  => 'info',
-                        'shipped'     => 'warning',
-                        default       => 'gray',
+                        'paid'     => 'success',
+                        'failed'   => 'danger',
+                        'refunded' => 'warning',
+                        default    => 'gray',
                     }),
+
+                TextColumn::make('delivery_status')
+                    ->label('Delivery')
+                    ->badge()
+                    ->color(fn ($state) => match ($state) {
+                        'pending'    => 'gray',
+                        'processing' => 'info',
+                        'shipped'    => 'warning',
+                        'delivered'  => 'success',
+                        default      => 'gray',
+                    }),
+
+                TextColumn::make('tracking_number')
+                    ->label('Tracking')
+                    ->copyable()
+                    ->placeholder('—'),
 
                 TextColumn::make('transaction.transaction_id')
                     ->label('Transaction')
@@ -61,11 +77,13 @@ class OrdersTable
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-                SelectFilter::make('status')
+                SelectFilter::make('delivery_status')
+                    ->label('Delivery Status')
                     ->options([
-                        'paid'       => 'Paid',
+                        'pending'    => 'Pending',
                         'processing' => 'Processing',
                         'shipped'    => 'Shipped',
+                        'delivered'  => 'Delivered',
                     ]),
 
                 Filter::make('created_at')

@@ -15,7 +15,7 @@ export default function AddressForm({ initial = {}, onSubmit, onCancel, submitti
     city:          initial.city          ?? '',
     state:         initial.state         ?? '',
     zip_code:      initial.zip_code      ?? '',
-    is_default:    initial.is_default    ?? true,
+    is_default: initial.is_default === true || initial.is_default === 1,
     label:         initial.label         ?? '',
   });
   const [errors, setErrors] = useState({});

@@ -101,6 +101,26 @@ class OrderInfolist
                             ->placeholder('—'),
                     ]),
 
+                Section::make('Delivery')
+                    ->columns(2)
+                    ->schema([
+                        TextEntry::make('delivery_status')
+                            ->label('Delivery Status')
+                            ->badge()
+                            ->color(fn ($state) => match ($state) {
+                                'pending'    => 'gray',
+                                'processing' => 'info',
+                                'shipped'    => 'warning',
+                                'delivered'  => 'success',
+                                default      => 'gray',
+                            }),
+
+                        TextEntry::make('tracking_number')
+                            ->label('Tracking Number')
+                            ->copyable()
+                            ->placeholder('Not assigned yet'),
+                    ]),
+
                 // ── Order Items ───────────────────────────────────
                 Section::make('Order Items')
                     ->schema([

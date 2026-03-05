@@ -44,10 +44,11 @@ class OrderService
 
             // ── Create Order ──────────────────────────────────────
             $order = Order::create([
-                'user_id'        => $session->user_id,
-                'transaction_id' => $transaction->id,
-                'total_amount'   => $session->total,
-                'status'         => 'paid',
+                'user_id'               => $session->user_id,
+                'transaction_id'        => $transaction->id,
+                'total_amount'          => $session->total,
+                'status'                => 'paid',
+                'delivery_status'       => 'pending',
                 'shipping_address_json' => $this->resolveShippingAddress($session),
             ]);
 

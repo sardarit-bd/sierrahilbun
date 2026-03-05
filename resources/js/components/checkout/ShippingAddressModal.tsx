@@ -70,7 +70,10 @@ export default function ShippingAddressModal({ isOpen, onClose, onConfirmed }) {
           'Accept':       'application/json',
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+            ...formData,
+            is_default: formData.is_default === true || formData.is_default === 1,
+        }),
       });
 
       const data = await res.json();

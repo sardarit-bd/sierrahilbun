@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ShippingAddress;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ShippingAddressController extends Controller
 {
@@ -53,6 +54,8 @@ class ShippingAddressController extends Controller
     public function update(Request $request, ShippingAddress $address): JsonResponse
     {
         abort_if($address->user_id !== auth()->id(), 403);
+
+        Log::info('Shipping update payload', $request->all()); 
 
         $data = $request->validate($this->rules());
 

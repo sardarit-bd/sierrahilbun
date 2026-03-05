@@ -13,6 +13,8 @@ class Order extends Model
         'transaction_id',
         'total_amount',
         'status',
+        'delivery_status',
+        'tracking_number',
         'shipping_address_json',
     ];
 
