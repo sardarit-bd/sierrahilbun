@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Orders\Schemas;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
@@ -153,45 +154,40 @@ class OrderInfolist
                             ->columns(7),
                     ]),
 
-                // Delivery
-                Section::make('Delivery')
-                    ->columns(2)
+                // Delivery + Customer stacked in right column
+                Group::make()
                     ->columnSpan(1)
                     ->schema([
-                        TextEntry::make('delivery_status')
-                            ->label('Delivery Status')
-                            ->badge()
-                            ->color(fn ($state) => match ($state) {
-                                'pending'    => 'gray',
-                                'processing' => 'info',
-                                'shipped'    => 'warning',
-                                'delivered'  => 'success',
-                                default      => 'gray',
-                            }),
+                        Section::make('Delivery')
+                            ->columns(2)
+                            ->schema([
+                                TextEntry::make('delivery_status')
+                                    ->label('Delivery Status')
+                                    ->badge()
+                                    ->color(fn ($state) => match ($state) {
+                                        'pending'    => 'gray',
+                                        'processing' => 'info',
+                                        'shipped'    => 'warning',
+                                        'delivered'  => 'success',
+                                        default      => 'gray',
+                                    }),
 
-                        TextEntry::make('tracking_number')
-                            ->label('Tracking Number')
-                            ->copyable()
-                            ->placeholder('Not assigned yet'),
-                    ]),
+                                TextEntry::make('tracking_number')
+                                    ->label('Tracking Number')
+                                    ->copyable()
+                                    ->placeholder('Not assigned yet'),
+                            ]),
 
-                // Invisible spacer (left) — keeps Customer pinned to right column
-                // Section::make('')
-                //     ->columnSpan(1)
-                //     ->extraAttributes(['style' => 'visibility:hidden; box-shadow:none; background:transparent; border:none; padding:0; margin:0;'])
-                //     ->schema([]),
+                        Section::make('Customer')
+                            ->columns(2)
+                            ->schema([
+                                TextEntry::make('user.name')
+                                    ->label('Name'),
 
-                // Customer (right — opposite invisible spacer)
-                Section::make('Customer')
-                    ->columns(2)
-                    ->columnSpan(1)
-                    ->schema([
-                        TextEntry::make('user.name')
-                            ->label('Name'),
-
-                        TextEntry::make('user.email')
-                            ->label('Email')
-                            ->copyable(),
+                                TextEntry::make('user.email')
+                                    ->label('Email')
+                                    ->copyable(),
+                            ]),
                     ]),
             ]);
     }
