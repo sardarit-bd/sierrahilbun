@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Orders\Schemas;
 
-use Filament\Infolists\Components\Grid;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -106,8 +106,24 @@ class OrderInfolist
                     ->schema([
                         RepeatableEntry::make('items')
                             ->label('')
-                            ->columns(4)
                             ->schema([
+                                // Product image — only for product type items
+                                ImageEntry::make('variant.product.images')
+                                    ->label('Image')
+                                    ->getStateUsing(function ($record) {
+                                        $primary = $record->variant?->product?->images
+                                            ->firstWhere('is_primary', true)
+                                            ?? $record->variant?->product?->images->first();
+
+                                        return $primary?->image_url;
+                                    })
+                                    ->disk('public')
+                                    ->width(64)
+                                    ->height(64)
+                                    ->extraImgAttributes(['class' => 'rounded-lg object-cover'])
+                                    ->placeholder('—')
+                                    ->visible(fn ($record) => $record->item_type === 'product'),
+
                                 TextEntry::make('item_type')
                                     ->label('Type')
                                     ->badge()
@@ -118,8 +134,12 @@ class OrderInfolist
                                         default   => 'gray',
                                     }),
 
-                                TextEntry::make('productVariant.product.name')
+                                TextEntry::make('variant.product.name')
                                     ->label('Product')
+                                    ->placeholder('—'),
+
+                                TextEntry::make('variant.size_label')
+                                    ->label('Variant')
                                     ->placeholder('—'),
 
                                 TextEntry::make('quantity')
@@ -128,7 +148,13 @@ class OrderInfolist
                                 TextEntry::make('price_at_purchase')
                                     ->label('Unit Price')
                                     ->money('USD'),
-                            ]),
+
+                                TextEntry::make('line_total')
+                                    ->label('Line Total')
+                                    ->money('USD')
+                                    ->getStateUsing(fn ($record) => $record->quantity * $record->price_at_purchase),
+                            ])
+                            ->columns(7),
                     ]),
             ]);
     }

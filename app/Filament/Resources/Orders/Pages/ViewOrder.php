@@ -15,4 +15,13 @@ class ViewOrder extends ViewRecord
     {
         return OrderInfolist::configure($schema);
     }
+
+    protected function resolveRecord(int | string $key): \App\Models\Order
+    {
+        return \App\Models\Order::with([
+            'user',
+            'transaction',
+            'items.variant.product.images',
+        ])->findOrFail($key);
+    }
 }
