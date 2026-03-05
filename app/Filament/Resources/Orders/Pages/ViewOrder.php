@@ -15,13 +15,13 @@ class ViewOrder extends ViewRecord
 {
     protected static string $resource = OrderResource::class;
 
-    // ── What to show on the view page ────────────────────
+    // ── What to show on the view page ─────────────
     public function infolist(Schema $schema): Schema
     {
         return OrderInfolist::configure($schema);
     }
 
-    // ── Buttons in the top-right of the page ─────────────
+    // ── Buttons in the top-right of the page ───────
     protected function getHeaderActions(): array
     {
         return [
