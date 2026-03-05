@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\DashboardStatsService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,6 +25,15 @@ class Order extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        $bust = fn () => app(DashboardStatsService::class)->clearCache();
+
+        static::created($bust);
+        static::updated($bust);
+        static::deleted($bust);
+    }
 
     // -------------------------------------------------------
     // Relationships
