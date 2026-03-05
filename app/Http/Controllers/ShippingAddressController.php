@@ -8,17 +8,10 @@ use Illuminate\Http\Request;
 
 class ShippingAddressController extends Controller
 {
-    public function index(): JsonResponse
+    // Shared validation rules
+    private function rules(): array
     {
-        return response()->json(
-            auth()->user()->shippingAddresses()->orderByDesc('is_default')->get()
-        );
-    }
-
-    // POST /api/shipping-addresses
-    public function store(Request $request): JsonResponse
-    {
-        $data = $request->validate([
+        return [
             'label'         => 'nullable|string|max:50',
             'first_name'    => 'required|string|max:100',
             'last_name'     => 'required|string|max:100',
@@ -29,18 +22,27 @@ class ShippingAddressController extends Controller
             'state'         => 'required|string|size:2',
             'zip_code'      => 'required|string|max:10',
             'is_default'    => 'boolean',
-        ]);
+        ];
+    }
 
+    public function index(): JsonResponse
+    {
+        return response()->json(
+            auth()->user()->shippingAddresses()->orderByDesc('is_default')->get()
+        );
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate($this->rules());
         $user = auth()->user();
 
-        // If setting as default, clear existing default first
-        if (!empty($data['is_default'])) {
-            $user->shippingAddresses()->update(['is_default' => false]);
-        }
+        // First address is always default — check BEFORE any clearing
+        $isFirst = $user->shippingAddresses()->count() === 0;
 
-        // First address is always default
-        if ($user->shippingAddresses()->count() === 0) {
+        if ($isFirst || !empty($data['is_default'])) {
             $data['is_default'] = true;
+            $user->shippingAddresses()->update(['is_default' => false]);
         }
 
         $address = $user->shippingAddresses()->create($data);
@@ -48,18 +50,18 @@ class ShippingAddressController extends Controller
         return response()->json($address, 201);
     }
 
-    // PUT /api/shipping-addresses/{address}
     public function update(Request $request, ShippingAddress $address): JsonResponse
     {
         abort_if($address->user_id !== auth()->id(), 403);
 
-        $data = $request->validate([/* same rules */]);
+        $data = $request->validate($this->rules());
 
         if (!empty($data['is_default'])) {
             auth()->user()->shippingAddresses()->update(['is_default' => false]);
         }
 
         $address->update($data);
-        return response()->json($address);
+
+        return response()->json($address->fresh());
     }
 }
