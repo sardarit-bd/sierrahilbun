@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\Front\DashboardController;
 use App\Http\Controllers\Front\OrderController;
 use App\Http\Controllers\Lawn\CategoryController;
 use App\Http\Controllers\Lawn\GardenQuizController;
@@ -37,8 +38,8 @@ Route::get('/search/products', [SearchController::class, 'products'])
 
 // frontend
 Route::group(['middleware' => ['auth', 'verified']], function () {
-    Route::get('/dashboard', fn () => Inertia::render('dashboard'))->name('dashboard');
-    Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/orders',    [OrderController::class, 'index'])->name('orders.index');
 });
 
 
