@@ -53,23 +53,14 @@ class OrderService
             $items = $session->items ?? [];
 
             foreach ($items as $item) {
-                $variant = $this->resolveDefaultVariant((int) $item['product_id']);
+                $type = $item['type'] ?? 'product';
 
-                if (!$variant) {
-                    Log::warning('OrderService: no default variant found for product', [
-                        'product_id' => $item['product_id'],
-                        'order_id'   => $order->id,
-                    ]);
-                    // Skip item gracefully — do not fail entire order
-                    continue;
-                }
-
-                OrderItem::create([
-                    'order_id'           => $order->id,
-                    'product_variant_id' => $variant->id,
-                    'quantity'           => (int) $item['quantity'],
-                    'price_at_purchase'  => (float) $item['unit_price'],
-                ]);
+                match ($type) {
+                    'product' => $this->createProductOrderItem($order, $item),
+                    'plan'    => $this->createPlanOrderItem($order, $item),
+                    'garden'  => $this->createGardenOrderItem($order, $item),
+                    default   => Log::warning('OrderService: unknown item type', ['type' => $type, 'order_id' => $order->id]),
+                };
             }
 
             Log::info('OrderService: order created successfully', [
@@ -82,6 +73,51 @@ class OrderService
 
             return $order;
         });
+    }
+
+    private function createProductOrderItem(Order $order, array $item): void
+    {
+        $variant = $this->resolveDefaultVariant((int) $item['product_id']);
+
+        if (!$variant) {
+            Log::warning('OrderService: no default variant for product', [
+                'product_id' => $item['product_id'],
+                'order_id'   => $order->id,
+            ]);
+            return;
+        }
+
+        OrderItem::create([
+            'order_id'           => $order->id,
+            'product_variant_id' => $variant->id,
+            'quantity'           => (int) $item['quantity'],
+            'price_at_purchase'  => (float) $item['unit_price'],
+        ]);
+    }
+
+    private function createPlanOrderItem(Order $order, array $item): void
+    {
+        // Store plan as an order item without a variant
+        OrderItem::create([
+            'order_id'           => $order->id,
+            'product_variant_id' => null,         // no variant for plans
+            'plan_id'            => $item['plan_id'] ?? null,
+            'quantity'           => (int) $item['quantity'],
+            'price_at_purchase'  => (float) $item['unit_price'],
+        ]);
+    }
+
+    private function createGardenOrderItem(Order $order, array $item): void
+    {
+        // Garden is a bundle — store each sub-item separately
+        foreach ($item['items'] as $subItem) {
+            OrderItem::create([
+                'order_id'           => $order->id,
+                'product_variant_id' => null,
+                'quantity'           => (int) $subItem['quarts'],
+                'price_at_purchase'  => (float) $subItem['price_per_quart'],
+            ]);
+        }
     }
 
     // -------------------------------------------------------
