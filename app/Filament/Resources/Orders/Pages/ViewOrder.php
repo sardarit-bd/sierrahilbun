@@ -21,7 +21,7 @@ class ViewOrder extends ViewRecord
         return OrderInfolist::configure($schema);
     }
 
-    // ── Buttons in the top-right of the page ───────
+    // ── Buttons in the top-right of the page ──────
     protected function getHeaderActions(): array
     {
         return [
