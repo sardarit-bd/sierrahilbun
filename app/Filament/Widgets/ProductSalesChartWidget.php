@@ -8,12 +8,12 @@ use Filament\Widgets\ChartWidget;
 class ProductSalesChartWidget extends ChartWidget
 {
     protected static ?string $title = 'Product Sales — Monthly Comparison';
-    protected ?string $description = 'Revenue comparison between current year and previous year.';
+    protected ?string $description = 'Revenue comparison between months and year.';
     protected static ?int $sort = 2;
 
     public string | int | array $columnSpan = 'full';
 
-    protected ?string $pollingInterval = '60s';
+    protected ?string $pollingInterval = '360s';
 
     protected ?string $maxHeight = '300px';
 
@@ -23,13 +23,13 @@ class ProductSalesChartWidget extends ChartWidget
      */
     public string|null $filter = 'bar';
 
-    protected function getFilters(): ?array
-    {
-        return [
-            'bar'  => 'Bar Chart',
-            'line' => 'Line Chart',
-        ];
-    }
+    // protected function getFilters(): ?array
+    // {
+    //     return [
+    //         'bar'  => 'Bar Chart',
+    //         'line' => 'Line Chart',
+    //     ];
+    // }
 
     protected function getType(): string
     {
