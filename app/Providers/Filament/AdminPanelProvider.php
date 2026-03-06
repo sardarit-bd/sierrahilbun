@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\Login;
 use App\Filament\Widgets\ProductSalesChartWidget;
 use App\Filament\Widgets\StatsOverviewWidget;
 use Filament\Http\Middleware\Authenticate;
@@ -32,7 +33,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->favicon('/images/turftec-logo.png')
-            ->login()
+            ->login(Login::class)
             ->colors([
                 'primary' => Color::hex('#2D4739'),
             ])
