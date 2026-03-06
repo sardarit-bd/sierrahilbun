@@ -136,6 +136,7 @@ const cartProduct = {
   // ✅ Pass assessment_id so CheckoutService can look up square_feet
   // and apply the correct LawnPricingService sqft multiplier server-side.
   assessment_id: assessment?.id ?? null,
+  tier: selectedLawnEntry?.plan?.slug?.split('-').pop() ?? null,
 };
 
   return (

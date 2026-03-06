@@ -6,6 +6,7 @@ use App\Models\CheckoutSession;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Plan;
+use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\ShippingAddress;
 use App\Models\Transaction;
@@ -121,24 +122,33 @@ class OrderService
      */
     private function createPlanOrderItems(Order $order, array $item): void
     {
-        $plan = Plan::with(['features.products.images'])->find($item['plan_id'] ?? null);
+        $plan = Plan::find($item['plan_id'] ?? null);
 
         if (!$plan) {
-            Log::warning('OrderService: plan not found, skipping', [
+            Log::warning('OrderService: plan not found', [
                 'plan_id'  => $item['plan_id'] ?? null,
                 'order_id' => $order->id,
             ]);
             return;
         }
 
-        // Collect all unique products across all features.
-        // Deduplicate by SKU — same product can appear under multiple features.
-        $products = $plan->features
-            ->flatMap(fn ($feature) => $feature->products)
-            ->unique('sku');
+        // Use the exact slugs from the assessment packaging — these are the
+        // products the user actually saw and purchased, not all plan features.
+        $productSlugs = $item['product_slugs'] ?? [];
+
+        if (empty($productSlugs)) {
+            // Fallback: load all unique products from plan features
+            $plan->loadMissing('features.products.images');
+            $products = $plan->features
+                ->flatMap(fn($f) => $f->products)
+                ->unique('sku');
+        } else {
+            $products = Product::with('images')
+                ->whereIn('sku', $productSlugs)
+                ->get();
+        }
 
         if ($products->isEmpty()) {
-            // Plan has no products configured — save a single summary row.
             Log::warning('OrderService: plan has no products, creating summary row', [
                 'plan_id'  => $plan->id,
                 'order_id' => $order->id,
@@ -158,13 +168,12 @@ class OrderService
             return;
         }
 
-        // Split plan price evenly so totals still add up correctly.
         $productCount    = $products->count();
         $pricePerProduct = round((float) $item['unit_price'] / $productCount, 2);
 
         foreach ($products as $product) {
             $imageUrl = $product->images->firstWhere('is_primary', true)?->image_url
-                     ?? $product->images->first()?->image_url;
+                    ?? $product->images->first()?->image_url;
 
             if ($imageUrl && !str_starts_with($imageUrl, 'http')) {
                 $imageUrl = '/storage/' . ltrim($imageUrl, '/');
@@ -173,7 +182,7 @@ class OrderService
             OrderItem::create([
                 'order_id'           => $order->id,
                 'item_type'          => 'plan',
-                'item_id'            => $plan->id,   // keep plan reference for admin queries
+                'item_id'            => $plan->id,
                 'product_variant_id' => null,
                 'quantity'           => (int) $item['quantity'],
                 'price_at_purchase'  => $pricePerProduct,

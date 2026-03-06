@@ -25,6 +25,7 @@ class CheckoutController extends Controller
             'items.*.garden_products'             => ['required_if:items.*.type,garden',  'nullable', 'array'],
             'items.*.garden_products.garden_size' => ['required_if:items.*.type,garden',  'nullable', 'string', 'in:xs,sm,l'],
             'items.*.quantity'                    => ['required', 'integer', 'min:1', 'max:100'],
+            'items.*.tier'                        => ['nullable', 'string', 'in:bronze,silver,gold'],
             'promo_code'                          => ['nullable', 'string', 'max:20'],
             'currency'                            => ['nullable', 'string', 'size:3'],
         ]);

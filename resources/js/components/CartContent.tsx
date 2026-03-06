@@ -122,6 +122,7 @@ export default function CartContent() {
             plan_id:       parseInt(item.lawn_plan_id, 10),
             quantity:      item.quantity || 1,
             assessment_id: item.assessment_id ?? null,
+            tier:          item.tier ?? null, 
           });
         }
 

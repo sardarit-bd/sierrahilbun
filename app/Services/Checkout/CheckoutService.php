@@ -133,28 +133,15 @@ class CheckoutService
                 }
 
                 // Resolve sqft-scaled price via LawnPricingService.
-                //
-                // If the cart item carries an assessment_id, we load the
-                // assessment's square_feet and run it through the same
-                // multiplier bands used on the plan page.
-                //
-                // If no assessment is provided (e.g. weeds plan purchased
-                // standalone) we fall back to the flat yearly/12 price.
+                $productSlugs = [];
                 $assessmentId = $item['assessment_id'] ?? null;
-                $assessment   = $assessmentId ? $assessments->get($assessmentId) : null;
+                $tier         = $item['tier'] ?? null;
 
-                if ($assessment && $assessment->square_feet) {
-                    // Derive tier slug from the plan slug (e.g. "lawn-gold" → "gold")
-                    $tierSlug  = last(explode('-', $plan->slug));
-                    $unitPrice = $this->lawnPricing->scaledPrice($tierSlug, (int) $assessment->square_feet);
-                } else {
-                    // Fallback: flat yearly price / 12 (no sqft scaling)
-                    $yearlyPrice = (float) ($plan->current_price_yearly ?? $plan->base_price_yearly);
-                    $unitPrice   = round($yearlyPrice / 12, 2);
+                if ($assessmentId && $tier) {
+                    $assessment   = $assessments->get($assessmentId);
+                    $packaging    = $assessment?->packaging_by_tier[$tier] ?? [];
+                    $productSlugs = collect($packaging['lines'] ?? [])->pluck('slug')->toArray();
                 }
-
-                $lineTotal  = round($unitPrice * $quantity, 2);
-                $subtotal  += $lineTotal;
 
                 $verifiedItems[] = [
                     'type'          => 'plan',
@@ -164,6 +151,8 @@ class CheckoutService
                     'quantity'      => $quantity,
                     'line_total'    => $lineTotal,
                     'assessment_id' => $assessmentId,
+                    'tier'          => $tier,
+                    'product_slugs' => $productSlugs,
                 ];
 
                 continue;
