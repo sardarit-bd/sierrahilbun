@@ -1,94 +1,245 @@
 <?php
 
-namespace App\Http\Controllers\Front;
+namespace App\Services\Order;
 
-use App\Http\Controllers\Controller;
+use App\Models\CheckoutSession;
 use App\Models\Order;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
+use App\Models\OrderItem;
+use App\Models\Plan;
+use App\Models\ProductVariant;
+use App\Models\ShippingAddress;
+use App\Models\Transaction;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
-class OrderController extends Controller
+class OrderService
 {
-    public function index(Request $request): Response
-    {
-        $page    = request()->input('page', 1);
-        $perPage = 10;
+    /**
+     * Create an Order and OrderItems from a completed CheckoutSession.
+     *
+     * ACID guarantees:
+     *  - Entire operation runs in a single DB transaction
+     *  - If any step fails, everything rolls back
+     *  - Idempotent — won't create duplicate orders for the same transaction
+     *
+     * @throws \Throwable
+     */
+    public function createFromCheckoutSession(
+        Transaction     $transaction,
+        CheckoutSession $session,
+    ): Order {
+        return DB::transaction(function () use ($transaction, $session) {
 
-        $orders = Order::query()
-            ->forUser($request->user()->id)
-            ->with([
-                'transaction',
-                'items.variant.product.images',
-            ])
-            ->latest()
-            ->paginate($perPage)
-            ->through(function (Order $order) use (&$page, $perPage) {
-                static $index = 0;
-                $index++;
-                $serial = (($page - 1) * $perPage) + $index;
+            // ── Idempotency guard ─────────────────────────────────
+            $existing = Order::where('transaction_id', $transaction->id)->first();
 
-                return [
-                    'serial'           => $serial,
-                    'transaction_id'   => $order->transaction?->transaction_id,
-                    'total_amount'     => $order->total_amount,
-                    'status'           => $order->status,
-                    'delivery_status'  => $order->delivery_status,
-                    'tracking_number'  => $order->tracking_number,
-                    'created_at'       => $order->created_at->toDateTimeString(),
-                    'shipping_address' => $order->shipping_address_json,
-                    'items'            => $order->items->map(fn ($item) => [
-                        'id'                => $item->id,
-                        'item_type'         => $item->item_type,
-                        'quantity'          => $item->quantity,
-                        'price_at_purchase' => $item->price_at_purchase,
-                        'line_total'        => $item->quantity * $item->price_at_purchase,
+            if ($existing) {
+                Log::info('OrderService: order already exists, skipping', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'order_id'       => $existing->id,
+                ]);
+                return $existing;
+            }
 
-                        // ── Name ────────────────────────────────────────────
-                        // For products: use the product name from the relationship.
-                        // For plans / garden: use the denormalized display_name
-                        // saved at order-creation time (no join needed).
-                        'product_name' => $item->item_type === 'product'
-                            ? ($item->variant?->product?->name ?? $item->display_name ?? 'Unknown Product')
-                            : ($item->display_name ?? ucfirst($item->item_type) . ' Item'),
+            // ── Create Order ──────────────────────────────────────
+            $order = Order::create([
+                'user_id'               => $session->user_id,
+                'transaction_id'        => $transaction->id,
+                'total_amount'          => $session->total,
+                'status'                => 'paid',
+                'delivery_status'       => 'pending',
+                'shipping_address_json' => $this->resolveShippingAddress($session),
+            ]);
 
-                        // ── Image ────────────────────────────────────────────
-                        // For products: resolve via the product images relationship.
-                        // For plans / garden: use the denormalized display_image.
-                        'image_url' => $item->item_type === 'product'
-                            ? $this->resolveProductImage($item)
-                            : ($item->display_image ?? null),
+            // ── Create Order Items ────────────────────────────────
+            $items = $session->items ?? [];
 
-                        'variant_label' => $item->variant?->size_label ?? '',
-                        'variant_sku'   => $item->variant?->sku        ?? '',
+            foreach ($items as $item) {
+                $type = $item['type'] ?? 'product';
+
+                match ($type) {
+                    'product' => $this->createProductOrderItem($order, $item),
+                    'plan'    => $this->createPlanOrderItems($order, $item),
+                    'garden'  => $this->createGardenOrderItem($order, $item),
+                    default   => Log::warning('OrderService: unknown item type', [
+                        'type'     => $type,
+                        'order_id' => $order->id,
                     ]),
-                ];
-            });
+                };
+            }
 
-        return Inertia::render('front/orders', [
-            'orders' => $orders,
-        ]);
+            Log::info('OrderService: order created successfully', [
+                'order_id'       => $order->id,
+                'transaction_id' => $transaction->transaction_id,
+                'user_id'        => $session->user_id,
+                'total'          => $order->total_amount,
+                'item_count'     => count($items),
+            ]);
+
+            return $order;
+        });
     }
 
     // -------------------------------------------------------
-    // Helpers
+    // Item creators
     // -------------------------------------------------------
 
-    private function resolveProductImage($item): ?string
+    private function createProductOrderItem(Order $order, array $item): void
     {
-        $images = $item->variant?->product?->images;
+        $variant = $this->resolveDefaultVariant((int) $item['product_id']);
 
-        if (!$images || $images->isEmpty()) {
+        if (!$variant) {
+            Log::warning('OrderService: no default variant for product', [
+                'product_id' => $item['product_id'],
+                'order_id'   => $order->id,
+            ]);
+            return;
+        }
+
+        OrderItem::create([
+            'order_id'           => $order->id,
+            'item_type'          => 'product',
+            'item_id'            => $variant->id,
+            'product_variant_id' => $variant->id,
+            'quantity'           => (int) $item['quantity'],
+            'price_at_purchase'  => (float) $item['unit_price'],
+            'display_name'       => $item['name'] ?? null,
+            'display_image'      => null, // resolved via variant → product → images relationship
+        ]);
+    }
+
+    /**
+     * Creates one OrderItem row per product found across all features of the plan.
+     *
+     * A plan has many features (plan_feature pivot), each feature has many
+     * products (feature_product pivot, keyed on product_sku <-> sku).
+     * Each product gets its own row so the dashboard can show the full
+     * product list with individual names and images.
+     *
+     * The plan's total unit_price is split evenly across all products so
+     * that line totals still sum to the correct plan price.
+     */
+    private function createPlanOrderItems(Order $order, array $item): void
+    {
+        $plan = Plan::with(['features.products.images'])->find($item['plan_id'] ?? null);
+
+        if (!$plan) {
+            Log::warning('OrderService: plan not found, skipping', [
+                'plan_id'  => $item['plan_id'] ?? null,
+                'order_id' => $order->id,
+            ]);
+            return;
+        }
+
+        // Collect all unique products across all features.
+        // Deduplicate by SKU — same product can appear under multiple features.
+        $products = $plan->features
+            ->flatMap(fn ($feature) => $feature->products)
+            ->unique('sku');
+
+        if ($products->isEmpty()) {
+            // Plan has no products configured — save a single summary row.
+            Log::warning('OrderService: plan has no products, creating summary row', [
+                'plan_id'  => $plan->id,
+                'order_id' => $order->id,
+            ]);
+
+            OrderItem::create([
+                'order_id'           => $order->id,
+                'item_type'          => 'plan',
+                'item_id'            => $plan->id,
+                'product_variant_id' => null,
+                'quantity'           => (int) $item['quantity'],
+                'price_at_purchase'  => (float) $item['unit_price'],
+                'display_name'       => $plan->name,
+                'display_image'      => null,
+            ]);
+
+            return;
+        }
+
+        // Split plan price evenly so totals still add up correctly.
+        $productCount    = $products->count();
+        $pricePerProduct = round((float) $item['unit_price'] / $productCount, 2);
+
+        foreach ($products as $product) {
+            $imageUrl = $product->images->firstWhere('is_primary', true)?->image_url
+                     ?? $product->images->first()?->image_url;
+
+            if ($imageUrl && !str_starts_with($imageUrl, 'http')) {
+                $imageUrl = '/storage/' . ltrim($imageUrl, '/');
+            }
+
+            OrderItem::create([
+                'order_id'           => $order->id,
+                'item_type'          => 'plan',
+                'item_id'            => $plan->id,   // keep plan reference for admin queries
+                'product_variant_id' => null,
+                'quantity'           => (int) $item['quantity'],
+                'price_at_purchase'  => $pricePerProduct,
+                'display_name'       => $product->name,
+                'display_image'      => $imageUrl,
+            ]);
+        }
+    }
+
+    private function createGardenOrderItem(Order $order, array $item): void
+    {
+        foreach ($item['items'] as $subItem) {
+            OrderItem::create([
+                'order_id'           => $order->id,
+                'item_type'          => 'garden',
+                'item_id'            => null,
+                'product_variant_id' => null,
+                'quantity'           => (int) $subItem['quarts'],
+                'price_at_purchase'  => (float) $subItem['price_per_quart'],
+                'display_name'       => $subItem['name'] ?? 'Garden Care',
+                'display_image'      => null,
+            ]);
+        }
+    }
+
+    // -------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------
+
+    private function resolveDefaultVariant(int $productId): ?ProductVariant
+    {
+        return ProductVariant::where('product_id', $productId)
+            ->where('is_default', true)
+            ->first()
+            ?? ProductVariant::where('product_id', $productId)
+                ->orderBy('sort_order')
+                ->first();
+    }
+
+    private function resolveShippingAddress(CheckoutSession $session): ?array
+    {
+        $addressId = $session->shipping_address_id;
+
+        $address = $addressId
+            ? ShippingAddress::find($addressId)
+            : ShippingAddress::where('user_id', $session->user_id)
+                ->where('is_default', true)
+                ->first();
+
+        if (!$address) {
+            Log::warning('OrderService: no shipping address found', [
+                'user_id'             => $session->user_id,
+                'shipping_address_id' => $addressId,
+            ]);
             return null;
         }
 
-        $url = $images->firstWhere('is_primary', true)?->image_url
-            ?? $images->first()?->image_url;
-
-        if (!$url) {
-            return null;
-        }
-
-        return str_starts_with($url, 'http') ? $url : '/storage/' . ltrim($url, '/');
+        return [
+            'first_name'    => $address->first_name,
+            'last_name'     => $address->last_name,
+            'phone'         => $address->phone,
+            'address_line1' => $address->address_line1,
+            'address_line2' => $address->address_line2,
+            'city'          => $address->city,
+            'state'         => $address->state,
+            'zip_code'      => $address->zip_code,
+        ];
     }
 }
