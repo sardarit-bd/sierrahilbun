@@ -132,7 +132,7 @@ class CheckoutService
 
                 // ── 1. Resolve price via LawnPricingService (sqft-scaled) ──
                 $assessmentId = $item['assessment_id'] ?? null;
-                $tier         = $item['tier'] ?? null;
+                $tier = $item['tier'] ?? last(explode('-', $plan->slug));
                 $assessment   = $assessmentId ? $assessments->get($assessmentId) : null;
 
                 if ($assessment && $assessment->square_feet) {
