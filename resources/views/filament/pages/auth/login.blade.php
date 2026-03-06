@@ -254,7 +254,6 @@
         <div class="login-left-accent"></div>
 
         <div class="login-left-content">
-
             <div class="flex items-center gap-3 mb-10">
                 <img src="/images/turftec-logo.png" alt="TurfTec Logo" style="height: 48px; width: auto;">
                 <span class="login-brand-name" style="margin-bottom: 0; font-size: 2rem;">TurfTec</span>
@@ -290,8 +289,19 @@
         </div>
     </div>
 
-    {{-- ── RIGHT PANEL ─────────────────────────────────────────────────── --}}
+    {{-- RIGHT PANEL  --}}
     <div class="login-right">
+
+    {{-- Back button --}}
+    <a href="{{ url('/') }}"
+    style="position: absolute; top: 1.5rem; left: 0.5rem; display: flex; align-items: center; gap: 0.4rem; font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 500; color: var(--sage); text-decoration: none; letter-spacing: 0.03em; transition: color 0.2s;"
+    onmouseover="this.style.color='var(--forest)'"
+    onmouseout="this.style.color='var(--sage)'">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:14px;height:14px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+        </svg>
+        Back to site
+    </a>
         <div class="login-form-wrap">
 
             {{-- Mobile logo --}}
@@ -301,7 +311,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.955 11.955 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
                     </svg>
                 </div> -->
-                <div class="login-mobile-logo">
+                <div class="login-mobile-logo mt-10">
                     <div class="flex items-center gap-2">
                         <img src="/images/turftec-logo.png" alt="TurfTec Logo" style="height: 36px; width: auto;">
                         <span style="font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 600; color: var(--forest-dark);">TurfTec</span>
