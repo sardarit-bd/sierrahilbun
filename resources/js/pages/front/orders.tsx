@@ -37,7 +37,7 @@ const OrderItemsPanel = ({ items }: { items: any[] }) => {
                         <div key={item.id} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
                             {item.image_url ? (
                                 <img
-                                    src={`/storage${item.image_url}`}
+                                    src={`${item.image_url}`}
                                     alt={item.product_name}
                                     className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
                                 />
