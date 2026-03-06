@@ -5,6 +5,7 @@ namespace App\Services\Order;
 use App\Models\CheckoutSession;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Plan;
 use App\Models\ProductVariant;
 use App\Models\ShippingAddress;
 use App\Models\Transaction;
@@ -30,8 +31,6 @@ class OrderService
         return DB::transaction(function () use ($transaction, $session) {
 
             // ── Idempotency guard ─────────────────────────────────
-            // If an order already exists for this transaction, return it.
-            // Protects against duplicate webhook delivery.
             $existing = Order::where('transaction_id', $transaction->id)->first();
 
             if ($existing) {
@@ -90,6 +89,9 @@ class OrderService
             return;
         }
 
+        // For products, display_name/display_image are resolved from the
+        // variant → product relationship at query time in OrderController,
+        // so we don't need to denormalize them here.
         OrderItem::create([
             'order_id'           => $order->id,
             'item_type'          => 'product',
@@ -97,11 +99,24 @@ class OrderService
             'product_variant_id' => $variant->id,
             'quantity'           => (int) $item['quantity'],
             'price_at_purchase'  => (float) $item['unit_price'],
+            'display_name'       => $item['name'] ?? null,
+            'display_image'      => null, // resolved via relationship
         ]);
     }
 
     private function createPlanOrderItem(Order $order, array $item): void
     {
+        // Resolve the plan's image_url from DB at order-creation time.
+        // This denormalizes the display data so dashboards never need
+        // to join back to plans just to show a name/image.
+        $plan      = Plan::find($item['plan_id'] ?? null);
+        $imageUrl  = $plan?->image_url;
+
+        // Normalize to a public URL if stored as a relative storage path
+        if ($imageUrl && !str_starts_with($imageUrl, 'http')) {
+            $imageUrl = '/storage/' . ltrim($imageUrl, '/');
+        }
+
         OrderItem::create([
             'order_id'           => $order->id,
             'item_type'          => 'plan',
@@ -109,6 +124,8 @@ class OrderService
             'product_variant_id' => null,
             'quantity'           => (int) $item['quantity'],
             'price_at_purchase'  => (float) $item['unit_price'],
+            'display_name'       => $item['name']  ?? $plan?->name  ?? 'Plan',
+            'display_image'      => $imageUrl,
         ]);
     }
 
@@ -122,18 +139,16 @@ class OrderService
                 'product_variant_id' => null,
                 'quantity'           => (int) $subItem['quarts'],
                 'price_at_purchase'  => (float) $subItem['price_per_quart'],
+                'display_name'       => $subItem['name'] ?? 'Garden Care',
+                'display_image'      => null, // no image for garden sub-items
             ]);
         }
     }
 
     // -------------------------------------------------------
-    // Private
+    // Private helpers
     // -------------------------------------------------------
 
-    /**
-     * Resolve the default product variant for a given product.
-     * Falls back to the first variant if no default is set.
-     */
     private function resolveDefaultVariant(int $productId): ?ProductVariant
     {
         return ProductVariant::where('product_id', $productId)
@@ -144,10 +159,8 @@ class OrderService
                 ->first();
     }
 
-
     private function resolveShippingAddress(CheckoutSession $session): ?array
     {
-        // Use the address the user selected at checkout — not just their default
         $addressId = $session->shipping_address_id;
 
         $address = $addressId

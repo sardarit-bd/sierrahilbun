@@ -29,26 +29,38 @@ class OrderController extends Controller
                 $serial = (($page - 1) * $perPage) + $index;
 
                 return [
-                    'serial'          => $serial,        // ← 1, 2, 3... across pages
-                    'transaction_id'  => $order->transaction?->transaction_id,
-                    'total_amount'    => $order->total_amount,
-                    'status'          => $order->status,
-                    'delivery_status' => $order->delivery_status,
-                    'tracking_number' => $order->tracking_number,
-                    'created_at'      => $order->created_at->toDateTimeString(),
-                    'shipping_address'=> $order->shipping_address_json,
-                    'items'           => $order->items->map(fn ($item) => [
+                    'serial'           => $serial,
+                    'transaction_id'   => $order->transaction?->transaction_id,
+                    'total_amount'     => $order->total_amount,
+                    'status'           => $order->status,
+                    'delivery_status'  => $order->delivery_status,
+                    'tracking_number'  => $order->tracking_number,
+                    'created_at'       => $order->created_at->toDateTimeString(),
+                    'shipping_address' => $order->shipping_address_json,
+                    'items'            => $order->items->map(fn ($item) => [
                         'id'                => $item->id,
                         'item_type'         => $item->item_type,
                         'quantity'          => $item->quantity,
                         'price_at_purchase' => $item->price_at_purchase,
                         'line_total'        => $item->quantity * $item->price_at_purchase,
-                        'product_name'      => $item->variant?->product?->name ?? 'Unknown Product',
-                        'variant_label'     => $item->variant?->size_label ?? '',
-                        'variant_sku'       => $item->variant?->sku ?? '',
-                        'image_url'         => $item->variant?->product?->images
-                                                ->firstWhere('is_primary', true)?->image_url
-                                                ?? $item->variant?->product?->images->first()?->image_url,
+
+                        // ── Name ────────────────────────────────────────────
+                        // For products: use the product name from the relationship.
+                        // For plans / garden: use the denormalized display_name
+                        // saved at order-creation time (no join needed).
+                        'product_name' => $item->item_type === 'product'
+                            ? ($item->variant?->product?->name ?? $item->display_name ?? 'Unknown Product')
+                            : ($item->display_name ?? ucfirst($item->item_type) . ' Item'),
+
+                        // ── Image ────────────────────────────────────────────
+                        // For products: resolve via the product images relationship.
+                        // For plans / garden: use the denormalized display_image.
+                        'image_url' => $item->item_type === 'product'
+                            ? $this->resolveProductImage($item)
+                            : ($item->display_image ?? null),
+
+                        'variant_label' => $item->variant?->size_label ?? '',
+                        'variant_sku'   => $item->variant?->sku        ?? '',
                     ]),
                 ];
             });
@@ -56,5 +68,27 @@ class OrderController extends Controller
         return Inertia::render('front/orders', [
             'orders' => $orders,
         ]);
+    }
+
+    // -------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------
+
+    private function resolveProductImage($item): ?string
+    {
+        $images = $item->variant?->product?->images;
+
+        if (!$images || $images->isEmpty()) {
+            return null;
+        }
+
+        $url = $images->firstWhere('is_primary', true)?->image_url
+            ?? $images->first()?->image_url;
+
+        if (!$url) {
+            return null;
+        }
+
+        return str_starts_with($url, 'http') ? $url : '/storage/' . ltrim($url, '/');
     }
 }
