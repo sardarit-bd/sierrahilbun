@@ -19,17 +19,8 @@ class ProductSalesChartWidget extends ChartWidget
 
     /**
      * Allow the user to toggle between chart types from the UI.
-     * Available: 'bar' | 'line'
      */
-    public string|null $filter = 'bar';
-
-    // protected function getFilters(): ?array
-    // {
-    //     return [
-    //         'bar'  => 'Bar Chart',
-    //         'line' => 'Line Chart',
-    //     ];
-    // }
+    public string|null $filter = 'line';
 
     protected function getType(): string
     {
@@ -74,9 +65,6 @@ class ProductSalesChartWidget extends ChartWidget
                     'mode'      => 'index',
                     'intersect' => false,
                     'callbacks' => [
-                        // Prefix values with $ sign in tooltips
-                        // Note: callbacks with closures aren't serialisable to JS;
-                        // use a custom Filament JS plugin for advanced formatting.
                     ],
                 ],
             ],
@@ -86,8 +74,17 @@ class ProductSalesChartWidget extends ChartWidget
                 ],
                 'y' => [
                     'beginAtZero' => true,
-                    'ticks'       => [
-                        'callback' => null, // Override via JS plugin if needed
+                    'title' => [
+                        'display' => true,
+                        'text'    => 'Products Sold',
+                        'color'   => '#6b7280',
+                        'font'    => [
+                            'size'   => 12,
+                            'weight' => '500',
+                        ],
+                    ],
+                    'ticks' => [
+                        'precision' => 0,
                     ],
                 ],
             ],
