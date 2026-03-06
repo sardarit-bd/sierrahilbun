@@ -123,8 +123,16 @@
     gap: 2px; /* Gap between items inside the group */
 }
 
-.fi-icon {
+/* ── Sidebar icons only ────────────────────────────────── */
+.fi-sidebar .fi-icon {
     color: #dedede !important;
+}
+
+/* ── Rich text editor toolbar icons only ──────────────── */
+.fi-rich-editor .fi-icon,
+.fi-rich-editor .fi-size-md,
+[class*="trix"] .fi-icon {
+    color: #0c0c0c !important;
 }
 
 /* =========================================
