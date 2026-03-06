@@ -8,6 +8,7 @@ use Filament\Resources\Pages\CreateRecord;
 class CreatePaymentGatewaySetting extends CreateRecord
 {
     protected static string $resource = PaymentGatewaySettingResource::class;
+    protected static bool $canCreateAnother = false;
 
     protected function getRedirectUrl(): string
     {

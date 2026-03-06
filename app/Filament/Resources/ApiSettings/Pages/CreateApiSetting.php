@@ -8,4 +8,5 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateApiSetting extends CreateRecord
 {
     protected static string $resource = ApiSettingResource::class;
+    protected static bool $canCreateAnother = false;
 }

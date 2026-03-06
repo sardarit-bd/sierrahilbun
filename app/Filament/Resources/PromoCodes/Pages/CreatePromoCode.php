@@ -8,4 +8,5 @@ use Filament\Resources\Pages\CreateRecord;
 class CreatePromoCode extends CreateRecord
 {
     protected static string $resource = PromoCodeResource::class;
+    protected static bool $canCreateAnother = false;
 }

@@ -19,7 +19,7 @@ class FeatureResource extends Resource
 {
     protected static ?string $model = Feature::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-bolt';
 
     protected static string|UnitEnum|null $navigationGroup = 'Plan Management';
 

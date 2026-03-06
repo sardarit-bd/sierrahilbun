@@ -8,6 +8,7 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateProductReview extends CreateRecord
 {
     protected static string $resource = ProductReviewResource::class;
+    protected static bool $canCreateAnother = false;
 
     
 }

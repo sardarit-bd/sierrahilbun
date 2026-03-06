@@ -8,6 +8,7 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateFeature extends CreateRecord
 {
     protected static string $resource = FeatureResource::class;
+    protected static bool $canCreateAnother = false;
 
     protected function getRedirectUrl(): string
     {

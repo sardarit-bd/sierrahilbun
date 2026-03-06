@@ -8,6 +8,7 @@ use Filament\Resources\Pages\CreateRecord;
 class CreatePlan extends CreateRecord
 {
     protected static string $resource = PlanResource::class;
+    protected static bool $canCreateAnother = false;
 
     protected function getRedirectUrl(): string
     {

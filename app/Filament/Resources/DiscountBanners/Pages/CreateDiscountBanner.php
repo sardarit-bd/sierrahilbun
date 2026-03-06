@@ -8,6 +8,7 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateDiscountBanner extends CreateRecord
 {
     protected static string $resource = DiscountBannerResource::class;
+    protected static bool $canCreateAnother = false;
 
     protected function getRedirectUrl(): string
     {
