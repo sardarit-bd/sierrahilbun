@@ -10,7 +10,6 @@ use App\Models\YardAssessment;
 use App\Services\Checkout\DTO\CheckoutCalculationDTO;
 use App\Services\Lawn\LawnPricingService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class CheckoutService
@@ -90,8 +89,6 @@ class CheckoutService
             ->unique()
             ->toArray();
 
-        // Batch-load all assessment IDs referenced by plan items.
-        // These are UUIDs (char 36) from yard_assessments.
         $assessmentIds = collect($cartItems)
             ->where('type', 'plan')
             ->pluck('assessment_id')
@@ -107,10 +104,11 @@ class CheckoutService
             ? Plan::whereIn('id', $planIds)->get()->keyBy('id')
             : collect();
 
-        // Load assessments keyed by their UUID so we can look up square_feet per item.
+        // Load assessments — include packaging_by_tier so we can resolve
+        // the exact product slugs the user saw on the plan page.
         $assessments = !empty($assessmentIds)
             ? YardAssessment::whereIn('id', $assessmentIds)
-                ->select('id', 'square_feet', 'resolved_tier')
+                ->select('id', 'square_feet', 'resolved_tier', 'packaging_by_tier')
                 ->get()
                 ->keyBy('id')
             : collect();
@@ -132,17 +130,33 @@ class CheckoutService
                     );
                 }
 
-                // Resolve sqft-scaled price via LawnPricingService.
-                $productSlugs = [];
+                // ── 1. Resolve price via LawnPricingService (sqft-scaled) ──
                 $assessmentId = $item['assessment_id'] ?? null;
                 $tier         = $item['tier'] ?? null;
+                $assessment   = $assessmentId ? $assessments->get($assessmentId) : null;
 
-                if ($assessmentId && $tier) {
-                    $assessment   = $assessments->get($assessmentId);
-                    $packaging    = $assessment?->packaging_by_tier[$tier] ?? [];
+                if ($assessment && $assessment->square_feet) {
+                    $tierSlug  = last(explode('-', $plan->slug));
+                    $unitPrice = $this->lawnPricing->scaledPrice($tierSlug, (int) $assessment->square_feet);
+                } else {
+                    // Fallback: flat yearly / 12 with no sqft scaling
+                    $yearlyPrice = (float) ($plan->current_price_yearly ?? $plan->base_price_yearly);
+                    $unitPrice   = round($yearlyPrice / 12, 2);
+                }
+
+                $lineTotal  = round($unitPrice * $quantity, 2);
+                $subtotal  += $lineTotal;
+
+                // ── 2. Resolve exact product slugs from assessment packaging ──
+                // These are the products the user actually saw on the plan page,
+                // not all products across all plan features.
+                $productSlugs = [];
+                if ($assessmentId && $tier && $assessment) {
+                    $packaging    = $assessment->packaging_by_tier[$tier] ?? [];
                     $productSlugs = collect($packaging['lines'] ?? [])->pluck('slug')->toArray();
                 }
 
+                // ── 3. Store verified item in session ──────────────
                 $verifiedItems[] = [
                     'type'          => 'plan',
                     'plan_id'       => $plan->id,
