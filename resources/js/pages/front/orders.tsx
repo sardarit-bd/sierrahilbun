@@ -20,6 +20,18 @@ const DeliveryStatusBadge = ({ status }: { status: string }) => {
 
 const OrderItemsPanel = ({ items }: { items: any[] }) => {
     const [open, setOpen] = useState(false);
+
+    const planItems    = items.filter(i => i.item_type === 'plan');
+    const gardenItems  = items.filter(i => i.item_type === 'garden');
+    const productItems = items.filter(i => i.item_type === 'product');
+
+    const totalDisplay = (planItems.length > 0 ? 1 : 0)
+                       + (gardenItems.length > 0 ? 1 : 0)
+                       + productItems.length;
+
+    const planTotal   = planItems.reduce((s, i) => s + parseFloat(i.line_total ?? 0), 0);
+    const planName    = planItems[0]?.plan_name ?? 'Lawn Plan';
+
     return (
         <div>
             <button
@@ -27,17 +39,88 @@ const OrderItemsPanel = ({ items }: { items: any[] }) => {
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
             >
                 <Package className="w-4 h-4" />
-                {items.length} {items.length === 1 ? 'Item' : 'Items'}
+                {totalDisplay} {totalDisplay === 1 ? 'Item' : 'Items'}
                 {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </button>
 
             {open && (
-                <div className="mt-3 space-y-2">
-                    {items.map((item) => (
+                <div className="mt-3 space-y-3">
+
+                    {/* Lawn Plan — grouped under plan name */}
+                    {planItems.length > 0 && (
+                        <div className="rounded-xl border border-blue-100 bg-blue-50/50 overflow-hidden">
+                            <div className="flex items-center justify-between px-3 py-2 bg-blue-100/60 border-b border-blue-100">
+                                <span className="text-xs font-bold text-blue-800 uppercase tracking-wide">
+                                    {planName}
+                                </span>
+                                <span className="text-xs font-bold text-blue-800">
+                                    ${planTotal.toFixed(2)}
+                                </span>
+                            </div>
+                            <div className="divide-y divide-blue-100/60">
+                                {planItems.map((item) => (
+                                    <div key={item.id} className="flex items-center gap-3 px-3 py-2.5">
+                                        {item.image_url ? (
+                                            <img
+                                                src={item.image_url}
+                                                alt={item.product_name}
+                                                className="w-10 h-10 rounded-lg object-cover flex-shrink-0 bg-white"
+                                            />
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                <Package className="w-4 h-4 text-blue-400" />
+                                            </div>
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-slate-900 truncate">
+                                                {item.product_name}
+                                            </p>
+                                            <p className="text-xs text-slate-500">Qty: {item.quantity}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Garden Care */}
+                    {gardenItems.length > 0 && (
+                        <div className="rounded-xl border border-green-100 bg-green-50/50 overflow-hidden">
+                            <div className="flex items-center justify-between px-3 py-2 bg-green-100/60 border-b border-green-100">
+                                <span className="text-xs font-bold text-green-800 uppercase tracking-wide">
+                                    Garden Care
+                                </span>
+                                <span className="text-xs font-bold text-green-800">
+                                    ${gardenItems.reduce((s, i) => s + parseFloat(i.line_total ?? 0), 0).toFixed(2)}
+                                </span>
+                            </div>
+                            <div className="divide-y divide-green-100/60">
+                                {gardenItems.map((item) => (
+                                    <div key={item.id} className="flex items-center gap-3 px-3 py-2.5">
+                                        <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                                            <Package className="w-4 h-4 text-green-400" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-slate-900 truncate">
+                                                {item.product_name}
+                                            </p>
+                                            <p className="text-xs text-slate-500">Qty: {item.quantity}</p>
+                                        </div>
+                                        <p className="text-sm font-semibold text-slate-700 flex-shrink-0">
+                                            ${parseFloat(item.line_total ?? 0).toFixed(2)}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Regular products */}
+                    {productItems.map((item) => (
                         <div key={item.id} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
                             {item.image_url ? (
                                 <img
-                                    src={`${item.image_url}`}
+                                    src={item.image_url}
                                     alt={item.product_name}
                                     className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
                                 />
@@ -60,6 +143,7 @@ const OrderItemsPanel = ({ items }: { items: any[] }) => {
                             </p>
                         </div>
                     ))}
+
                 </div>
             )}
         </div>

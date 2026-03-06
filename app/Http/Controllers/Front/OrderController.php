@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Front;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\Plan;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -61,6 +62,9 @@ class OrderController extends Controller
 
                         'variant_label' => $item->variant?->size_label ?? '',
                         'variant_sku'   => $item->variant?->sku        ?? '',
+                        'plan_name' => $item->item_type === 'plan'
+                            ? Plan::find($item->item_id)?->name
+                            : null,
                     ]),
                 ];
             });
