@@ -117,7 +117,7 @@ class BlogPostForm
                                         'scheduled' => 'Scheduled',
                                         'published' => 'Published',
                                     ])
-                                    ->default('draft')
+                                    ->default('published')
                                     ->required()
                                     ->native(false)
                                     ->live(),
@@ -126,14 +126,16 @@ class BlogPostForm
                                     ->label('Publish Date')
                                     ->seconds(false)
                                     ->native(false)
-                                    ->helperText('Leave blank to publish immediately.')
+                                    ->default(now())
+                                    ->helperText('Auto-set to now when published.')
                                     ->visible(fn ($get) => in_array($get('status'), ['scheduled', 'published'])),
 
                                 Toggle::make('is_published')
                                     ->label('Publicly visible')
                                     ->onColor('success')
                                     ->offColor('gray')
-                                    ->inline(false),
+                                    ->inline(false)
+                                    ->default(true),
                             ]),
 
                         // Featured Image

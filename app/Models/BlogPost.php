@@ -18,6 +18,7 @@ class BlogPost extends Model
         'excerpt',
         'content',
         'featured_image_url',
+        'status',       
         'is_published',
         'published_at',
     ];
@@ -30,6 +31,18 @@ class BlogPost extends Model
 
     protected static function booted()
     {
+        // Auto-set published_at when status becomes published
+        static::saving(function (BlogPost $post) {
+            if ($post->status === 'published' && is_null($post->published_at)) {
+                $post->published_at = now();
+            }
+
+            // Clear published_at if reverted to draft
+            if (in_array($post->status, ['draft', 'review'])) {
+                $post->published_at = null;
+            }
+        });
+
         static::saved(function () {
             app(CacheService::class)->flush(['blogs']);
         });
