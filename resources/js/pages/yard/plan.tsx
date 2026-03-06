@@ -109,27 +109,34 @@ export default function App({ assessment, plans = {}, recommended_tier, all_plan
   //   weed_plan_id:    weedsPlanEnabled && hasWeeds      ? selectedWeedsPlanId         : null,
   //   garden_products: gardenEnabled    && hasGardenPlan ? assessment?.garden_products : null,
   // };
-  const cartProduct = {
-    id: ['bundle', selectedLawnPlanId, weedsPlanEnabled && hasWeeds ? selectedWeedsPlanId : null, gardenEnabled && hasGardenPlan ? `garden-${assessment?.garden_products?.garden_size}` : null].filter(Boolean).join('-'),
+  // In plan.jsx — update the cartProduct object to include assessment_id.
+// The assessment.id is already available as a prop passed from PlanController.
+//
+// Replace your existing cartProduct definition with this:
 
-    // ✅ Use real plan image from enriched packaging
-    image: selectedLawnEntry?.features?.[0]?.products?.[0]?.primary_image
-        ?? selectedLawnEntry?.plan?.image_url
-        ?? FALLBACK_IMAGE,
+const cartProduct = {
+  id: ['bundle', selectedLawnPlanId, weedsPlanEnabled && hasWeeds ? selectedWeedsPlanId : null, gardenEnabled && hasGardenPlan ? `garden-${assessment?.garden_products?.garden_size}` : null].filter(Boolean).join('-'),
+  name: [
+    `Lawn Care (${selectedLawnEntry?.plan?.name})`,
+    weedsPlanEnabled && hasWeeds      ? `Weeds Control (${selectedWeedsPlan?.name})` : null,
+    gardenEnabled    && hasGardenPlan ? 'Garden Care'                                : null,
+  ].filter(Boolean).join(' + '),
+  title:           selectedLawnEntry?.plan?.name,
 
-    // ✅ Keep name as-is (it's already correct)
-    name: [
-      `Lawn Care (${selectedLawnEntry?.plan?.name})`,
-      weedsPlanEnabled && hasWeeds      ? `Weeds (${selectedWeedsPlan?.name})` : null,
-      gardenEnabled    && hasGardenPlan ? 'Garden Care'                        : null,
-    ].filter(Boolean).join(' + '),
+  // Real plan image from first product in first feature
+  image: selectedLawnEntry?.features?.[0]?.products?.[0]?.primary_image
+      ?? selectedLawnEntry?.plan?.image_url
+      ?? FALLBACK_IMAGE,
 
-    title:           selectedLawnEntry?.plan?.name,
-    price:           totalPrice,
-    lawn_plan_id:    selectedLawnPlanId,
-    weed_plan_id:    weedsPlanEnabled && hasWeeds      ? selectedWeedsPlanId         : null,
-    garden_products: gardenEnabled    && hasGardenPlan ? assessment?.garden_products : null,
-  };
+  price:           totalPrice,
+  lawn_plan_id:    selectedLawnPlanId,
+  weed_plan_id:    weedsPlanEnabled && hasWeeds      ? selectedWeedsPlanId         : null,
+  garden_products: gardenEnabled    && hasGardenPlan ? assessment?.garden_products : null,
+
+  // ✅ Pass assessment_id so CheckoutService can look up square_feet
+  // and apply the correct LawnPricingService sqft multiplier server-side.
+  assessment_id: assessment?.id ?? null,
+};
 
   return (
     <AppHeaderLayout>

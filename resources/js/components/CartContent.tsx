@@ -114,21 +114,24 @@ export default function CartContent() {
       const allItems = cart.flatMap(item => {
         const lineItems = [];
 
-        // Lawn plan
+        // Lawn plan — include assessment_id so the backend can apply
+        // the correct sqft-scaled price via LawnPricingService
         if (item.lawn_plan_id) {
           lineItems.push({
-            type:     'plan',
-            plan_id:  parseInt(item.lawn_plan_id, 10),
-            quantity: item.quantity || 1,
+            type:          'plan',
+            plan_id:       parseInt(item.lawn_plan_id, 10),
+            quantity:      item.quantity || 1,
+            assessment_id: item.assessment_id ?? null,
           });
         }
 
-        // Weed plan
+        // Weed plan — also needs assessment_id for sqft scaling
         if (item.weed_plan_id) {
           lineItems.push({
-            type:     'plan',
-            plan_id:  parseInt(item.weed_plan_id, 10),
-            quantity: item.quantity || 1,
+            type:          'plan',
+            plan_id:       parseInt(item.weed_plan_id, 10),
+            quantity:      item.quantity || 1,
+            assessment_id: item.assessment_id ?? null,
           });
         }
 

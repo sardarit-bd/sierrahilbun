@@ -11,8 +11,8 @@ export const useCart = () => {
 };
 
 export const CartProvider = ({ children }) => {
-  const [cart, setCart]             = useState([]);
-  const [isLoaded, setIsLoaded]     = useState(false);
+  const [cart, setCart]                 = useState([]);
+  const [isLoaded, setIsLoaded]         = useState(false);
   const [appliedPromo, setAppliedPromo] = useState(null);
 
   useEffect(() => {
@@ -58,18 +58,23 @@ export const CartProvider = ({ children }) => {
       return [
         ...prevCart,
         {
-          id:              product.id,
-          name:            product.name || product.title,
-          price:           product.base_price || product.price,
-          originalPrice:   product.original_price ?? null,
-          image:           product.image,
-          variant:         product.variant ?? '',
-          inStock:         product.inStock ?? true,
+          id:            product.id,
+          name:          product.name || product.title,
+          price:         product.base_price || product.price,
+          originalPrice: product.original_price ?? null,
+
+          // Plan products use primary_image; direct products use image
+          image:         product.image || product.primary_image || null,
+
+          variant:       product.variant ?? '',
+          inStock:       product.inStock ?? true,
           quantity,
           lawn_plan_id:    product.lawn_plan_id    ?? null,
           weed_plan_id:    product.weed_plan_id    ?? null,
-          // Garden: store the full calculated payload for server-side verification
           garden_products: product.garden_products ?? null,
+
+          // ✅ Persist assessment_id so checkout can resolve sqft-scaled price
+          assessment_id:   product.assessment_id   ?? null,
         },
       ];
     });

@@ -3,10 +3,12 @@
 namespace App\Services\Checkout;
 
 use App\Models\CheckoutSession;
-use App\Models\Product;
 use App\Models\Plan;
+use App\Models\Product;
 use App\Models\PromoCode;
+use App\Models\YardAssessment;
 use App\Services\Checkout\DTO\CheckoutCalculationDTO;
+use App\Services\Lawn\LawnPricingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -33,11 +35,9 @@ class CheckoutService
         ['slug' => 'garden-revive', 'name' => 'Garden Revive'],
     ];
 
-    private const PROMO_CODES = [
-        'SAVE10' => ['type' => 'percentage', 'value' => 10],
-        'SAVE20' => ['type' => 'percentage', 'value' => 20],
-        'FLAT5'  => ['type' => 'fixed',      'value' => 5],
-    ];
+    public function __construct(
+        private readonly LawnPricingService $lawnPricing,
+    ) {}
 
     public function createSession(
         int     $userId,
@@ -90,12 +90,29 @@ class CheckoutService
             ->unique()
             ->toArray();
 
+        // Batch-load all assessment IDs referenced by plan items.
+        // These are UUIDs (char 36) from yard_assessments.
+        $assessmentIds = collect($cartItems)
+            ->where('type', 'plan')
+            ->pluck('assessment_id')
+            ->filter()
+            ->unique()
+            ->toArray();
+
         $products = !empty($productIds)
             ? Product::whereIn('id', $productIds)->where('is_active', true)->get()->keyBy('id')
             : collect();
 
         $plans = !empty($planIds)
             ? Plan::whereIn('id', $planIds)->get()->keyBy('id')
+            : collect();
+
+        // Load assessments keyed by their UUID so we can look up square_feet per item.
+        $assessments = !empty($assessmentIds)
+            ? YardAssessment::whereIn('id', $assessmentIds)
+                ->select('id', 'square_feet', 'resolved_tier')
+                ->get()
+                ->keyBy('id')
             : collect();
 
         // Step 2: Build verified items with server-side prices
@@ -115,27 +132,44 @@ class CheckoutService
                     );
                 }
 
-                $yearlyPrice = (float) ($plan->current_price_yearly ?? $plan->base_price_yearly);
-                $unitPrice   = round($yearlyPrice / 12, 2);
-                $lineTotal   = round($unitPrice * $quantity, 2);
-                $subtotal   += $lineTotal;
+                // Resolve sqft-scaled price via LawnPricingService.
+                //
+                // If the cart item carries an assessment_id, we load the
+                // assessment's square_feet and run it through the same
+                // multiplier bands used on the plan page.
+                //
+                // If no assessment is provided (e.g. weeds plan purchased
+                // standalone) we fall back to the flat yearly/12 price.
+                $assessmentId = $item['assessment_id'] ?? null;
+                $assessment   = $assessmentId ? $assessments->get($assessmentId) : null;
+
+                if ($assessment && $assessment->square_feet) {
+                    // Derive tier slug from the plan slug (e.g. "lawn-gold" → "gold")
+                    $tierSlug  = last(explode('-', $plan->slug));
+                    $unitPrice = $this->lawnPricing->scaledPrice($tierSlug, (int) $assessment->square_feet);
+                } else {
+                    // Fallback: flat yearly price / 12 (no sqft scaling)
+                    $yearlyPrice = (float) ($plan->current_price_yearly ?? $plan->base_price_yearly);
+                    $unitPrice   = round($yearlyPrice / 12, 2);
+                }
+
+                $lineTotal  = round($unitPrice * $quantity, 2);
+                $subtotal  += $lineTotal;
 
                 $verifiedItems[] = [
-                    'type'       => 'plan',
-                    'plan_id'    => $plan->id,
-                    'name'       => $plan->name,
-                    'unit_price' => $unitPrice,
-                    'quantity'   => $quantity,
-                    'line_total' => $lineTotal,
+                    'type'          => 'plan',
+                    'plan_id'       => $plan->id,
+                    'name'          => $plan->name,
+                    'unit_price'    => $unitPrice,
+                    'quantity'      => $quantity,
+                    'line_total'    => $lineTotal,
+                    'assessment_id' => $assessmentId,
                 ];
 
                 continue;
             }
 
             // ── Garden item ────────────────────────────────────────
-            // Price is fully recomputed server-side from garden_size.
-            // Frontend garden_products payload is used only for garden_size —
-            // quarts and totals are recalculated here; never trusted from client.
             if ($item['type'] === 'garden') {
                 $gardenProducts = $item['garden_products'] ?? null;
                 $gardenSize     = $gardenProducts['garden_size'] ?? null;
@@ -153,8 +187,8 @@ class CheckoutService
                 $gardenTotal     = 0.00;
 
                 foreach (self::GARDEN_PRODUCTS as $product) {
-                    $lineTotal        = round($quarts * self::GARDEN_PRICE_PER_QUART, 2);
-                    $gardenTotal     += $lineTotal;
+                    $lineTotal         = round($quarts * self::GARDEN_PRICE_PER_QUART, 2);
+                    $gardenTotal      += $lineTotal;
                     $gardenLineItems[] = [
                         'slug'            => $product['slug'],
                         'name'            => $product['name'],
