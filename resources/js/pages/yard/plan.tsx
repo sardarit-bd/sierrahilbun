@@ -110,7 +110,7 @@ export default function App({ assessment, plans = {}, recommended_tier, all_plan
   //   garden_products: gardenEnabled    && hasGardenPlan ? assessment?.garden_products : null,
   // };
   const cartProduct = {
-    id: ['bundle', selectedLawnPlanId, ...].filter(Boolean).join('-'),
+    id: ['bundle', selectedLawnPlanId, weedsPlanEnabled && hasWeeds ? selectedWeedsPlanId : null, gardenEnabled && hasGardenPlan ? `garden-${assessment?.garden_products?.garden_size}` : null].filter(Boolean).join('-'),
 
     // ✅ Use real plan image from enriched packaging
     image: selectedLawnEntry?.features?.[0]?.products?.[0]?.primary_image
