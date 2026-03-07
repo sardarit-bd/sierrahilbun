@@ -228,7 +228,7 @@ final class PlanController extends Controller
             ->join('features as f', 'f.id', '=', 'pf.feature_id')
             ->where('pf.plan_id', $planId)
             ->orderBy('pf.sort_order')
-            ->select('f.id', 'f.title', 'f.subtitle', 'f.icon_url', 'pf.sort_order')
+            ->select('f.id', 'f.title', 'f.subtitle', 'f.image_url', 'pf.sort_order')
             ->get();
 
         if ($planFeatures->isEmpty()) {
@@ -265,7 +265,9 @@ final class PlanController extends Controller
                 'id'       => $feature->id,
                 'title'    => $feature->title,
                 'subtitle' => $feature->subtitle,
-                'icon_url' => $feature->icon_url,
+                'image_url' => $feature->image_url
+                    ? '/storage/' . ltrim(json_decode($feature->image_url) ?? $feature->image_url, '/')
+                    : null,
                 'products' => $featureProducts,
             ];
         }

@@ -20,7 +20,7 @@ class Feature extends Model
     ];
 
     protected $casts = [
-        'image_url'  => 'array',
+        'image_url'  => 'string',
         'sort_order' => 'integer',
     ];
 

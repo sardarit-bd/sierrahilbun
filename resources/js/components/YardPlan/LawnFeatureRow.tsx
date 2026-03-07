@@ -147,7 +147,7 @@ const LawnFeatureRow = ({ feature }) => {
                 {/* Icon */}
                 {feature.image_url && !iconError ? (
                     <img
-                        src={feature.icon_url}
+                        src={feature.image_url}
                         alt={feature.title}
                         className={`w-10 h-10 rounded-full object-cover flex-shrink-0 ${!isNeeded ? 'opacity-40' : ''}`}
                         onError={() => setIconError(true)}
