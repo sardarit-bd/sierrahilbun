@@ -7,7 +7,6 @@ use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class OrderInfolist
@@ -99,41 +98,109 @@ class OrderInfolist
                             ->placeholder('—'),
                     ]),
 
-                // Order Items (full width)
+                // ── Order Items (full width) ───────────────────────
+                // Items are grouped by type:
+                //   plan    → grouped under plan name, shows product image + name + qty
+                //   garden  → grouped under "Garden Care", shows name + qty + price
+                //   product → shown individually with image, name, variant, qty, price
                 Section::make('Order Items')
-                    ->columnSpan(1)
+                    ->columnSpanFull()
                     ->schema([
+
+                        // ── Plan items ────────────────────────────
+                        // All plan rows share the same item_id (plan_id).
+                        // We group them visually under the plan name header.
                         RepeatableEntry::make('items')
-                            ->label('')
+                            ->label('Lawn Plan Products')
+                            ->visible(fn ($record) => $record->items->where('item_type', 'plan')->isNotEmpty())
+                            ->getStateUsing(fn ($record) => $record->items->where('item_type', 'plan')->values())
                             ->schema([
-                                ImageEntry::make('variant.product.images')
+                                // Product image — from display_image (denormalized at order time)
+                                ImageEntry::make('display_image')
                                     ->label('Image')
+                                    ->disk('public')
+                                    ->width(56)
+                                    ->height(56)
+                                    ->extraImgAttributes(['class' => 'rounded-lg object-cover'])
+                                    ->placeholder('—')
+                                    ->getStateUsing(function ($record) {
+                                        $url = $record->display_image;
+                                        if (!$url) return null;
+                                        // Strip /storage/ prefix — ImageEntry with disk('public') adds it
+                                        return ltrim(str_replace('/storage/', '', $url), '/');
+                                    }),
+
+                                TextEntry::make('display_name')
+                                    ->label('Product')
+                                    ->placeholder('—')
+                                    ->weight('bold'),
+
+                                TextEntry::make('quantity')
+                                    ->label('Qty'),
+
+                                // Plan name from the Plan model via item_id
+                                TextEntry::make('plan_name')
+                                    ->label('Plan')
+                                    ->placeholder('—')
+                                    ->getStateUsing(fn ($record) =>
+                                        \App\Models\Plan::find($record->item_id)?->name ?? '—'
+                                    )
+                                    ->badge()
+                                    ->color('info'),
+                            ])
+                            ->columns(4),
+
+                        // ── Garden items ──────────────────────────
+                        RepeatableEntry::make('garden_items')
+                            ->label('Garden Care Products')
+                            ->visible(fn ($record) => $record->items->where('item_type', 'garden')->isNotEmpty())
+                            ->getStateUsing(fn ($record) => $record->items->where('item_type', 'garden')->values())
+                            ->schema([
+                                TextEntry::make('display_name')
+                                    ->label('Product')
+                                    ->placeholder('—')
+                                    ->weight('bold'),
+
+                                TextEntry::make('quantity')
+                                    ->label('Qty'),
+
+                                TextEntry::make('price_at_purchase')
+                                    ->label('Unit Price')
+                                    ->money('USD'),
+
+                                TextEntry::make('line_total')
+                                    ->label('Line Total')
+                                    ->money('USD')
+                                    ->getStateUsing(fn ($record) => $record->quantity * $record->price_at_purchase),
+                            ])
+                            ->columns(4),
+
+                        // ── Regular product items ─────────────────
+                        RepeatableEntry::make('product_items')
+                            ->label('Products')
+                            ->visible(fn ($record) => $record->items->where('item_type', 'product')->isNotEmpty())
+                            ->getStateUsing(fn ($record) => $record->items->where('item_type', 'product')->values())
+                            ->schema([
+                                ImageEntry::make('image')
+                                    ->label('Image')
+                                    ->disk('public')
+                                    ->width(56)
+                                    ->height(56)
+                                    ->extraImgAttributes(['class' => 'rounded-lg object-cover'])
+                                    ->placeholder('—')
                                     ->getStateUsing(function ($record) {
                                         $primary = $record->variant?->product?->images
                                             ->firstWhere('is_primary', true)
                                             ?? $record->variant?->product?->images->first();
-                                        return $primary?->image_url;
-                                    })
-                                    ->disk('public')
-                                    ->width(64)
-                                    ->height(64)
-                                    ->extraImgAttributes(['class' => 'rounded-lg object-cover'])
-                                    ->placeholder('—')
-                                    ->visible(fn ($record) => $record->item_type === 'product'),
-
-                                TextEntry::make('item_type')
-                                    ->label('Type')
-                                    ->badge()
-                                    ->color(fn ($state) => match ($state) {
-                                        'product' => 'success',
-                                        'plan'    => 'info',
-                                        'garden'  => 'warning',
-                                        default   => 'gray',
+                                        $url = $primary?->image_url;
+                                        if (!$url) return null;
+                                        return ltrim(str_replace('/storage/', '', $url), '/');
                                     }),
 
                                 TextEntry::make('variant.product.name')
                                     ->label('Product')
-                                    ->placeholder('—'),
+                                    ->placeholder('—')
+                                    ->weight('bold'),
 
                                 TextEntry::make('variant.size_label')
                                     ->label('Variant')
@@ -151,10 +218,10 @@ class OrderInfolist
                                     ->money('USD')
                                     ->getStateUsing(fn ($record) => $record->quantity * $record->price_at_purchase),
                             ])
-                            ->columns(7),
+                            ->columns(6),
                     ]),
 
-                // Delivery + Customer stacked in right column
+                // ── Delivery + Customer stacked in right column ───
                 Group::make()
                     ->columnSpan(1)
                     ->schema([
