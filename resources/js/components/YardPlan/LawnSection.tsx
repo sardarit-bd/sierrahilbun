@@ -19,8 +19,6 @@ const LawnSection = ({
     const selectedPlan = selectedEntry?.plan;
     const features     = selectedEntry?.features ?? [];
 
-    console.log(features);
-
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-100">
 
