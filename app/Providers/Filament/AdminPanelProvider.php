@@ -41,6 +41,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Product Management'),
                 NavigationGroup::make('Plan Management'),
                 NavigationGroup::make('Blog Management'),
+                NavigationGroup::make('User Management'),
                 NavigationGroup::make('Settings'),
                 NavigationGroup::make('Testimonial Management'),
                 NavigationGroup::make('Profile Settings'),
