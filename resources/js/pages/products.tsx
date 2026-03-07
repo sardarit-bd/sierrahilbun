@@ -358,7 +358,7 @@ export default function AllProductsPage({ products, categories, filters }: Props
               </button>
 
               {isSortOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 shadow-xl rounded-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute left-0 md:left-auto md:right-0 mt-2 w-56 max-w-[calc(100vw-2rem)] bg-white border border-gray-100 shadow-xl rounded-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
                   {sortOptions.map((option) => (
                     <button
                       key={option.value}
