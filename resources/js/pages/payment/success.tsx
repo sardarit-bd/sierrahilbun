@@ -19,7 +19,7 @@ export default function PaymentSuccess({ transaction_id, amount, currency }) {
         localStorage.removeItem('turftec_promo');
 
         const redirectTimer = setTimeout(() => {
-            router.visit('/');
+            router.visit('/orders');
         }, 10000);
     
         
