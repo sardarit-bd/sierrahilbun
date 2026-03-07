@@ -56,10 +56,12 @@ const GardenSection = ({
               <div className="text-lg font-bold text-gray-900">${parseFloat(gardenPrice ?? 0).toFixed(2)}</div>
             </div>
           </div>
-          <div className="p-6 space-y-4 bg-gray-50/30">
-            {gardenItems.map((item, index) => (
-              <GardenProductCard key={item.slug} item={item} index={index} />
-            ))}
+          <div className="p-6 bg-gray-50/30">
+            <div className="grid grid-cols-2 gap-4">
+              {gardenItems.map((item, index) => (
+                <GardenProductCard key={item.slug} item={item} index={index} />
+              ))}
+            </div>
           </div>
         </div>
       </div>
