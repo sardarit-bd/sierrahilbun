@@ -145,7 +145,7 @@ const LawnFeatureRow = ({ feature }) => {
                 onClick={() => canExpand && setIsExpanded(!isExpanded)}
             >
                 {/* Icon */}
-                {feature.icon_url && !iconError ? (
+                {feature.image_url && !iconError ? (
                     <img
                         src={feature.icon_url}
                         alt={feature.title}

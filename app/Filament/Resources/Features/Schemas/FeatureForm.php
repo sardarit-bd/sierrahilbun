@@ -19,10 +19,9 @@ class FeatureForm
                 TextInput::make('title')
                     ->required(),
                 TextInput::make('subtitle'),
-                TextInput::make('icon_url')
-                    ->url(),
+                // TextInput::make('icon_url')
+                //     ->url(),
                 FileUpload::make('image_url')
-                    ->multiple()
                     ->disk('public')
                     ->directory('features')
                     ->image(),

@@ -95,24 +95,6 @@ export default function App({ assessment, plans = {}, recommended_tier, all_plan
     );
   }
 
-  // const cartProduct = {
-  //   id: ['bundle', selectedLawnPlanId, weedsPlanEnabled && hasWeeds ? selectedWeedsPlanId : null, gardenEnabled && hasGardenPlan ? `garden-${assessment?.garden_products?.garden_size}` : null].filter(Boolean).join('-'),
-  //   name: [
-  //     `Lawn Care (${selectedLawnEntry?.plan?.name})`,
-  //     weedsPlanEnabled && hasWeeds      ? `Weeds Control (${selectedWeedsPlan?.name})` : null,
-  //     gardenEnabled    && hasGardenPlan ? 'Garden Care'                                : null,
-  //   ].filter(Boolean).join(' + '),
-  //   title:           selectedLawnEntry?.plan?.name,
-  //   image:           FALLBACK_IMAGE,
-  //   price:           totalPrice,
-  //   lawn_plan_id:    selectedLawnPlanId,
-  //   weed_plan_id:    weedsPlanEnabled && hasWeeds      ? selectedWeedsPlanId         : null,
-  //   garden_products: gardenEnabled    && hasGardenPlan ? assessment?.garden_products : null,
-  // };
-  // In plan.jsx — update the cartProduct object to include assessment_id.
-// The assessment.id is already available as a prop passed from PlanController.
-//
-// Replace your existing cartProduct definition with this:
 
 const cartProduct = {
   id: ['bundle', selectedLawnPlanId, weedsPlanEnabled && hasWeeds ? selectedWeedsPlanId : null, gardenEnabled && hasGardenPlan ? `garden-${assessment?.garden_products?.garden_size}` : null].filter(Boolean).join('-'),
