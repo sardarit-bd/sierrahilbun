@@ -14,7 +14,7 @@
     @routes
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
-        <script>
+        <!-- <script>
             (function() {
                 const appearance = '{{ $appearance ?? "system" }}';
 
@@ -36,6 +36,17 @@
 
             html.dark {
                 background-color: oklch(0.145 0 0);
+            }
+        </style> -->
+
+        {{-- Force light mode always --}}
+        <script>
+            document.documentElement.classList.remove('dark');
+        </script>
+
+        <style>
+            html {
+                background-color: oklch(1 0 0);
             }
         </style>
 

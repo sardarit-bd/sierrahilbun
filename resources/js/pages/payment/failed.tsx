@@ -118,7 +118,7 @@ export default function PaymentFailed({ error }) {
                                         style={{ transition: `all 0.3s ease ${i * 0.1 + 0.3}s`, opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(8px)" }}
                                     >
                                         <span className="text-base">{reason.icon}</span>
-                                        <span className="text-[#ffffff]/50] text-xs">{reason.text}</span>
+                                        <span className="text-gray-50 text-xs">{reason.text}</span>
                                     </div>
                                 ))}
                             </div>
