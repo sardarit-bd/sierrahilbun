@@ -408,14 +408,6 @@ const Header = () => {
                 </div>
               )}
             </div>
-
-            {/* Search Footer Button */}
-            {/* <div className="p-4 border-t border-gray-100 bg-white">
-               <button className="w-full bg-[#4C8C4A] text-white font-extrabold py-4 rounded-xl transition-colors shadow-lg">
-                 Get your plan
-               </button>
-            </div> */}
-
           </div>
         </div>
       )}

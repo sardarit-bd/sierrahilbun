@@ -34,14 +34,14 @@ const isDarkMode = (appearance: Appearance): boolean => {
     return appearance === 'dark' || (appearance === 'system' && prefersDark());
 };
 
-const applyTheme = (appearance: Appearance): void => {
-    if (typeof document === 'undefined') return;
+// const applyTheme = (appearance: Appearance): void => {
+//     if (typeof document === 'undefined') return;
 
-    const isDark = isDarkMode(appearance);
+//     const isDark = isDarkMode(appearance);
 
-    document.documentElement.classList.toggle('dark', isDark);
-    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
-};
+//     document.documentElement.classList.toggle('dark', isDark);
+//     document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+// };
 
 const subscribe = (callback: () => void) => {
     listeners.add(callback);
@@ -62,19 +62,24 @@ const handleSystemThemeChange = (): void => {
     notify();
 };
 
+// use-appearance.tsx
+
+const applyTheme = (appearance: Appearance): void => {
+    if (typeof document === 'undefined') return;
+    // Always force light — ignore appearance value
+    document.documentElement.classList.remove('dark');
+    document.documentElement.style.colorScheme = 'light';
+};
+
 export function initializeTheme(): void {
     if (typeof window === 'undefined') return;
-
-    if (!localStorage.getItem('appearance')) {
-        localStorage.setItem('appearance', 'system');
-        setCookie('appearance', 'system');
-    }
-
-    currentAppearance = getStoredAppearance();
-    applyTheme(currentAppearance);
-
-    // Set up system theme change listener
-    mediaQuery()?.addEventListener('change', handleSystemThemeChange);
+    // Force light into storage so nothing can read 'dark' back
+    localStorage.setItem('appearance', 'light');
+    setCookie('appearance', 'light');
+    currentAppearance = 'light';
+    applyTheme('light');
+    // No need to listen for system changes since we ignore them
+    // mediaQuery()?.addEventListener('change', handleSystemThemeChange);
 }
 
 export function useAppearance(): UseAppearanceReturn {

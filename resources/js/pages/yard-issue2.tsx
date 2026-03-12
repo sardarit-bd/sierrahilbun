@@ -42,15 +42,19 @@ export default function YardIssue({ zip_code, services }) {
       <div className="flex flex-col lg:flex-row font-sans text-gray-900 bg-white">
 
         {/* Left Panel */}
-        <div className="w-full lg:w-1/2 xl:w-5/12 flex flex-col justify-center items-center px-6 py-16 sm:px-12 sm:py-20 lg:px-16 lg:py-24 xl:px-24 xl:py-32 order-2 lg:order-1">
+        <div className="w-full lg:w-1/2 xl:w-5/12 flex flex-col justify-center px-6 py-16 sm:px-12 sm:py-20 lg:px-16 lg:py-24 xl:px-24 xl:py-32 order-2 lg:order-1">
 
-          <div className="mb-8 text-center">
+          <div className="mb-8">
             <p className="text-xs font-bold tracking-wider text-gray-500 mb-2 uppercase">
               Get Started: {zip_code}
             </p>
+            {/* <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">
+              What can we help with?
+            </h1>
+            <p className="text-gray-500 italic">Select all that apply</p> */}
           </div>
 
-          <div className="mb-6">
+          <div className="grid grid-cols-3 gap-3 md:gap-4 mb-10">
             {services.map((service) => {
               const isSelected = selectedIds.includes(service.slug);
               const isLocked   = service.slug === LOCKED_SLUG;
@@ -110,7 +114,7 @@ export default function YardIssue({ zip_code, services }) {
           <button
             onClick={handleSubmit}
             disabled={processing}
-            className="bg-[#2E7D32] text-gray-50 font-bold text-sm py-2.5 px-10 rounded-lg shadow-sm hover:shadow-md transition-all active:scale-[0.99] cursor-pointer disabled:opacity-50"
+            className="w-full bg-[#2E7D32] text-gray-50 font-bold text-md py-3 rounded-lg shadow-sm hover:shadow-md transition-all active:scale-[0.99] cursor-pointer disabled:opacity-50"
           >
             {processing ? 'Loading...' : 'Continue'}
           </button>
